@@ -27,7 +27,7 @@ class Population:
         if G is None:
             self.G = nx.Graph()
         else:
-            # Make sure that every node has a disease status, rds, ethnicity, num_cc, hhsize
+            # Make sure that every node has a disease status, rds, ethnicity, num_cc_nonhh, hhsize
             n_nodes = len(G.nodes())
 
             try:
@@ -36,14 +36,14 @@ class Population:
                 assert len(G.nodes("remaining_days_sick")) == n_nodes
                 assert len(G.nodes("ethnicity")) == n_nodes
                 assert len(G.nodes("gender")) == n_nodes
-                assert len(G.nodes("num_cc")) == n_nodes
+                assert len(G.nodes("num_cc_nonhh")) == n_nodes
 
             except ValueError:
                 raise ValueError("All nodes must have valid fields")
 
             self.G = G
 
-    def add_node(self, age, ethnicity, gender, num_cc, hhid=None,
+    def add_node(self, age, ethnicity, gender, num_cc_nonhh, hhid=None,
                  id=None, disease_status='S', remaining_days_sick=0):
         """
         Adds a node to the graph. Makes sure that all node attributes are included.
@@ -58,7 +58,7 @@ class Population:
         disease_status : str
         remaining_days_sick: int
         ethnicity: str
-        num_cc: int
+        num_cc_nonhh: int
 
         Returns
         -------
@@ -75,11 +75,11 @@ class Population:
             assert disease_status in ['S', 'I', 'R']
             assert isinstance(remaining_days_sick, int)
             assert isinstance(ethnicity, str)
-            assert isinstance(num_cc, int) | isinstance(num_cc, float)
+            assert isinstance(num_cc_nonhh, int) | isinstance(num_cc_nonhh, float)
 
         except AssertionError as e:
             print(e)
-            raise ValueError("Data passed:", id, age, disease_status, remaining_days_sick, ethnicity, num_cc, hhid)
+            raise ValueError("Data passed:", id, age, disease_status, remaining_days_sick, ethnicity, num_cc_nonhh, hhid)
 
         self.G.add_nodes_from([(id,
                                 {'age': age,
@@ -87,7 +87,7 @@ class Population:
                                  'remaining_days_sick': remaining_days_sick,
                                  'gender': gender,
                                  'ethnicity': ethnicity,
-                                 'num_cc': num_cc,
+                                 'num_cc_nonhh': num_cc_nonhh,
                                  'hhid': hhid})])
         return id
 
@@ -156,7 +156,7 @@ class Population:
             node_ids.append(
                 self.add_node(age=h.head['age'],
                               ethnicity=h.head['ethnicity'],
-                              num_cc=h.head['num_cc_nonhh'],
+                              num_cc_nonhh=h.head['num_cc_nonhh'],
                               gender=h.head['gender'],
                               hhid=h.hhid)
             )
@@ -165,7 +165,7 @@ class Population:
                 node_ids.append(
                     self.add_node(age=m['age'],
                                   ethnicity=m['ethnicity'],
-                                  num_cc=m['num_cc'],
+                                  num_cc_nonhh=m['num_cc_nonhh'],
                                   gender=m['gender'],
                                   hhid=h.hhid)
                 )
