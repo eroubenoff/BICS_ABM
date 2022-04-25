@@ -1,7 +1,22 @@
 import networkx as nx
 import pandas as pd
-import numpy as np
+from uuid import uuid4
 from scipy.stats import bernoulli
+
+
+class Household:
+    def __init__(self, hhsize, head, hhid=None):
+        if hhid is None:
+            hhid = uuid4().hex
+        self.hhid = hhid
+        self.hhsize = hhsize
+        self.head = head
+        self.memberlist = []
+
+        assert self.hhsize == self.head['hhsize']
+
+    def add_member(self, r):
+        self.memberlist.append(r)
 
 
 class Population:
@@ -22,14 +37,14 @@ class Population:
                 assert len(G.nodes("ethnicity")) == n_nodes
                 assert len(G.nodes("gender")) == n_nodes
                 assert len(G.nodes("num_cc")) == n_nodes
-                assert len(G.nodes("hhsize")) == n_nodes
 
-            except:
+            except ValueError:
                 raise ValueError("All nodes must have valid fields")
 
             self.G = G
 
-    def add_node(self, id, age, ethnicity, gender, num_cc, hhsize, disease_status='S', remaining_days_sick=0):
+    def add_node(self, age, ethnicity, gender, num_cc, hhid=None,
+                 id=None, disease_status='S', remaining_days_sick=0):
         """
         Adds a node to the graph. Makes sure that all node attributes are included.
 
@@ -37,45 +52,48 @@ class Population:
         ----------
         gender
         id : str or int
+            Default: None. If none, will generate an id from uuid4().hex
+        hhid: str or int, defualt= None
         age: int
         disease_status : str
         remaining_days_sick: int
         ethnicity: str
         num_cc: int
-        hhsize: int
 
         Returns
         -------
-        None
+        Node id of the added node
 
         """
+
+        if id is None:
+            id = uuid4().hex
 
         try:
             assert isinstance(id, str) | isinstance(id, int)
-            assert isinstance(age, int)
+            assert isinstance(age, int) | isinstance(age, str)
             assert disease_status in ['S', 'I', 'R']
             assert isinstance(remaining_days_sick, int)
             assert isinstance(ethnicity, str)
-            assert isinstance(num_cc, int)
-            assert isinstance(hhsize, int)
+            assert isinstance(num_cc, int) | isinstance(num_cc, float)
 
         except AssertionError as e:
             print(e)
-            raise ValueError("Data passed:", id, age, disease_status, remaining_days_sick, ethnicity, num_cc, hhsize)
+            raise ValueError("Data passed:", id, age, disease_status, remaining_days_sick, ethnicity, num_cc, hhid)
 
         self.G.add_nodes_from([(id,
-                              {'age': age,
-                               'disease_status': disease_status,
-                               'remaining_days_sick': remaining_days_sick,
-                               'gender': gender,
-                               'ethnicity': ethnicity,
-                               'num_cc': num_cc,
-                               'hhsize': hhsize})])
-        return
+                                {'age': age,
+                                 'disease_status': disease_status,
+                                 'remaining_days_sick': remaining_days_sick,
+                                 'gender': gender,
+                                 'ethnicity': ethnicity,
+                                 'num_cc': num_cc,
+                                 'hhid': hhid})])
+        return id
 
-    def add_edge(self, u, v, protection=False):
+    def add_edges(self, el, check_input=False):
         """
-        Adds an edge to the graph. Both nodes u and v must be already present.
+        Adds an edge to the graph in the format: [(u,v,d)]
 
         Parameters
         ----------
@@ -83,19 +101,98 @@ class Population:
         v : str or int
         protection: bool
             Are the two nodes wearing protection? If True, reduces probability of transmission.
+        household: bool
+            Are the two nodes in the same household?
+
+        Returns
+        -------
+        Tuple of edge added. Returns None if u=v
+
+        """
+        if check_input:
+            for e in el:
+                try:
+                    assert e[0] in self.G.nodes()
+                    assert e[1] in self.G.nodes()
+                except AssertionError:
+                    raise ValueError("Both nodes must be present in graph")
+
+                try:
+                    assert all([x in ['household', 'protection'] for x in e[2].keys()])
+                except AssertionError:
+                    raise ValueError("Node must contain Household and Protection")
+
+                if e[0] == e[1]:
+                    el.pop(e)
+
+        self.G.add_edges_from(el)
+
+        return
+
+    def add_household(self, hh: Household):
+        """
+        Add a household or a list of households to the graph
+        Parameters
+        ----------
+        hh : Household or list<Household>
+
+        Returns
+        -------
+        Dict of hhids
+
+        """
+        if isinstance(hh, Household):
+            hh = [hh]
+
+        # Make sure all of them are households
+        assert all([isinstance(h, Household) for h in hh])
+
+        # Add all the nodes within each household
+        hhids = {}
+
+        for h in hh:
+            node_ids = list()
+
+            node_ids.append(
+                self.add_node(age=h.head['age'],
+                              ethnicity=h.head['ethnicity'],
+                              num_cc=h.head['num_cc_nonhh'],
+                              gender=h.head['gender'],
+                              hhid=h.hhid)
+            )
+
+            for m in h.memberlist:
+                node_ids.append(
+                    self.add_node(age=m['age'],
+                                  ethnicity=m['ethnicity'],
+                                  num_cc=m['num_cc'],
+                                  gender=m['gender'],
+                                  hhid=h.hhid)
+                )
+
+            hhids[h.hhid] = node_ids
+
+            self.add_edges([(u, v, {'protection': False, 'household': True})
+                            for u in node_ids for v in node_ids if u != v])
+
+        return hhids
+
+    def connect_hh_edges(self):
+        """
+        Adds edges for all nodes in the same household
 
         Returns
         -------
 
-        None
-
         """
-        if u not in self.G.nodes() or v not in self.G.nodes():
-            raise ValueError("nodes must be already present in graph")
 
-        self.G.add_edges_from([
-            (u, v, {'protection': protection})
-        ])
+        hhidlist = self.G.nodes.data('hhid')
+
+        for h in self.hhids:
+            node_ids = [n for n, hh in hhidlist if h == hh]
+            self.add_edges([(u, v, {'protection': False, 'household': True})
+                            for u in node_ids for v in node_ids if u != v])
+
 
     def remove_edge(self, u, v):
         """
@@ -111,6 +208,25 @@ class Population:
             raise ValueError("nodes must be present in graph")
 
         self.G.remove_edge(u, v)
+        return
+
+    def remove_edges(self, keep_hh=False):
+        """
+        Drops all edges in the population
+
+        Returns
+        -------
+        None
+
+        """
+        if keep_hh:
+            self.G.remove_edges_from(
+                [(u, v) for u, v, d in self.G.edges.data('household') if not d]
+            )
+        else:
+            self.G.remove_edges_from(self.G.edges)
+
+
         return
 
     @property
@@ -137,6 +253,10 @@ class Population:
     def node_ids_R(self):
         return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'R']
 
+    @property
+    def hhids(self):
+        return {h for _, h in self.G.nodes.data('hhid')}
+
     def set_sick(self, node, n):
         """
 
@@ -159,40 +279,42 @@ class Population:
         return
 
     def decrement(self):
+        # self.G.nodes[self.node_ids_I]['remaining_days_sick']
         for i in self.node_ids_I:
             if self.G.nodes[i]['remaining_days_sick'] == 0:
                 self.G.nodes[i]['disease_status'] = 'R'
+                print("Recover")
                 continue
             else:
                 self.G.nodes[i]['remaining_days_sick'] -= 1
         return
 
-    def transmit(self):
+    def transmit(self, el):
         """
+
+        Parameters
+        ----------
+        el: list of edges, tuples
+            List of nodes to transmit between
 
         Returns
         -------
+        List of newly-sick nodes
+
 
         """
 
         transmission_list = []
 
-        beta = {True: 0.1, False: 0.01}
-
-        for e in self.G.edges.data():
-            n1, n2, data = e
+        for n1, n2 in el:
             if self.G.nodes('disease_status')[n1] == 'S' and self.G.nodes('disease_status')[n2] == 'I':
-                if bernoulli.rvs(beta[data['protection']]):
-                    self.set_sick(n1, n=10)
-                    transmission_list.append(e[0])
-                else:
-                    continue
+                print("Transmit")
+                self.set_sick(n1, n=5)
+                transmission_list.append(n1)
             elif self.G.nodes('disease_status')[n2] == 'S' and self.G.nodes('disease_status')[n1] == 'I':
-                if bernoulli.rvs(beta[data['protection']]):
-                    self.set_sick(n2, n=10)
-                    transmission_list.append(e[1])
-                else:
-                    continue
+                print("Transmit")
+                self.set_sick(n2, n=5)
+                transmission_list.append(n2)
 
         return transmission_list
 
@@ -205,7 +327,7 @@ class Population:
         None.
 
         """
-        d = {k:v for k, v in self.G.nodes.data('disease_status')}
+        d = {k: v for k, v in self.G.nodes.data('disease_status')}
 
         self.history.append(d)
 
@@ -224,4 +346,3 @@ class Population:
         return pd.DataFrame(
             {i: pd.Series(val.values(), index=val.keys()) for i, val in enumerate(self.history)}
         )
-

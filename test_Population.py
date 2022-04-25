@@ -1,33 +1,22 @@
 from Population import Population
 import networkx as nx
 
-pop = nx.Graph()
-pop.add_nodes_from([
-    ('1', {'age': 26, 'disease_status': 'S', 'remaining_days_sick': 0,
-           'gender': 'male', 'ethnicity': 'white', 'num_cc': 5, 'hhsize': 2}),
-    ('2', {'age': 30, 'disease_status': 'S', 'remaining_days_sick': 0,
-           'gender': 'female', 'ethnicity': 'white', 'num_cc': 8, 'hhsize': 2}),
-    ('3', {'age': 40, 'disease_status': 'S', 'remaining_days_sick': 0,
-           'gender': 'male', 'ethnicity': 'black', 'num_cc': 1, 'hhsize': 2}),
-    ('4', {'age': 40, 'disease_status': 'S', 'remaining_days_sick': 0,
-           'gender': 'female', 'ethnicity': 'black', 'num_cc': 1, 'hhsize': 2}),
-    ('5', {'age': 95, 'disease_status': 'S', 'remaining_days_sick': 0,
-           'gender': 'female', 'ethnicity': 'black', 'num_cc': 1, 'hhsize': 1}),
-])
-pop.add_edge('1', '2')
-pop = Population(G=pop)
-
 pop = Population()
 pop.add_node(id='1', age=26, disease_status='S', remaining_days_sick=0,
-             gender='male', ethnicity='white', num_cc=5, hhsize=2)
+             gender='male', ethnicity='white', num_cc=5)
 pop.add_node(id='2', age=30, disease_status='S', remaining_days_sick=0,
-             gender='female',  ethnicity='white', num_cc=5, hhsize=2)
+             gender='female',  ethnicity='white', num_cc=5)
 pop.add_node(id='3', age=40, disease_status='S', remaining_days_sick=0,
-             gender='male', ethnicity='white', num_cc=5, hhsize=2)
+             gender='male', ethnicity='white', num_cc=5)
 pop.add_node(id='4', age=40, disease_status='S', remaining_days_sick=0,
-             gender='female', ethnicity='white', num_cc=5, hhsize=2)
+             gender='female', ethnicity='white', num_cc=5)
 pop.add_node(id='5', age=95, disease_status='S', remaining_days_sick=0,
-             gender='female', ethnicity='white', num_cc=5, hhsize=2)
+             gender='female', ethnicity='white', num_cc=5)
+
+
+pop.add_edges([('1', '2', {'protection': True, 'household': False}),
+               ('3', '4', {'protection': False, 'household': True})
+               ])
 
 
 def test_set_sick():
@@ -45,7 +34,9 @@ def test_set_sick():
 
 
 def test_transmit():
-    pop.transmit()
+    pop.set_sick('2', 10)
+    print(pop.edges)
+    pop.transmit(pop.edges)
     assert pop.node_ids_S == ['3', '4', '5']
     assert pop.node_ids_I == ['1', '2']
     assert pop.node_ids_R == []
@@ -63,4 +54,3 @@ def test_decrement():
     assert pop.node_ids_R == ['1', '2']
 
     return
-

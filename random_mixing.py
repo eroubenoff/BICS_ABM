@@ -1,63 +1,62 @@
 import random
-from Population import Population
+
+import networkx as nx
 from scipy.stats import bernoulli
-from scipy.stats import randint
-import numpy as np
-from matplotlib import pyplot as plt
-from load_data import sim_pop
+from matplotlib import pyplot as plt, animation
+from load_data import sim_individuals, lucid_data
+from itertools import combinations
+import cProfile
 
-# pop = Population()
 
-# for i in range(1000):
-#     pop.add_node(id=str(i),
-#                  age=randint.rvs(18, 85),
-#                  ethnicity=['black', 'white'][bernoulli.rvs(0.5)],
-#                  gender=['male', 'female'][bernoulli.rvs(0.5)],
-#                  num_cc=randint.rvs(1, 10),
-#                  hhsize=randint.rvs(1, 5))
+def random_mixing(n_nodes=1000, initial_sick=1, n_days=100, n_edges=10):
 
-pop = sim_pop(1000)
+    pop = sim_individuals(n_nodes, lucid_data['wave4'])
+    # nx.draw(pop.G, with_labels=False)
 
-for _ in range(3):
-    pop.set_sick(random.choice(pop.node_ids), 10)
+    for _ in range(initial_sick):
+        pop.set_sick(random.choice(pop.node_ids), 5)
 
-n_days = 100
+    node_combinations = list(combinations(pop.node_ids, 2))
 
-history = [None] * n_days
+    beta = {True: 0.01, False: 0.1}
 
-for day in range(n_days):
-    for hour in range(24):
-        if hour < 8 or hour > 20:
-            continue
-
-        for n1, n2 in zip(random.sample(pop.node_ids, 50), random.sample(pop.node_ids, 50)):
-            if n1 == n2:
+    for day in range(n_days):
+        for hour in range(24):
+            print("Day", day, "Hour", hour)
+            if hour < 8 or hour > 20:
                 continue
-            if bernoulli.rvs(0.1):
-                pop.add_edge(n1, n2, protection=bernoulli.rvs(0.5))
 
-        pop.transmit()
+            pop.add_edges(
+                [(n1, n2, {'protection': bernoulli.rvs(0.5), 'household': False})
+                 for n1, n2 in random.sample(node_combinations, n_edges)]
+            )
 
-    pop.decrement()
+            # Choose edges to transmit between
+            # Beta is probability of transmission if wearing a mask
+            pop.transmit(
+                [(u, v) for u, v, p in pop.edges.data('protection') if bernoulli(beta[p])]
+            )
+            # nx.draw(pop.G, with_labels=False)
+            # plt.pause(0.1)
+            pop.remove_edges(keep_hh=False)
 
-    pop.add_history()
+        pop.decrement()
+        pop.add_history()
+
+    return pop.process_history()
 
 
-history = pop.process_history()
-print(history)
+if __name__ == "__main__":
+    # cProfile.run('random_mixing(100)')
 
-plt.plot((history == 'S').sum(axis=0))
-plt.plot((history == 'I').sum(axis=0))
-plt.plot((history == 'R').sum(axis=0))
+    history = random_mixing(1000, initial_sick=5)
 
-plt.show()
+    print(history)
 
-# ret = np.ndarray(shape=(100, 3), dtype=int)
-# ret[day, 0] = len(pop.node_ids_S)
-# ret[day, 1] = len(pop.node_ids_I)
-# ret[day, 2] = len(pop.node_ids_R)
-# plt.plot(range(n_days), ret[:, 0], label='S')
-# plt.plot(range(n_days), ret[:, 1], label='I')
-# plt.plot(range(n_days), ret[:, 2], label='R')
-#
-# plt.show()
+    plt.plot((history == 'S').sum(axis=0))
+    plt.plot((history == 'I').sum(axis=0))
+    plt.plot((history == 'R').sum(axis=0))
+
+    plt.show()
+
+
