@@ -251,7 +251,7 @@ def sim_individuals(n, df, weights='weight_pooled'):
         return {'ethnicity': x['ethnicity'],
                 'age': int(x['age']),
                 'gender': x['gender'],
-                'num_cc': 0 if pd.isna(x['num_cc_nonhh']) else int(x['num_cc_nonhh'])}
+                'num_cc_nonhh': 0 if pd.isna(x['num_cc_nonhh']) else int(x['num_cc_nonhh'])}
 
     pop = Population()
     df = df.sample(n=n, weights=weights, replace=True)
