@@ -66,9 +66,8 @@ def household_mixing_w_random(n_hh=1000, initial_sick=1, n_days=100, n_edges=10)
 if __name__ == "__main__":
     pop, history, anim_list = household_mixing_w_random(100, initial_sick=1, n_days=60, n_edges=2)
 
-    print(history)
-
     plt.plot((history == 'S').sum(axis=0))
+    plt.plot((history == 'E').sum(axis=0))
     plt.plot((history == 'I').sum(axis=0))
     plt.plot((history == 'R').sum(axis=0))
 
@@ -77,14 +76,13 @@ if __name__ == "__main__":
     for i in anim_list:
         print(i.nodes.data('disease_status'))
 
-    coldict = {'S': 'blue', 'I': 'red', 'R': 'green'}
+    coldict = {'S': 'blue', 'E': 'purple', 'I': 'red', 'R': 'green'}
 
     fig = plt.figure()
     pos = nx.spring_layout(anim_list[1])
 
     def animate(i):
         fig.clear()
-        coldict = {'S': 'blue', 'I': 'red', 'R': 'green'}
         nc = [coldict[v] for k, v in anim_list[i].nodes('disease_status')]
         nx.draw(anim_list[i], pos=pos, node_color= nc, node_size=10)
         fig.suptitle(str(i))
