@@ -193,32 +193,6 @@ if __name__ == "__main__":
             ax[1].set_xlim([0, len(history.columns)])
 
 
-        # np = Graph(anim_list[0], scale=(5,5), node_layout='spring', node_layout_kwargs=dict(k=0.1)).node_positions
-
-        # def animate(i):
-        #     ax[0].clear()
-        #     ax[0].set_title("Day " + str(i // 24) + " hour " + str(i % 24))
-        #
-        #     nc: dict = {k: coldict[v] for k, v in anim_list[i].nodes('disease_status')}
-        #
-        #     if i > 0:
-        #         print('\r', round(i/len(anim_list)*100), '%:', round((time()-t0) - (time()-t0)/(i/len(anim_list))),
-        #               'seconds estimated remaining', end='')
-        #
-        #     Graph(anim_list[i],
-        #           # node_size=1,
-        #           node_color=nc,
-        #           node_layout=np,
-        #           scale=(5,5),
-        #           ax=ax[0])
-        #
-        #     ax[1].clear()
-        #     ax[1].plot((history.iloc[:, :i] == 'S').sum(axis=0), color=coldict['S'])
-        #     ax[1].plot((history.iloc[:, :i] == 'E').sum(axis=0), color=coldict['E'])
-        #     ax[1].plot((history.iloc[:, :i] == 'I').sum(axis=0), color=coldict['I'])
-        #     ax[1].plot((history.iloc[:, :i] == 'R').sum(axis=0), color=coldict['R'])
-        #     ax[1].set_xlim([0, len(history.columns)])
-
         anim = animation.FuncAnimation(fig, animate, frames=len(anim_list), interval=200)
 
         writervideo = animation.FFMpegWriter(fps=60)
