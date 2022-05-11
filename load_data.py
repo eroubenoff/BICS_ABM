@@ -11,7 +11,7 @@ from rpy2.robjects import pandas2ri
 pandas2ri.activate()
 
 
-def load_rds(f):
+def load_rds(f: str) -> pd.DataFrame:
     """
     Loads the RDS files.
 
@@ -33,14 +33,6 @@ def load_rds(f):
     return df
 
 
-# def test_load_rds():
-#     df = load_rds('lucid/national_wave1.rds')
-#     assert isinstance(df, pd.DataFrame)
-#
-#     assert len(lucid_data) == 12
-#     assert all([isinstance(x, pd.DataFrame) for x in lucid_data.values()])
-
-
 lucid_data = {
     'wave0': load_rds('lucid/national_wave0.rds'),
     'wave0_alters': load_rds('lucid/national_alters_wave0.rds'),
@@ -57,7 +49,7 @@ lucid_data = {
 }
 
 
-def agecat_remap(x: float):
+def agecat_remap(x: float) -> str | None:
     """
     Remaps a numeric vector x to categorical age
 
@@ -96,7 +88,7 @@ def agecat_remap(x: float):
         return None
 
 
-def gender_remap(x):
+def gender_remap(x: str) -> str | None:
     """
     Remaps F, M to Female, Male
 
@@ -116,7 +108,78 @@ def gender_remap(x):
         return None
 
 
-def sim_pop(n_households, df):
+# def bool_remap(x: str) -> bool | None:
+#     """
+#     POLYMOD data comes in TRUE/FALSE booleans, not pythonic True/False.
+#     Parameters
+#     ----------
+#     x: str
+#
+#     Returns
+#     -------
+#     bool
+#
+#     """
+#
+#     if not isinstance(x, str):
+#         raise ValueError("x must be a string")
+#     if x is None:
+#         return None
+#     elif x == 'TRUE':
+#         return True
+#     elif x == 'FALSE':
+#         return False
+#     else:
+#         return None
+
+
+def load_polymod(path: str = 'POLYMOD') -> pd.DataFrame:
+    """
+    Loads POLYMOD data for deriving child-child contacts.
+
+    Parameters
+    ----------
+    path: str
+
+    Returns
+    -------
+    pd.DataFrame
+
+    """
+
+    # Load contacts
+    polymod_participants = pd.read_csv(path + "/2008_Mossong_POLYMOD_participant_common.csv")
+    polymod_contacts = pd.read_csv(path + "/2008_Mossong_POLYMOD_contact_common.csv")
+    polymod_households = pd.read_csv(path + '/2008_Mossong_POLYMOD_hh_common.csv')
+
+    # Subset nonhh contacts and count
+    polymod_contacts = polymod_contacts.loc[polymod_contacts['cnt_home'] == False].copy(deep=True)
+    polymod_contacts = polymod_contacts.groupby('part_id')['part_id'].count().rename('num_cc_nonhh')
+
+    # Merge num_cc_nonhh
+    polymod = pd.merge(polymod_participants, polymod_contacts.to_frame(), on='part_id', how='left')
+    polymod['num_cc_nonhh'] = polymod['num_cc_nonhh'].fillna(0)
+
+    # Merge hhsize
+    polymod = pd.merge(polymod, polymod_households, on='hh_id')
+
+    # Rename columns to match BICS
+    polymod = polymod.rename(columns={'part_age': 'age', 'part_gender': 'gender',
+                                      'part_id': 'rid', 'hh_size': 'hhsize'}).copy(deep=True)
+    polymod['rid'] = ['polymod_' + str(x) for x in polymod['rid']]
+
+    # Remap gender
+    polymod['gender'] = polymod['gender'].apply(gender_remap)
+
+    # Remap age
+    polymod['age'] = polymod['age'].apply(agecat_remap)
+
+    return polymod
+
+
+def sim_pop(n_households: int,
+            df: pd.DataFrame,
+            fill_polymod: bool = True) -> Population:
     """
     Simulates n households from df.
 
@@ -132,12 +195,20 @@ def sim_pop(n_households, df):
 
     Parameters
     ----------
-    n_households
-    df
+    n_households: int
+        number of households to simulate
+    df: pd.DataFrame
+        BICS wave to resample from
+    fill_polymod : bool
+        if True, will draw children from the polymod survey.
 
     Returns
     -------
     """
+
+    polymod = load_polymod()
+    polymod = polymod[polymod['age'] == '[0,18)']
+
     # Bin age
     df['age'] = df['age'].apply(agecat_remap)
     df['resp_hh_roster#1_1_1'] = df['resp_hh_roster#1_1_1'].apply(agecat_remap)
@@ -198,34 +269,45 @@ def sim_pop(n_households, df):
                 print("HH Member Age or Gender is None")
                 continue
 
-            print("HH size:", hh.hhsize, "HH Member age:", age, ", HH Member gender: ", gen)
+            if age != '[0,18)':
+                print("HH size:", hh.hhsize, "HH Member age:", age, ", HH Member gender: ", gen)
 
-            df_sub = df[
-                (df['hhsize'] == hh.hhsize) &
-                (df['age'] == age) &
-                (df['gender'] == gen)
-                ]
+                # Eligible population from BICS that matches the hhsize, age, and gender of the respondent's hh member
+                df_sub = df[
+                    (df['hhsize'] == hh.hhsize) &
+                    (df['age'] == age) &
+                    (df['gender'] == gen)
+                    ]
 
-            # TODO: Will need to add contingency for if there isn't a corresponding person
-            # Special case: if they are a child
-            if len(df_sub.index) == 0:
-                print("No suitable hh member")
+                # Print if there is no suitable member
+                if len(df_sub.index) == 0:
+                    print("No suitable adult hh member")
+                    continue
+
+                new_member = df_sub.sample(1, weights='weight_pooled').iloc[0, :].to_dict()
+                print(new_member)
+
+                hh_list[i].add_member(new_member)
+
+            elif age == '[0,18)' and not fill_polymod:
+                print("Household member is a child and fill_polymod=False")
+
+            elif age == '[0,18)' and fill_polymod:
+                new_member = polymod[
+                                 (polymod['age'] == age) & (polymod['gender'] == gen)
+                             ].sample(1).iloc[0, :].to_dict()
+                new_member['ethnicity'] = str(None)
+                print(new_member)
+
+                hh_list[i].add_member(new_member)
+
+            else:
                 continue
-
-            new_member = df_sub.sample(1, weights='weight_pooled').iloc[0, :].to_dict()
-            print(new_member)
-
-            hh_list[i].add_member(new_member)
 
     pop = Population()
     pop.add_household(hh_list)
 
     return (pop)
-
-
-if __name__ == "__main__":
-    x = sim_pop(100, lucid_data['wave4'])
-    pdb.set_trace()
 
 
 def sim_individuals(n, df, weights='weight_pooled'):
@@ -260,3 +342,8 @@ def sim_individuals(n, df, weights='weight_pooled'):
         pop.add_node(**f(r))
 
     return pop
+
+
+if __name__ == "__main__":
+    sim_pop(100, lucid_data['wave4'])
+    pdb.set_trace()

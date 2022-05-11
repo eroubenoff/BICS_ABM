@@ -72,7 +72,7 @@ class Population:
         try:
             assert isinstance(id, str) | isinstance(id, int)
             assert isinstance(age, int) | isinstance(age, str)
-            assert disease_status in ['S', 'I', 'R']
+            assert disease_status in ['S', 'E', 'I', 'R']
             assert isinstance(remaining_days_sick, int)
             assert isinstance(ethnicity, str)
             assert isinstance(num_cc_nonhh, int) | isinstance(num_cc_nonhh, float)
@@ -210,7 +210,7 @@ class Population:
         self.G.remove_edge(u, v)
         return
 
-    def remove_edges(self, keep_hh=False):
+    def remove_edges(self, keep_hh=True):
         """
         Drops all edges in the population
 
@@ -246,6 +246,10 @@ class Population:
         return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'S']
 
     @property
+    def node_ids_E(self):
+        return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'E']
+
+    @property
     def node_ids_I(self):
         return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'I']
 
@@ -257,36 +261,46 @@ class Population:
     def hhids(self):
         return {h for _, h in self.G.nodes.data('hhid')}
 
-    def set_sick(self, node, n):
+    def set_sick(self, node, E_n=3*24, I_n=5*24):
         """
 
         Parameters
         ----------
         node: int or str
             id of the node to set disease status
-        n: int
-            Number of days to be sick
+        E_n, I_n: int
+            Number of days to be Exposed or sick
 
         Returns
         -------
         None
 
         """
-        assert isinstance(n, int)
+        # assert isinstance(E_n, int)
 
-        self.G.nodes()[node]['disease_status'] = 'I'
-        self.G.nodes()[node]['remaining_days_sick'] = n
+        self.G.nodes()[node]['disease_status'] = 'E'
+        self.G.nodes()[node]['remaining_days_exposed'] = E_n
+        self.G.nodes()[node]['remaining_days_sick'] = I_n
         return
 
     def decrement(self):
-        # self.G.nodes[self.node_ids_I]['remaining_days_sick']
+
         for i in self.node_ids_I:
             if self.G.nodes[i]['remaining_days_sick'] == 0:
                 self.G.nodes[i]['disease_status'] = 'R'
-                print("Recover")
+                print("Node", i, "recovers")
                 continue
             else:
                 self.G.nodes[i]['remaining_days_sick'] -= 1
+
+        for e in self.node_ids_E:
+            if self.G.nodes[e]['remaining_days_exposed'] == 0:
+                self.G.nodes[e]['disease_status'] = 'I'
+                print("Node", e, "became symptomatic")
+                continue
+            else:
+                self.G.nodes[e]['remaining_days_exposed'] -= 1
+
         return
 
     def transmit(self, el):
@@ -294,7 +308,8 @@ class Population:
 
         Parameters
         ----------
-        el: list of edges, tuples
+        el: list of tuples of format:
+                (n1, n2, E_n, I_n)
             List of nodes to transmit between
 
         Returns
@@ -306,14 +321,14 @@ class Population:
 
         transmission_list = []
 
-        for n1, n2 in el:
+        for n1, n2, E_n, I_n in el:
             if self.G.nodes('disease_status')[n1] == 'S' and self.G.nodes('disease_status')[n2] == 'I':
-                print("Transmit")
-                self.set_sick(n1, n=5)
+                print("Node", n1, "has been infected")
+                self.set_sick(n1, E_n=E_n, I_n=I_n)
                 transmission_list.append(n1)
             elif self.G.nodes('disease_status')[n2] == 'S' and self.G.nodes('disease_status')[n1] == 'I':
-                print("Transmit")
-                self.set_sick(n2, n=5)
+                print("Node", n2, "has been infected")
+                self.set_sick(n2, E_n=E_n, I_n=I_n)
                 transmission_list.append(n2)
 
         return transmission_list
