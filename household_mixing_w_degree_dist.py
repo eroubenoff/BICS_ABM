@@ -1,9 +1,8 @@
 import pdb
 import random
-
 import networkx as nx
 import numpy as np
-from scipy.stats import bernoulli, poisson
+from scipy.stats import bernoulli, poisson, randint
 from matplotlib import pyplot as plt, animation
 from load_data import sim_pop, lucid_data
 from random import shuffle
@@ -37,7 +36,7 @@ def split_list(l: list[str]) -> tuple[list[str], list[str]]:
     return deepcopy(l[:l_len // 2]), deepcopy(l[l_len // 2:])
 
 
-def transmit_hh(pop: Population, beta: dict) -> None:
+def transmit_hh(pop: Population, beta: dict, E_dist, I_dist) -> None:
     """
     Transmits within the household
 
@@ -46,27 +45,36 @@ def transmit_hh(pop: Population, beta: dict) -> None:
     pop: Population
     beta: dict
         Probability of transmission, conditional on mask usage
+    E_dist, I_dist:
+        distribution function of hours exposed and infectious, in hours
 
     Returns
     -------
-    None; modifies object in place.
+    Modifies pop in place, returns nx.Graph for anim_list
 
     """
 
     pop.transmit(
         [
-            (u, v, random.randint(2 * 24, 4 * 24), random.randint(4 * 24, 7 * 24))
+            # Tuple format: (node1, node2, number of hrs exposed, num hrs sick
+            (u, v, E_dist.rvs(), I_dist.rvs())
+            # Get all edges
             for u, v, d in pop.edges.data()
-            if d['household'] and bernoulli(beta[d['protection']])
+            # If they are in the same household
+            if d['household']
+                # Flip a coin with p chosen if they wear masks
+                and bernoulli(beta[d['protection']])
+                # And at least one of them is sick
+                and (u in pop.node_ids_I or v in pop.node_ids_I)
         ]
     )
-    anim_list.append(deepcopy(pop.G))
     pop.add_history()
     pop.decrement()
 
-    return
+    return deepcopy(pop.G)
 
-def transmit_daytime(pop: Population, beta: dict, p_mask: float) -> None:
+
+def transmit_daytime(pop: Population, beta: dict, p_mask: float, E_dist, I_dist) -> None:
     """
     Transmits during each hour of the workday
     Assume a 10 hour day. Probability of a node having a contact each hour is num_cc_nonhh/10.
@@ -74,36 +82,46 @@ def transmit_daytime(pop: Population, beta: dict, p_mask: float) -> None:
 
     Returns
     -------
-    None; modifies objects from outer scope
+    Modifies pop in place, returns nx.Graph for anim_list
 
     """
 
-    # Create subpop by poisson sampling waith lambda=num_cc_nonhh/10
+    # Create a subpopulation of people having contacts every hour
+    # by bootstrapping the population. Number of times a node appears in the population
+    # poisson sampling with lambda=num_cc_nonhh/10
     subpop = list(chain(*[
         [n[0]] * rep
         for n in pop.G.nodes.data('num_cc_nonhh')
         for rep in range(poisson.rvs(n[1] / 10))
     ]))
+    # Shuffle this list and split into two sublists
     shuffle(subpop)
     subpop = split_list(subpop)
 
-    # Add edges and transmit
+    # Add edges
+    # Probability that node is wearing a mask is p_mask.
     pop.add_edges(
         [(n1, n2, {'protection': bernoulli.rvs(p_mask), 'household': False})
          for n1, n2 in zip(*subpop) if n1 != n2]
     )
+
+    # Transmit
     pop.transmit(
         [
-            (u, v, random.randint(2 * 24, 4 * 24), random.randint(4 * 24, 7 * 24))
+            # Tuple format: (node 1, node2, num hrs Exposed, num hrs infectious)
+            (u, v, E_dist.rvs(), I_dist.rvs())
+            # Get edges
             for u, v, d in pop.edges.data()
+            # If they aren't in the same household and coin flip wearing protection
             if not d['household'] and bernoulli(beta[d['protection']])
         ]
     )
 
-    anim_list.append(deepcopy(pop.G))
     pop.add_history()
     pop.decrement()
     pop.remove_edges(keep_hh=True)
+
+    return deepcopy(pop.G)
 
 
 def household_mixing_w_degree_dist(
@@ -111,8 +129,33 @@ def household_mixing_w_degree_dist(
         initial_sick: int = 1,
         n_days: int = None,
         beta: dict[bool, float] = {True: 0.01, False: 0.1},
-        p_mask: float = 0.8
+        p_mask: float = 0.8,
+        E_dist=randint(2 * 24, 4 * 24),
+        I_dist=randint(4 * 24, 57 * 24)
 ) -> tuple:
+    """
+
+    Parameters
+    ----------
+    n_hh: int
+        Number of households
+    initial_sick: int
+        Number of intially sick individuals. Randomly chosen from pop.
+    n_days: int
+        Stop simulation after a number of days. if None (default), will terminate
+        when number of exposed or infected individuals is 0.
+    beta: dict[bool,float]
+        Probability of transmission conditional on mask usage.
+    p_mask:
+        Probability that both nodes in an edge are wearing a mask.
+    E_dist, I_dist:
+        Distribution of time exposed and infectious, in hours. Can either be single integer,
+        list of integers, or distribution function in the format like, poisson(3*24)
+
+    Returns
+    -------
+
+    """
     pop = sim_pop(n_hh, lucid_data['wave4'])
 
     for _ in range(initial_sick):
@@ -128,21 +171,19 @@ def household_mixing_w_degree_dist(
     while (len(pop.node_ids_I) + len(pop.node_ids_E) > 0) and (n_days > 0):
 
         # Morning
-        # pop.connect_hh_edges()
         for hour in range(0, 8):
             print("Day", day, "Hour", hour)
-            transmit_hh(pop, beta)
+            anim_list.append(transmit_hh(pop, beta, E_dist, I_dist))
 
         # Workday
         for hour in range(8, 18):
             print("Day", day, "Hour", hour)
-            transmit_daytime(pop, beta, p_mask)
+            anim_list.append(transmit_daytime(pop, beta, p_mask, E_dist, I_dist))
 
         # Evening
-        # pop.connect_hh_edges()
         for hour in range(18, 24):
             print("Day", day, "Hour", hour)
-            transmit_hh(pop, beta)
+            anim_list.append(transmit_hh(pop, beta, E_dist, I_dist))
 
         day += 1
         n_days -= 1
@@ -163,7 +204,7 @@ if __name__ == "__main__":
 
     plt.savefig("testanim.png")
 
-    run_animation = True
+    run_animation = False
     fig, ax = plt.subplots(ncols=2, figsize=(12, 8))
     pos = nx.spring_layout(anim_list[0], k=2 / np.sqrt(len(anim_list[0].nodes)))
 

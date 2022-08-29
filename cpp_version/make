@@ -1,0 +1,2 @@
+model_test: model_test.cpp
+    clang -std=c++11 -o model_test model_test.cpp 
