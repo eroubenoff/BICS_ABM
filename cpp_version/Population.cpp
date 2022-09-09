@@ -1,83 +1,133 @@
-#include <stdio.h> 
 #include <string>
-#include <iostream>
 #include <vector>
-#include <stdlib.h>  
-
+#include <unordered_map>
+#include "defs.h"
 using namespace std;
 
-class Node {
-	private:
-		int _id;
-		vector<int> _edges;
-		int _gender;
-		int _age;
 
-	public:
-		int id() {
-			return _id;
-		}
-		vector<int> edges() {
-			return _edges;
-		}
-		void add_edge(int n) {
-			_edges.push_back(n);
-			return;
-		}
-		void remove_edge(int n) {
-			_edges.pop(n);
-			return;
-		}
-		void clear_edges() {
-			_edges.clear();
-			return;
-		}
+Node* Population::node(string id) {
+	/* Searches for the node by id. Returns pointer to the node
+	*  if it exists. If it doesn't exist, returns nullptr.
+	*/
 
-		// Fully parameterized constructor
-		Node(int id, vector<int> edges, int gender, int age){
-			_id = id;
-			_edges = edges;
-			_gender = gender;
-			_age = age;
-		}
+	auto loc = _nodelist.find(id);
+
+	if (loc == _nodelist.end()) {
+		return nullptr;
+	}
+
+	else {
+		return &_nodelist.at(id);
+	}
+}
+
+vector<string> Population::nodelist() const {
+	/* Returns a list of the keys to the nodelist */
+	vector<string> keys;
+
+	for(auto kv : _nodelist) {
+	    keys.push_back(kv.first);
+	} 
+
+	return keys;
+}
+
+Household* Population::household(string hhid) {
+	auto loc = _hhlist.find(hhid);
+
+	if (loc == _hhlist.end()) {
+		return nullptr;
+	}
+
+	else {
+		return &_hhlist.at(hhid);
+	}
+}
+
+vector<string> Population::hhlist() const {
+	/* Returns a list of the keys to the nodelist */
+	vector<string> keys;
+
+	for(auto kv : _hhlist) {
+	    keys.push_back(kv.first);
+	} 
+
+	return keys;
+}
+
+void Population::add_node(Node n) {
+	/* throws error if node already present
+	Also adds hh
+	*/
+
+	string id = n.id();
+	string hhid = n.hhid();
+
+	if (node(n.id()) == nullptr) {
+		_nodelist[n.id()] = n;
+	}
+
+	else {
+		throw "Node already present in population";
+		return;
+	}
+
+	// If node doesn't have a household, return without adding to household
+	if (hhid == "") {
+		return;
+	}
+
+	// If household doesn't exist, create it with the given hhid
+	if (household(hhid) == nullptr) {
+		_hhlist[hhid] = Household(vector<Node*> {node(id)});
+		return;
+	} else {
+		// Add to household
+		_hhlist[hhid].add_member(&_nodelist[n.id()]);
+
+	}
+
+
+
+	return;
 
 
 }
 
-class Household{
-	private:
-		int _hhid;
-		int _hhsize;
-		int _head;
-		vector<int> _memberlist;
+Population::Population(vector<Node> nodelist) {
+	/* Primary constructor. Pass a vector of nodes. 
+	Constructor puts nodes into unordered map _nodelist
+	hashed on node id.
 
-	public:
-		int hhid() {
-			return _hhid;
+	Also creates hashmap _hhlist from node ids.
+
+	*/
+
+	Node n;
+
+	for (int i = 0; i < nodelist.size(); i++) {
+
+		n = nodelist[i];
+
+		// Check to make sure node isn't already in Population
+		if (!node(n.id())) {
+			add_node(n);
 		}
-		int hhsize() {
-			return _hhsize;
-		}
-		int head() {
-			return _head;
-		}
-		vector<int> memberlist() {
-			return memberlist;
-		}
-		void add_member(r) {
-			_memberlist.push_back(r);
-		}
-
-		Household(){};
-
-		// Fully parameterized constructor
-		Household(int hhid, int hhsize, int head, vector<int> memberlist){
-			_hhid = hhid;
-			_hhsize = hhsize;
-			_head = head;
-			_memberlist = memberlist; 
-		};
+	}
+}
 
 
+ostream & operator << (ostream &out, Population &p)
+{
+	out << "Population size: " << p.nodelist().size() << endl;
 
+	vector<string> hhlist = p.hhlist();
+
+	for (int i = 0; i < hhlist.size(); i++) {
+		out << *p.household(hhlist[i]);
+	}
+
+    out << endl;
+
+    return out;
 }

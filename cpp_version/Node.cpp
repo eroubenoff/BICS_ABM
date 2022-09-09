@@ -1,13 +1,11 @@
 // #include <stdio.h> 
 #include <string>
 #include <iostream>
-// #include <vector>
-// #include <stdlib.h>  
-#include "Node.h"
+#include "defs.h"
 
 using namespace std;
 
-int Node::id() const {
+string Node::id() const {
     return _id;
 }
 int Node::age() const {
@@ -24,6 +22,17 @@ int Node::num_days_sick() const {
 }
 string Node::disease_status() const {
     return _disease_status;
+}
+string Node::hhid() const {
+    return _hhid;
+}
+void Node::set_hhid(string hhid) {
+    _hhid = hhid;
+    return;
+}
+void Node::set_hhid() {
+    _hhid = randstring();
+    return;
 }
 void Node::set_sick(int n) {
     _disease_status = "I";
@@ -43,6 +52,36 @@ void Node::recover() {
     return;
 }
 
+void Node::add_edge(string id) {
+    _edges.push_back(id);
+    return;
+}
+
+void Node::remove_edge(string id) {
+
+    // Find by id; swap with last value, then pop back
+    int pos = 0;
+    while (pos < _edges.size() ) {
+        if (_edges[pos] == id) {
+            
+            _edges[pos] = _edges[_edges.size()];
+            _edges.pop_back();
+
+            return; 
+        }
+    }
+
+    throw "id " + id + " not found in nodelist";
+    return;
+}
+
+void Node::clear_edges() {
+    while (_edges.size() > 0) {
+        _edges.pop_back();
+    }
+}
+
+
 // void Node::add_edge(int n) {
 //     _edges.push_back(n);
 //     return;
@@ -56,58 +95,38 @@ void Node::recover() {
 //     return;
 // }        
 Node::Node() {};
-Node::Node(int id, int age, bool gender, int num_cc) {
+
+Node::Node(int age, bool gender, int num_cc) {
+    _id = randstring();
+    _age = age;
+    _gender = gender;
+    _num_cc = num_cc;
+    _num_days_sick = 0;
+    _disease_status = "S";
+    _hhid = "";
+};
+
+Node::Node(string id, int age, bool gender, int num_cc) {
     _id = id;
     _age = age;
     _gender = gender;
     _num_cc = num_cc;
     _num_days_sick = 0;
     _disease_status = "S";
+    _hhid = "";
 };
+
 Node::~Node() {};
 
+ostream & operator << (ostream &out, const Node &n)
+{
+    out << "Node id: " << n.id() << " in memory location " << &n << " | "; 
+    out << "Household id: " << n.hhid() << " | ";
+    out << "Age: " << n.age() << " | ";
+    out << "Gender: " << (n.gender() ? "Female" : "Male") << " | " ;
+    out << "Disease status: " << n.disease_status(); 
+    out << endl;
 
-
-// Main contains unit tests
-int main() {
-    Node n(49, 26, false, 10);
-
-    cout << "Expecting 49: " << n.id() << endl;
-    if (n.id() != 49) throw "Incorrect value for id";
-
-    cout << "Expecting 26: " << n.age() << endl;
-    if (n.age() != 26) throw "Incorrect value for age";
-
-    cout << "Expecting 0: " << n.gender() << endl;
-    if (n.gender() != 0) throw "Incorrect value for gender";
-
-    cout << "Expecting 10: " << n.num_cc() << endl;
-    if (n.num_cc() != 10) throw "Incorrect value for num_cc";
-
-    cout << "Expecting S: " << n.disease_status() << endl;
-    if (n.disease_status() != "S") throw "Incorrect value for disease_status";
-    
-    n.set_sick(10);
-    cout << "Setting sick... " << endl;
-    cout << "Expecting I: " << n.disease_status() << endl;
-    if (n.disease_status() != "I") throw "Incorrect value for disease_status"; 
-
-    cout << "Expecting 10: " << n.num_days_sick() << endl;
-    if (n.num_days_sick() != 10) throw "Incorrect value num_days_sick"; 
-
-    n.decrement();
-    cout << "Decrementing... " << endl;
-    cout << "Expecting 9: " << n.num_days_sick() << endl;
-    if (n.num_days_sick() != 9) throw "Incorrect value num_days_sick"; 
-
-    cout << "Decrementing to 0" << endl;
-
-    while (n.disease_status() == "I") {
-        n.decrement();
-        cout << "Num days remaining sick: " << n.num_days_sick() << endl;;  
-    }
-    cout << "Expecting R: " << n.disease_status(); 
-    if (n.disease_status() != "R") throw "Incorrect value for disease_status"; 
-
-    return 1;
+    return out;
 }
+
