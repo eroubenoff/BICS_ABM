@@ -54,20 +54,27 @@ def transmit_hh(pop: Population, beta: dict, E_dist, I_dist) -> None:
 
     """
 
-    pop.transmit(
-        [
-            # Tuple format: (node1, node2, number of hrs exposed, num hrs sick
-            (u, v, E_dist.rvs(), I_dist.rvs())
-            # Get all edges
-            for u, v, d in pop.edges.data()
-            # If they are in the same household
-            if d['household']
-                # Flip a coin with p chosen if they wear masks
-                and bernoulli(beta[d['protection']])
-                # And at least one of them is sick
-                and (u in pop.node_ids_I or v in pop.node_ids_I)
-        ]
-    )
+    # Loop through each hhid and transmit through all the tuples
+    for u, v, d in pop.edges.data():
+        if d['household'] and (u in pop.node_ids_I or v in pop.node_ids_I) and bernoulli(beta[d['protection']]):
+            t = (u, v,E_dist.rvs(), I_dist.rvs())
+            pop.transmit([t])
+
+
+    # pop.transmit(
+    #     [
+    #         # Tuple format: (node1, node2, number of hrs exposed, num hrs sick
+    #         (u, v, E_dist.rvs(), I_dist.rvs())
+    #         # Get all edges
+    #         for u, v, d in pop.edges.data()
+    #         # If they are in the same household
+    #         if d['household']
+    #             # Flip a coin with p chosen if they wear masks
+    #             and bernoulli(beta[d['protection']])
+    #             # And at least one of them is sick
+    #             and (u in pop.node_ids_I or v in pop.node_ids_I)
+    #     ]
+    # )
     pop.add_history()
     pop.decrement()
 
@@ -106,16 +113,21 @@ def transmit_daytime(pop: Population, beta: dict, p_mask: float, E_dist, I_dist)
     )
 
     # Transmit
-    pop.transmit(
-        [
-            # Tuple format: (node 1, node2, num hrs Exposed, num hrs infectious)
-            (u, v, E_dist.rvs(), I_dist.rvs())
-            # Get edges
-            for u, v, d in pop.edges.data()
-            # If they aren't in the same household and coin flip wearing protection
-            if not d['household'] and bernoulli(beta[d['protection']])
-        ]
-    )
+    for u, v, d in pop.edges.data():
+        if not d['household'] and (u in pop.node_ids_I or v in pop.node_ids_I) and bernoulli(beta[d['protection']]):
+            t = (u, v,E_dist.rvs(), I_dist.rvs())
+            pop.transmit([t])
+
+    # pop.transmit(
+    #     [
+    #         # Tuple format: (node 1, node2, num hrs Exposed, num hrs infectious)
+    #         (u, v, E_dist.rvs(), I_dist.rvs())
+    #         # Get edges
+    #         for u, v, d in pop.edges.data()
+    #         # If they aren't in the same household and coin flip wearing protection
+    #         if not d['household'] and bernoulli(beta[d['protection']])
+    #     ]
+    # )
 
     pop.add_history()
     pop.decrement()
@@ -219,7 +231,7 @@ if __name__ == "__main__":
 
     plt.savefig("testanim.png")
 
-    run_animation = False
+    run_animation = True
     fig, ax = plt.subplots(ncols=2, figsize=(12, 8))
     pos = nx.spring_layout(anim_list[0], k=2 / np.sqrt(len(anim_list[0].nodes)))
 

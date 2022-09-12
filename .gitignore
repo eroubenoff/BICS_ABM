@@ -5,3 +5,4 @@ unused/.Rhistory
 lucid/
 lucid-pipeline/
 *.pytest_cache/
+POLYMOD/
