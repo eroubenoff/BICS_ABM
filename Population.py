@@ -1,7 +1,28 @@
-import networkx as nx
+# import networkx as nx
 import pandas as pd
 from uuid import uuid4
 from scipy.stats import bernoulli
+
+class Node():
+    def __init__(self, id, age, ethnicity, gender, num_cc_nonhh):
+        self.edges = []
+        self.id = id
+        self.age = age
+        self.ethnicity = ethnicity
+        self.gender = gender
+        self.num_cc_nonhh = num_cc_nonhh
+        self.disease_status = "S"
+        self.remaining_days_sick = 0
+
+    def edges(self):
+        return self.edges
+
+    def add_edge(self, id):
+        self.edges.append(id)
+
+    def remove_edge(self, id):
+        self.edges.remove(id)
+
 
 
 class Household:
@@ -19,29 +40,23 @@ class Household:
         self.memberlist.append(r)
 
 
+
 class Population:
-    G = nx.Graph()
+
+
+
+    # G = nx.Graph()
     history = []
 
-    def __init__(self, G=None):
-        if G is None:
-            self.G = nx.Graph()
-        else:
-            # Make sure that every node has a disease status, rds, ethnicity, num_cc_nonhh, hhsize
-            n_nodes = len(G.nodes())
+    def __init__(self):
+        self.__nodes__ = dict()
+        self.__edges__ = dict()
 
-            try:
-                assert len(G.nodes("age")) == n_nodes
-                assert len(G.nodes("disease_status")) == n_nodes
-                assert len(G.nodes("remaining_days_sick")) == n_nodes
-                assert len(G.nodes("ethnicity")) == n_nodes
-                assert len(G.nodes("gender")) == n_nodes
-                assert len(G.nodes("num_cc_nonhh")) == n_nodes
+    def nodes(self):
+        return self.__nodes__
+    def edges(self):
+        return self.__edges__
 
-            except ValueError:
-                raise ValueError("All nodes must have valid fields")
-
-            self.G = G
 
     def add_node(self, age, ethnicity, gender, num_cc_nonhh, hhid=None,
                  id=None, disease_status='S', remaining_days_sick=0):
@@ -72,7 +87,7 @@ class Population:
         try:
             assert isinstance(id, str) | isinstance(id, int)
             assert isinstance(age, int) | isinstance(age, str)
-            assert disease_status in ['S', 'E', 'I', 'R']
+            assert disease_status in ['S', 'E', 'I', 'R', 'D', 'V1', 'V2']
             assert isinstance(remaining_days_sick, int)
             assert isinstance(ethnicity, str)
             assert isinstance(num_cc_nonhh, int) | isinstance(num_cc_nonhh, float)
@@ -81,14 +96,15 @@ class Population:
             print(e)
             raise ValueError("Data passed:", id, age, disease_status, remaining_days_sick, ethnicity, num_cc_nonhh, hhid)
 
-        self.G.add_nodes_from([(id,
-                                {'age': age,
-                                 'disease_status': disease_status,
-                                 'remaining_days_sick': remaining_days_sick,
-                                 'gender': gender,
-                                 'ethnicity': ethnicity,
-                                 'num_cc_nonhh': num_cc_nonhh,
-                                 'hhid': hhid})])
+        self.__nodes__[id] = Node(id, age, ethnicity, gender, num_cc_nonhh)
+        # self.G.add_nodes_from([(id,
+        #                         {'age': age,
+        #                          'disease_status': disease_status,
+        #                          'remaining_days_sick': remaining_days_sick,
+        #                          'gender': gender,
+        #                          'ethnicity': ethnicity,
+        #                          'num_cc_nonhh': num_cc_nonhh,
+        #                          'hhid': hhid})])
         return id
 
     def add_edges(self, el, check_input=False):
@@ -112,8 +128,8 @@ class Population:
         if check_input:
             for e in el:
                 try:
-                    assert e[0] in self.G.nodes()
-                    assert e[1] in self.G.nodes()
+                    assert e[0] in self.nodes().keys()
+                    assert e[1] in self.nodes().keys()
                 except AssertionError:
                     raise ValueError("Both nodes must be present in graph")
 
@@ -125,7 +141,10 @@ class Population:
                 if e[0] == e[1]:
                     el.pop(e)
 
-        self.G.add_edges_from(el)
+        self.__edges__[(el[0], el[1])] = el[2]
+        self.__edges__[(el[1], el[2])] = el[2]
+        self.__nodes__[el[0]].add_edge(el[1])
+        self.__nodes__[el[1]].add_edge(el[0])
 
         return
 
@@ -204,10 +223,14 @@ class Population:
 
         """
 
-        if u not in self.G.nodes() or v not in self.G.nodes():
+        if u not in self.nodes() or v not in self.nodes():
             raise ValueError("nodes must be present in graph")
 
-        self.G.remove_edge(u, v)
+        del self.__edges__[(u, v)]
+        del self.__edges__[(v, u)]
+        self.__nodes__[u].remove_edge(v)
+        self.__nodes__[v].remove_edge(u)
+
         return
 
     def remove_edges(self, keep_hh=True):
@@ -219,47 +242,63 @@ class Population:
         None
 
         """
-        if keep_hh:
-            self.G.remove_edges_from(
-                [(u, v) for u, v, d in self.G.edges.data('household') if not d]
-            )
-        else:
-            self.G.remove_edges_from(self.G.edges)
+        for ((u, v), d) in self.__edges__:
+            if keep_hh and d['household']:
+                continue
+            self.remove_edge(u, v)
 
 
         return
 
     @property
     def nodes(self, nodes=None):
-        return self.G.nodes(nodes)
+        if nodes is None:
+            return self.__nodes__
+        else:
+            return [self.__nodes__[n] for n in nodes]
 
     @property
     def edges(self, edges=None):
-        return self.G.edges(edges)
+        if edges is None:
+            return self.__edges__
+        else:
+            return [self.__edges__[e] for e in edges]
 
     @property
     def node_ids(self):
-        return [i[0] for i in self.nodes]
+        return self.__nodes__.keys()
 
     @property
     def node_ids_S(self):
-        return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'S']
+        return [k for (k, v) in self.__nodes__ if v['disease_status'] == 'S']
 
     @property
     def node_ids_E(self):
-        return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'E']
+        return [k for (k, v) in self.__nodes__ if v['disease_status'] == 'E']
 
     @property
     def node_ids_I(self):
-        return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'I']
+        return [k for (k, v) in self.__nodes__ if v['disease_status'] == 'I']
 
     @property
     def node_ids_R(self):
-        return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'R']
+        return [k for (k, v) in self.__nodes__ if v['disease_status'] == 'R']
+
+    @property
+    def node_ids_D(self):
+        return [k for (k, v) in self.__nodes__ if v['disease_status'] == 'D']
+
+    @property
+    def node_ids_V1(self):
+        return [k for (k, v) in self.__nodes__ if v['disease_status'] == 'V1']
+
+    @property
+    def node_ids_V2(self):
+        return [k for (k, v) in self.__nodes__ if v['disease_status'] == 'V2']
 
     @property
     def hhids(self):
-        return {h for _, h in self.G.nodes.data('hhid')}
+        return {h['hhid'] for _, h in self.__nodes__}
 
     def set_sick(self, node, E_n=3*24, I_n=5*24):
         """
@@ -278,28 +317,28 @@ class Population:
         """
         # assert isinstance(E_n, int)
 
-        self.G.nodes()[node]['disease_status'] = 'E'
-        self.G.nodes()[node]['remaining_days_exposed'] = E_n
-        self.G.nodes()[node]['remaining_days_sick'] = I_n
+        self.__nodes__[node]['disease_status'] = 'E'
+        self.__nodes__[node]['remaining_days_exposed'] = E_n
+        self.__nodes__[node]['remaining_days_sick'] = I_n
         return
 
     def decrement(self):
 
         for i in self.node_ids_I:
-            if self.G.nodes[i]['remaining_days_sick'] == 0:
-                self.G.nodes[i]['disease_status'] = 'R'
+            if self.__nodes__[i]['remaining_days_sick'] == 0:
+                self.__nodes__[i]['disease_status'] = 'R'
                 print("Node", i, "recovers")
                 continue
             else:
                 self.G.nodes[i]['remaining_days_sick'] -= 1
 
         for e in self.node_ids_E:
-            if self.G.nodes[e]['remaining_days_exposed'] == 0:
-                self.G.nodes[e]['disease_status'] = 'I'
+            if self.__nodes__[e]['remaining_days_exposed'] == 0:
+                self.__nodes__[e]['disease_status'] = 'I'
                 print("Node", e, "became symptomatic")
                 continue
             else:
-                self.G.nodes[e]['remaining_days_exposed'] -= 1
+                self.__nodes__[e]['remaining_days_exposed'] -= 1
 
         return
 
@@ -322,16 +361,30 @@ class Population:
         transmission_list = []
 
         for n1, n2, E_n, I_n in el:
-            if self.G.nodes('disease_status')[n1] == 'S' and self.G.nodes('disease_status')[n2] == 'I':
+            if self.__nodes__[n1]['disease_status'] == 'S' and self.__nodes__[n2]['disease_status'] == 'I':
                 print("Node", n1, "has been infected")
                 self.set_sick(n1, E_n=E_n, I_n=I_n)
                 transmission_list.append(n1)
-            elif self.G.nodes('disease_status')[n2] == 'S' and self.G.nodes('disease_status')[n1] == 'I':
+            elif self.__nodes__[n2]['disease_status'] == 'S' and self.__nodes__[n1]['disease_status'] == 'I':
                 print("Node", n2, "has been infected")
                 self.set_sick(n2, E_n=E_n, I_n=I_n)
                 transmission_list.append(n2)
 
         return transmission_list
+
+    def vaccinate(self, node):
+        """
+        If node is in state S or R, sets to V1; if in V1, set to V2
+        Parameters
+        ----------
+        node
+
+        Returns
+        -------
+        None
+
+        """
+        self.__nodes__[node]
 
     def add_history(self):
         """
@@ -342,7 +395,7 @@ class Population:
         None.
 
         """
-        d = {k: v for k, v in self.G.nodes.data('disease_status')}
+        d = {k: v['disease_status'] for k, v in self.__nodes__}
 
         self.history.append(d)
 

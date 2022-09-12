@@ -4,3 +4,4 @@ unused/.Rhistory
 .Ruserdata
 ./lucid
 ./lucid-pipeline
+./.pytest_cache
