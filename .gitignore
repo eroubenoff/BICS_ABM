@@ -2,5 +2,6 @@
 unused/.Rhistory
 .RData
 .Ruserdata
-./lucid
-./lucid-pipeline
+lucid/
+lucid-pipeline/
+*.pytest_cache/
