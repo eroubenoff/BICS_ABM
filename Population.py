@@ -44,7 +44,8 @@ class Population:
             self.G = G
 
     def add_node(self, age, ethnicity, gender, num_cc_nonhh, hhid=None,
-                 id=None, disease_status='S', remaining_days_sick=0):
+                 id=None, disease_status='S', remaining_days_sick=0,
+                 vaccine_priority=-1, vaccine_status=False):
         """
         Adds a node to the graph. Makes sure that all node attributes are included.
 
@@ -59,6 +60,7 @@ class Population:
         remaining_days_sick: int
         ethnicity: str
         num_cc_nonhh: int
+        vaccine_priority
 
         Returns
         -------
@@ -72,7 +74,7 @@ class Population:
         try:
             assert isinstance(id, str) | isinstance(id, int)
             assert isinstance(age, int) | isinstance(age, str)
-            assert disease_status in ['S', 'E', 'I', 'R']
+            assert disease_status in ['S', 'E', 'I', 'R', 'D']
             assert isinstance(remaining_days_sick, int)
             assert isinstance(ethnicity, str)
             assert isinstance(num_cc_nonhh, int) | isinstance(num_cc_nonhh, float)
@@ -88,7 +90,10 @@ class Population:
                                  'gender': gender,
                                  'ethnicity': ethnicity,
                                  'num_cc_nonhh': num_cc_nonhh,
-                                 'hhid': hhid})])
+                                 'hhid': hhid,
+                                 'vaccine_priority': vaccine_priority,
+                                 'time_until_v2' : -1,
+                                 'vaccine_status' : vaccine_status})])
         return id
 
     def add_edges(self, el, check_input=False):
@@ -229,6 +234,27 @@ class Population:
 
         return
 
+    def set_vax_priority(self, n, priority_level):
+        self.G.nodes()[n]['vaccine_priority'] = priority_level
+        return
+
+    def V1(self, n, time_until_v2):
+
+        self.G.nodes()[n]['vaccine_status'] = 'V1'
+        self.G.nodes()[n]['time_until_v2'] = time_until_v2
+        self.G.nodes()[n]['vaccine_priority'] = -1
+
+        return
+
+
+    def V2(self, n):
+        self.G.nodes[n]['vaccine_status'] = 'V2'
+        self.G.nodes[n]['time_until_v2'] = -1
+
+        return
+
+
+
     @property
     def nodes(self, nodes=None):
         return self.G.nodes(nodes)
@@ -258,8 +284,28 @@ class Population:
         return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'R']
 
     @property
+    def node_ids_D(self):
+        return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'D']
+
+    @property
+    def node_ids_V1(self):
+        return [k for (k, v) in self.G.nodes.data() if v['vaccine_status'] == 'V1']
+
+    @property
+    def node_ids_V2(self):
+        return [k for (k, v) in self.G.nodes.data() if v['vaccine_status'] == 'V2']
+
+    @property
     def hhids(self):
         return {h for _, h in self.G.nodes.data('hhid')}
+
+    @property
+    def vaccine_priority(self):
+        return {k:v for k, v in self.G.nodes.data('vaccine_priority')}
+
+    @property
+    def time_until_v2(self):
+        return {k:v for k, v in self.G.nodes.data('time_until_v2')}
 
     def set_sick(self, node, E_n=3*24, I_n=5*24):
         """
@@ -300,6 +346,14 @@ class Population:
                 continue
             else:
                 self.G.nodes[e]['remaining_days_exposed'] -= 1
+
+        for v1, t in self.time_until_v2.items():
+            if t == -1:
+                continue
+            if t == 0:
+                continue
+            else:
+                self.G.nodes[v1]['time_until_v2'] -= 1
 
         return
 
