@@ -1,8 +1,33 @@
 import networkx as nx
 import pandas as pd
 from uuid import uuid4
-from scipy.stats import bernoulli
+from scipy.stats import bernoulli, poisson, randint
+from random import shuffle
+from copy import deepcopy
+from itertools import chain
 
+def split_list(l: list[str]) -> tuple[list[str], list[str]]:
+    """
+    Takes a list and splits it in half, returning a tuple of both halves. If the list is odd length, will silently
+    drop the last element.
+
+    Parameters
+    ----------
+    l: list
+
+    Returns
+    -------
+    tuple
+
+    """
+
+    l_len = len(l)
+
+    if l_len % 2 == 0:
+        l = l[0:(l_len - 1)]
+        l_len = len(l)
+
+    return deepcopy(l[:l_len // 2]), deepcopy(l[l_len // 2:])
 
 class Household:
     def __init__(self, hhsize, head, hhid=None):
@@ -415,3 +440,89 @@ class Population:
         return pd.DataFrame(
             {i: pd.Series(val.values(), index=val.keys()) for i, val in enumerate(self.history)}
         )
+
+    def transmit_daytime(self, beta: dict, p_mask: float, E_dist, I_dist, ve) -> None:
+        """
+        Transmits during each hour of the workday
+        Assume a 10 hour day. Probability of a node having a contact each hour is num_cc_nonhh/10.
+        Create subpopulation of nodes that have any contact in a given hour and join them to each other.
+
+        Returns
+        -------
+        Modifies pop in place, returns nx.Graph for anim_list
+
+        """
+
+        # Create a subpopulation of people having contacts every hour
+        # by bootstrapping the population. Number of times a node appears in the population
+        # poisson sampling with lambda=num_cc_nonhh/10
+        subpop = list(chain(*[
+            [n[0]] * rep
+            for n in self.G.nodes.data('num_cc_nonhh')
+            for rep in range(poisson.rvs(n[1] / 10))
+        ]))
+        # Shuffle this list and split into two sublists
+        shuffle(subpop)
+        subpop = split_list(subpop)
+
+        # Add edges
+        # Probability that node is wearing a mask is p_mask.
+        self.add_edges(
+            [(n1, n2, {'protection': bernoulli.rvs(p_mask), 'household': False})
+             for n1, n2 in zip(*subpop) if n1 != n2]
+        )
+
+        # Transmit
+        for u, v, d in self.edges.data():
+            if not d['household'] and \
+                    (u in self.node_ids_I or v in self.node_ids_I):
+
+                # If either node is vaccinated:
+                if u in self.node_ids_V1 or v in self.node_ids_V1:
+                    if bernoulli(beta[d['protection']]) and bernoulli(1 - ve["V1"]):
+                        t = (u, v, E_dist.rvs(), I_dist.rvs())
+                        self.transmit([t])
+                elif u in self.node_ids_V2 or v in self.node_ids_V2:
+                    if bernoulli(beta[d['protection']]) and bernoulli(1 - ve["V2"]):
+                        t = (u, v, E_dist.rvs(), I_dist.rvs())
+                        self.transmit([t])
+                elif bernoulli(beta[d['protection']]):
+                    t = (u, v, E_dist.rvs(), I_dist.rvs())
+                    self.transmit([t])
+
+        self.add_history()
+        self.decrement()
+        self.remove_edges(keep_hh=True)
+
+        return
+
+    def transmit_hh(self, beta: dict, E_dist, I_dist, ve) -> None:
+        """
+        Transmits within the household
+
+        Parameters
+        ----------
+        pop: Population
+        beta: dict
+            Probability of transmission, conditional on mask usage
+        E_dist, I_dist:
+            distribution function of hours exposed and infectious, in hours
+
+        Returns
+        -------
+        Modifies pop in place, returns nx.Graph for anim_list
+
+        """
+
+        # Loop through each hhid and transmit through all the tuples
+        for u, v, d in self.edges.data():
+            if d['household'] and (u in self.node_ids_I or v in self.node_ids_I) and bernoulli(beta[d['protection']]):
+                t = (u, v,E_dist.rvs(), I_dist.rvs())
+                self.transmit([t])
+
+
+
+        self.add_history()
+        self.decrement()
+
+        return

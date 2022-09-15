@@ -12,130 +12,12 @@ from time import time
 from Population import Population
 
 
-def split_list(l: list[str]) -> tuple[list[str], list[str]]:
-    """
-    Takes a list and splits it in half, returning a tuple of both halves. If the list is odd length, will silently
-    drop the last element.
-
-    Parameters
-    ----------
-    l: list
-
-    Returns
-    -------
-    tuple
-
-    """
-
-    l_len = len(l)
-
-    if l_len % 2 == 0:
-        l = l[0:(l_len - 1)]
-        l_len = len(l)
-
-    return deepcopy(l[:l_len // 2]), deepcopy(l[l_len // 2:])
 
 
-def transmit_hh(pop: Population, beta: dict, E_dist, I_dist, ve) -> None:
-    """
-    Transmits within the household
-
-    Parameters
-    ----------
-    pop: Population
-    beta: dict
-        Probability of transmission, conditional on mask usage
-    E_dist, I_dist:
-        distribution function of hours exposed and infectious, in hours
-
-    Returns
-    -------
-    Modifies pop in place, returns nx.Graph for anim_list
-
-    """
-
-    # Loop through each hhid and transmit through all the tuples
-    for u, v, d in pop.edges.data():
-        if d['household'] and (u in pop.node_ids_I or v in pop.node_ids_I) and bernoulli(beta[d['protection']]):
-            t = (u, v,E_dist.rvs(), I_dist.rvs())
-            pop.transmit([t])
 
 
-    # pop.transmit(
-    #     [
-    #         # Tuple format: (node1, node2, number of hrs exposed, num hrs sick
-    #         (u, v, E_dist.rvs(), I_dist.rvs())
-    #         # Get all edges
-    #         for u, v, d in pop.edges.data()
-    #         # If they are in the same household
-    #         if d['household']
-    #             # Flip a coin with p chosen if they wear masks
-    #             and bernoulli(beta[d['protection']])
-    #             # And at least one of them is sick
-    #             and (u in pop.node_ids_I or v in pop.node_ids_I)
-    #     ]
-    # )
-    pop.add_history()
-    pop.decrement()
-
-    return deepcopy(pop.G)
 
 
-def transmit_daytime(pop: Population, beta: dict, p_mask: float, E_dist, I_dist, ve) -> None:
-    """
-    Transmits during each hour of the workday
-    Assume a 10 hour day. Probability of a node having a contact each hour is num_cc_nonhh/10.
-    Create subpopulation of nodes that have any contact in a given hour and join them to each other.
-
-    Returns
-    -------
-    Modifies pop in place, returns nx.Graph for anim_list
-
-    """
-
-    # Create a subpopulation of people having contacts every hour
-    # by bootstrapping the population. Number of times a node appears in the population
-    # poisson sampling with lambda=num_cc_nonhh/10
-    subpop = list(chain(*[
-        [n[0]] * rep
-        for n in pop.G.nodes.data('num_cc_nonhh')
-        for rep in range(poisson.rvs(n[1] / 10))
-    ]))
-    # Shuffle this list and split into two sublists
-    shuffle(subpop)
-    subpop = split_list(subpop)
-
-    # Add edges
-    # Probability that node is wearing a mask is p_mask.
-    pop.add_edges(
-        [(n1, n2, {'protection': bernoulli.rvs(p_mask), 'household': False})
-         for n1, n2 in zip(*subpop) if n1 != n2]
-    )
-
-    # Transmit
-    for u, v, d in pop.edges.data():
-        if not d['household'] and \
-                (u in pop.node_ids_I or v in pop.node_ids_I):
-
-            # If either node is vaccinated:
-            if u in pop.node_ids_V1 or v in pop.node_ids_V1:
-                if bernoulli(beta[d['protection']]) and bernoulli(1-ve["V1"]):
-                    t = (u, v, E_dist.rvs(), I_dist.rvs())
-                    pop.transmit([t])
-            elif u in pop.node_ids_V2 or v in pop.node_ids_V2:
-                if bernoulli(beta[d['protection']]) and bernoulli(1-ve["V2"]):
-                    t = (u, v, E_dist.rvs(), I_dist.rvs())
-                    pop.transmit([t])
-            elif bernoulli(beta[d['protection']]):
-                t = (u, v, E_dist.rvs(), I_dist.rvs())
-                pop.transmit([t])
-
-
-    pop.add_history()
-    pop.decrement()
-    pop.remove_edges(keep_hh=True)
-
-    return deepcopy(pop.G)
 
 def distribute_vax(pop: Population, n_daily: int, time_until_v2: int = 25 * 24):
     """
@@ -287,7 +169,8 @@ def household_mixing_w_degree_dist(
         # Morning
         for hour in range(0, 8):
             print("Day", day, "Hour", hour)
-            anim_list.append(transmit_hh(pop, beta, E_dist, I_dist, ve))
+            pop.transmit_hh(beta, E_dist, I_dist, ve)
+            anim_list.append(pop)
 
         # Distribute vaccines
         distribute_vax(pop, 10)
@@ -295,12 +178,14 @@ def household_mixing_w_degree_dist(
         # Workday
         for hour in range(8, 18):
             print("Day", day, "Hour", hour)
-            anim_list.append(transmit_daytime(pop, beta, p_mask, E_dist, I_dist, ve))
+            pop.transmit_daytime(beta, p_mask, E_dist, I_dist, ve)
+            anim_list.append(pop)
 
         # Evening
         for hour in range(18, 24):
             print("Day", day, "Hour", hour)
-            anim_list.append(transmit_hh(pop, beta, E_dist, I_dist, ve))
+            pop.transmit_hh(beta, E_dist, I_dist, ve)
+            anim_list.append(pop)
 
         day += 1
         n_days -= 1
