@@ -1,3 +1,5 @@
+import pdb
+
 import networkx as nx
 import pandas as pd
 from uuid import uuid4
@@ -46,6 +48,8 @@ class Household:
 
 class Population:
     G = nx.Graph()
+
+    # History is a list of dictionaries, with keys 'nodes' and 'edges'
     history = []
 
     def __init__(self, G=None):
@@ -154,6 +158,14 @@ class Population:
 
                 if e[0] == e[1]:
                     el.pop(e)
+
+        node_ids_I = self.node_ids_I
+        # Check to see if one or more of the nodes in the edges are sick
+        for e in range(len(el)):
+            if el[e][0] in node_ids_I or el[e][1] in node_ids_I:
+                el[e][2]['either_sick'] = True
+            else:
+                el[e][2]['either_sick'] = False
 
         self.G.add_edges_from(el)
 
@@ -421,9 +433,10 @@ class Population:
         None.
 
         """
-        d = {k: v for k, v in self.G.nodes.data('disease_status')}
+        n = [x for x in self.G.nodes.data()]
+        e = [x for x in self.G.edges.data()]
 
-        self.history.append(d)
+        self.history.append({'nodes': deepcopy(n), 'edges': deepcopy(e)})
 
     def process_history(self):
         """
@@ -437,9 +450,26 @@ class Population:
         if not bool(self.history):
             raise ValueError("Must have at least one saved history")
 
-        return pd.DataFrame(
-            {i: pd.Series(val.values(), index=val.keys()) for i, val in enumerate(self.history)}
-        )
+
+        disease_status = pd.DataFrame()
+        vaccine_status = pd.DataFrame()
+        edges = []
+
+        for time, ne in enumerate(self.history):
+
+            disease_status_temp = {n[0]: n[1]['disease_status'] for n in ne['nodes']}
+            vaccine_status_temp = {n[0]: n[1]['vaccine_status'] for n in ne['nodes']}
+            edges_temp = [e for e in ne['edges']]
+
+            disease_status = pd.concat([disease_status, pd.Series(disease_status_temp, name=time)], axis=1)
+            vaccine_status = pd.concat([vaccine_status, pd.Series(vaccine_status_temp, name=time)], axis=1)
+
+            edges.append(edges_temp)
+
+        return pd.DataFrame(disease_status), pd.DataFrame(vaccine_status), edges
+
+
+
 
     def transmit_daytime(self, beta: dict, p_mask: float, E_dist, I_dist, ve) -> None:
         """
@@ -452,6 +482,11 @@ class Population:
         Modifies pop in place, returns nx.Graph for anim_list
 
         """
+
+        self.remove_edges()
+
+        node_ids_V1 = self.node_ids_V1
+        node_ids_V2 = self.node_ids_V2
 
         # Create a subpopulation of people having contacts every hour
         # by bootstrapping the population. Number of times a node appears in the population
@@ -473,26 +508,26 @@ class Population:
         )
 
         # Transmit
+        t = list()
         for u, v, d in self.edges.data():
-            if not d['household'] and \
-                    (u in self.node_ids_I or v in self.node_ids_I):
-
+            if not d['either_sick']:
+                continue
+            else:
                 # If either node is vaccinated:
-                if u in self.node_ids_V1 or v in self.node_ids_V1:
+                if u in node_ids_V1 or v in node_ids_V1:
                     if bernoulli(beta[d['protection']]) and bernoulli(1 - ve["V1"]):
-                        t = (u, v, E_dist.rvs(), I_dist.rvs())
-                        self.transmit([t])
-                elif u in self.node_ids_V2 or v in self.node_ids_V2:
-                    if bernoulli(beta[d['protection']]) and bernoulli(1 - ve["V2"]):
-                        t = (u, v, E_dist.rvs(), I_dist.rvs())
-                        self.transmit([t])
-                elif bernoulli(beta[d['protection']]):
-                    t = (u, v, E_dist.rvs(), I_dist.rvs())
-                    self.transmit([t])
+                        t.append((u, v, E_dist.rvs(), I_dist.rvs()))
 
+                elif u in node_ids_V2 or v in node_ids_V2:
+                    if bernoulli(beta[d['protection']]) and bernoulli(1 - ve["V2"]):
+                        t.append((u, v, E_dist.rvs(), I_dist.rvs()))
+                elif bernoulli(beta[d['protection']]):
+                    t.append((u, v, E_dist.rvs(), I_dist.rvs()))
+
+        self.transmit(t)
         self.add_history()
         self.decrement()
-        self.remove_edges(keep_hh=True)
+        self.remove_edges()
 
         return
 
@@ -515,13 +550,16 @@ class Population:
         """
 
         # Loop through each hhid and transmit through all the tuples
+        node_ids_I = self.node_ids_I
+        t = list()
         for u, v, d in self.edges.data():
-            if d['household'] and (u in self.node_ids_I or v in self.node_ids_I) and bernoulli(beta[d['protection']]):
-                t = (u, v,E_dist.rvs(), I_dist.rvs())
-                self.transmit([t])
+            if not d['either_sick']:
+                continue
+            if d['household'] and (u in node_ids_I or v in node_ids_I) and bernoulli(beta[d['protection']]):
+                t.append((u, v,E_dist.rvs(), I_dist.rvs()))
 
 
-
+        self.transmit(t)
         self.add_history()
         self.decrement()
 
