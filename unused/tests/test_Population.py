@@ -26,7 +26,7 @@ def test_transmit():
     test_pop.nodelist['2'].disease_status = 'S'
     assert test_pop.disease_status == (['2', '3', '4', '5'], ['1'], [])
     test_pop.nodelist['3'].disease_status = 'I'
-    assert test_pop.transmit() == ['2', '4']
+    assert test_pop.transmit == ['2', '4']
 
 def test_decrement():
     test_pop.decrement()

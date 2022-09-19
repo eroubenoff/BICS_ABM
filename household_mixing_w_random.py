@@ -27,9 +27,7 @@ def household_mixing_w_random(n_hh=1000, initial_sick=1, n_days=100, n_edges=10)
         pop.connect_hh_edges()
         for hour in range(0, 8):
             print("Day", day, "Hour", hour)
-            pop.transmit(
-                [(u, v) for u, v, p in pop.edges.data('protection') if bernoulli(beta[p])]
-            )
+            pop.transmit
             anim_list.append(deepcopy(pop.G))
         pop.remove_edges(keep_hh=False)
 
@@ -40,9 +38,7 @@ def household_mixing_w_random(n_hh=1000, initial_sick=1, n_days=100, n_edges=10)
                 [(n1, n2, {'protection': bernoulli.rvs(0.5), 'household': False})
                  for n1, n2 in random.sample(node_combinations, n_edges)]
             )
-            pop.transmit(
-                [(u, v) for u, v, p in pop.edges.data('protection') if bernoulli(beta[p])]
-            )
+            pop.transmit
             anim_list.append(deepcopy(pop.G))
             pop.remove_edges(keep_hh=False)
 
@@ -50,9 +46,7 @@ def household_mixing_w_random(n_hh=1000, initial_sick=1, n_days=100, n_edges=10)
         pop.connect_hh_edges()
         for hour in range(18, 24):
             print("Day", day, "Hour", hour)
-            pop.transmit(
-                [(u, v) for u, v, p in pop.edges.data('protection') if bernoulli(beta[p])]
-            )
+            pop.transmit
             anim_list.append(deepcopy(pop.G))
         pop.remove_edges(keep_hh=False)
 

@@ -1,113 +1,10 @@
-import pdb
 import random
 import networkx as nx
 import numpy as np
-from scipy.stats import bernoulli, poisson, randint
+from scipy.stats import  randint
 from matplotlib import pyplot as plt, animation
 from load_data import sim_pop, lucid_data
-from random import shuffle
-from copy import deepcopy
-from itertools import chain
 from time import time
-from Population import Population
-import pickle
-
-
-
-
-
-
-
-
-
-def distribute_vax(pop: Population, n_daily: int, time_until_v2: int = 25 * 24):
-    """
-    Distributes n_daily doses of the vaccine to the population, by priority
-    group
-    Parameters
-    ----------
-    pop: Population
-        The object to modify
-    n_daily: int
-        Number of vaccines distributed every day
-
-    Returns
-    -------
-
-    """
-
-
-    n_remaining = n_daily
-    n_remaining_2 = n_daily
-
-    def invert_dict(d):
-        ret = dict()
-        for key, value in d.items():
-            if value in ret:
-                ret[value].append(key)
-            else:
-                ret[value] = [key]
-
-        return ret
-
-    # Invert the dict of priorities
-    v1_prior = pop.vaccine_priority
-    v1_prior = invert_dict(v1_prior)
-    del v1_prior[-1]
-
-
-
-    # V1
-    while n_remaining > 0:
-        # The node that we're vaccinating
-        try :
-            max_prior = max(v1_prior.keys())
-            if (len(v1_prior[max_prior]) == 0):
-                del v1_prior[max_prior]
-            max_prior = max(v1_prior.keys())
-        except ValueError:
-            break
-
-        random.shuffle(v1_prior[max_prior])
-        nid = v1_prior[max_prior].pop()
-
-        print("Node", nid, "got the first dose of vaccine")
-
-        # Set the node's status to V1
-        pop.V1(nid, time_until_v2)
-
-
-        n_remaining -= 1
-
-
-    # V2
-    v2_prior = pop.time_until_v2
-    v2_prior = invert_dict(v2_prior)
-    try:
-        v2_prior = v2_prior[0]
-        print(v2_prior)
-    except KeyError:
-        return deepcopy(pop.G)
-
-    while n_remaining_2 > 0 and len(v2_prior) > 0:
-        # The node that we're vaccinating
-
-        random.shuffle(v2_prior)
-        nid = v2_prior.pop()
-
-        # print(nid)
-
-        print("Node", nid, "got the second dose of vaccine")
-
-        # Set the node's status to V1
-        pop.V2(nid)
-
-        n_remaining_2 -= 1
-
-    return deepcopy(pop.G)
-
-
-
 
 
 
@@ -174,7 +71,7 @@ def household_mixing_w_degree_dist(
             pop.transmit_hh(beta, E_dist, I_dist, ve)
 
         # Distribute vaccines
-        distribute_vax(pop, n_vax_daily)
+        pop.distribute_vax(n_vax_daily)
 
         # Workday
         for hour in range(8, 18):
@@ -191,12 +88,13 @@ def household_mixing_w_degree_dist(
         day += 1
         n_days -= 1
 
+
     return pop
 
 
 if __name__ == "__main__":
 
-    pop = household_mixing_w_degree_dist(50, initial_sick=1, n_vax_daily = 5)
+    pop = household_mixing_w_degree_dist(1000, initial_sick=1, n_vax_daily=100)
 
     disease_status, vaccine_status, edges_history = pop.process_history()
 
@@ -223,7 +121,7 @@ if __name__ == "__main__":
     plt.legend()
     plt.savefig("testanim.png")
 
-    run_animation = True
+    run_animation =False
 
     if run_animation:
 
@@ -260,6 +158,7 @@ if __name__ == "__main__":
             ax[1].plot((vaccine_status.iloc[:,:i] == 'V1').sum(axis=0), color=coldict['V1'])
             ax[1].plot((vaccine_status.iloc[:,:i] == 'V2').sum(axis=0), color=coldict['V2'])
             ax[1].set_xlim([0, len(disease_status.columns)])
+            ax[1].legend()
 
 
         anim = animation.FuncAnimation(fig, animate, frames=len(edges_history), interval=50)

@@ -36,7 +36,7 @@ def test_set_sick():
 def test_transmit():
     pop.set_sick('2', 10)
     print(pop.edges)
-    pop.transmit(pop.edges)
+    pop.transmit
     assert pop.node_ids_S == ['3', '4', '5']
     assert pop.node_ids_I == ['1', '2']
     assert pop.node_ids_R == []
@@ -47,7 +47,7 @@ def test_transmit():
 def test_decrement():
     for d in range(15):
         pop.decrement()
-        pop.transmit()
+        pop.transmit
 
     assert pop.node_ids_S == ['3', '4', '5']
     assert pop.node_ids_I == []

@@ -6,3 +6,5 @@ lucid/
 lucid-pipeline/
 *.pytest_cache/
 POLYMOD/
+*.gif
+*.png

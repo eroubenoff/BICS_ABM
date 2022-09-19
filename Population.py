@@ -1,3 +1,4 @@
+import itertools
 import pdb
 
 import networkx as nx
@@ -5,8 +6,19 @@ import pandas as pd
 from uuid import uuid4
 from scipy.stats import bernoulli, poisson, randint
 from random import shuffle
-from copy import deepcopy
 from itertools import chain
+import pickle
+
+
+def invert_dict(d):
+    ret = dict()
+    for key, value in d.items():
+        if value in ret:
+            ret[value].append(key)
+        else:
+            ret[value] = [key]
+
+    return ret
 
 def split_list(l: list[str]) -> tuple[list[str], list[str]]:
     """
@@ -29,7 +41,7 @@ def split_list(l: list[str]) -> tuple[list[str], list[str]]:
         l = l[0:(l_len - 1)]
         l_len = len(l)
 
-    return deepcopy(l[:l_len // 2]), deepcopy(l[l_len // 2:])
+    return l[:l_len // 2], l[l_len // 2:]
 
 class Household:
     def __init__(self, hhsize, head, hhid=None):
@@ -51,6 +63,9 @@ class Population:
 
     # History is a list of dictionaries, with keys 'nodes' and 'edges'
     history = []
+
+    # households is iter of hhs
+    households = {}
 
     def __init__(self, G=None):
         if G is None:
@@ -111,6 +126,12 @@ class Population:
         except AssertionError as e:
             print(e)
             raise ValueError("Data passed:", id, age, disease_status, remaining_days_sick, ethnicity, num_cc_nonhh, hhid)
+
+        # Add to hhs list
+        if hhid in self.households:
+            self.households[hhid].append(id)
+        else:
+            self.households[hhid] = [id]
 
         self.G.add_nodes_from([(id,
                                 {'age': age,
@@ -228,12 +249,20 @@ class Population:
 
         """
 
-        hhidlist = self.G.nodes.data('hhid')
 
-        for h in self.hhids:
-            node_ids = [n for n, hh in hhidlist if h == hh]
-            self.add_edges([(u, v, {'protection': False, 'household': True})
-                            for u in node_ids for v in node_ids if u != v])
+        # hhidlist = self.G.nodes.data('hhid')
+        #
+        # for h in self.hhids:
+        #     node_ids = [n for n, hh in hhidlist if h == hh]
+        #     self.add_edges([(u, v, {'protection': False, 'household': True})
+        #                     for u in node_ids for v in node_ids if u != v])
+
+        for _, idlist in self.households.items():
+            self.add_edges([
+                (u, v, {'protection': False, 'household': True}) for u, v in itertools.combinations(idlist, 2)
+            ])
+
+
 
 
     def remove_edge(self, u, v):
@@ -394,35 +423,7 @@ class Population:
 
         return
 
-    def transmit(self, el):
-        """
 
-        Parameters
-        ----------
-        el: list of tuples of format:
-                (n1, n2, E_n, I_n)
-            List of nodes to transmit between
-
-        Returns
-        -------
-        List of newly-sick nodes
-
-
-        """
-
-        transmission_list = []
-
-        for n1, n2, E_n, I_n in el:
-            if self.G.nodes('disease_status')[n1] == 'S' and self.G.nodes('disease_status')[n2] == 'I':
-                print("Node", n1, "has been infected")
-                self.set_sick(n1, E_n=E_n, I_n=I_n)
-                transmission_list.append(n1)
-            elif self.G.nodes('disease_status')[n2] == 'S' and self.G.nodes('disease_status')[n1] == 'I':
-                print("Node", n2, "has been infected")
-                self.set_sick(n2, E_n=E_n, I_n=I_n)
-                transmission_list.append(n2)
-
-        return transmission_list
 
     def add_history(self):
         """
@@ -433,10 +434,16 @@ class Population:
         None.
 
         """
-        n = [x for x in self.G.nodes.data()]
-        e = [x for x in self.G.edges.data()]
+        # n = [x for x in self.G.nodes.data()]
+        # e = [x for x in self.G.edges.data()]
+        #
+        # self.history.append({'nodes': deepcopy(n), 'edges': deepcopy(e)})
 
-        self.history.append({'nodes': deepcopy(n), 'edges': deepcopy(e)})
+        self.history.append({
+            'nodes': pickle.loads(pickle.dumps(self.G.nodes.data())),
+            'edges': pickle.loads(pickle.dumps(self.G.edges.data()))
+        })
+
 
     def process_history(self):
         """
@@ -451,25 +458,69 @@ class Population:
             raise ValueError("Must have at least one saved history")
 
 
-        disease_status = pd.DataFrame()
-        vaccine_status = pd.DataFrame()
+        disease_status = []
+        vaccine_status = []
         edges = []
 
         for time, ne in enumerate(self.history):
 
-            disease_status_temp = {n[0]: n[1]['disease_status'] for n in ne['nodes']}
-            vaccine_status_temp = {n[0]: n[1]['vaccine_status'] for n in ne['nodes']}
-            edges_temp = [e for e in ne['edges']]
+            disease_status.append(pd.Series({n[0]: n[1]['disease_status'] for n in ne['nodes']}, name=time))
+            vaccine_status.append(pd.Series({n[0]: n[1]['vaccine_status'] for n in ne['nodes']}, name=time))
+            edges.append([e for e in ne['edges']])
 
-            disease_status = pd.concat([disease_status, pd.Series(disease_status_temp, name=time)], axis=1)
-            vaccine_status = pd.concat([vaccine_status, pd.Series(vaccine_status_temp, name=time)], axis=1)
-
-            edges.append(edges_temp)
-
-        return pd.DataFrame(disease_status), pd.DataFrame(vaccine_status), edges
+        return pd.concat(disease_status, axis=1), pd.concat(vaccine_status, axis=1), edges
 
 
+    def transmit(self, beta, ve, E_dist, I_dist):
+        """
 
+        Parameters
+        ----------
+        Transmits between any eligible nodes
+
+        Returns
+        -------
+        list of newly infected nodes
+
+
+        """
+
+        transmission_list = []
+
+
+        for n1, n2, data in self.G.edges.data():
+            # See if either node is infected
+            n1_ds = self.G.nodes('disease_status')[n1]
+            n2_ds = self.G.nodes('disease_status')[n2]
+
+            # Make sure only one is I
+            if (n1_ds == 'I' and n2_ds == 'S') or (n1_ds == 'S' and n2_ds == 'I'):
+                # Do stuff
+                # For consistency, check data['either sick']
+                # if not data['either_sick']:
+                #     raise ValueError("Either node is sick, but edge attribute either_sick is false")
+
+                # Identify which node is sick
+                node_to_infect = n1 if n1_ds == 'S' else n2
+
+
+
+                # Protection
+                mask_usage = data['protection']
+                vaccine_status = self.G.nodes('vaccine_status')[node_to_infect]
+
+                # Flip coins
+                if bernoulli(beta[mask_usage]) and bernoulli(1-ve[vaccine_status]):
+                    self.set_sick(node_to_infect, E_dist.rvs(), I_dist.rvs())
+                    print("Node", node_to_infect, "has been infected")
+                    transmission_list.append(node_to_infect)
+
+
+            else:
+                continue
+
+
+        return transmission_list
 
     def transmit_daytime(self, beta: dict, p_mask: float, E_dist, I_dist, ve) -> None:
         """
@@ -485,17 +536,21 @@ class Population:
 
         self.remove_edges()
 
-        node_ids_V1 = self.node_ids_V1
-        node_ids_V2 = self.node_ids_V2
-
         # Create a subpopulation of people having contacts every hour
         # by bootstrapping the population. Number of times a node appears in the population
         # poisson sampling with lambda=num_cc_nonhh/10
+        # subpop = list(chain(*[
+        #     [n[0]] * rep
+        #     for n in self.G.nodes.data('num_cc_nonhh')
+        #     for rep in range(poisson.rvs(n[1] / 10))
+        # ]))
+
+        # Generate the number of stubs for each node
+        num_cc_nonhh = nx.get_node_attributes(self.G, 'num_cc_nonhh')
         subpop = list(chain(*[
-            [n[0]] * rep
-            for n in self.G.nodes.data('num_cc_nonhh')
-            for rep in range(poisson.rvs(n[1] / 10))
+            [k]*v for k, v in zip(num_cc_nonhh.keys(), poisson.rvs([*num_cc_nonhh.values()]) // 10)
         ]))
+
         # Shuffle this list and split into two sublists
         shuffle(subpop)
         subpop = split_list(subpop)
@@ -507,24 +562,7 @@ class Population:
              for n1, n2 in zip(*subpop) if n1 != n2]
         )
 
-        # Transmit
-        t = list()
-        for u, v, d in self.edges.data():
-            if not d['either_sick']:
-                continue
-            else:
-                # If either node is vaccinated:
-                if u in node_ids_V1 or v in node_ids_V1:
-                    if bernoulli(beta[d['protection']]) and bernoulli(1 - ve["V1"]):
-                        t.append((u, v, E_dist.rvs(), I_dist.rvs()))
-
-                elif u in node_ids_V2 or v in node_ids_V2:
-                    if bernoulli(beta[d['protection']]) and bernoulli(1 - ve["V2"]):
-                        t.append((u, v, E_dist.rvs(), I_dist.rvs()))
-                elif bernoulli(beta[d['protection']]):
-                    t.append((u, v, E_dist.rvs(), I_dist.rvs()))
-
-        self.transmit(t)
+        self.transmit(beta, ve, E_dist, I_dist)
         self.add_history()
         self.decrement()
         self.remove_edges()
@@ -550,17 +588,88 @@ class Population:
         """
 
         # Loop through each hhid and transmit through all the tuples
-        node_ids_I = self.node_ids_I
-        t = list()
-        for u, v, d in self.edges.data():
-            if not d['either_sick']:
-                continue
-            if d['household'] and (u in node_ids_I or v in node_ids_I) and bernoulli(beta[d['protection']]):
-                t.append((u, v,E_dist.rvs(), I_dist.rvs()))
 
 
-        self.transmit(t)
+        self.transmit(beta, ve, E_dist, I_dist)
         self.add_history()
         self.decrement()
+
+        return
+
+    def distribute_vax(self, n_daily: int, time_until_v2: int = 25 * 24):
+        """
+        Distributes n_daily doses of the vaccine to the population, by priority
+        group
+        Parameters
+        ----------
+        pop: Population
+            The object to modify
+        n_daily: int
+            Number of vaccines distributed every day
+
+        Returns
+        -------
+
+        """
+
+
+        n_remaining = n_daily
+        n_remaining_2 = n_daily
+
+
+
+        # Invert the dict of priorities
+        v1_prior = self.vaccine_priority
+        v1_prior = invert_dict(v1_prior)
+        del v1_prior[-1]
+
+
+
+        # V1
+        while n_remaining > 0:
+            # The node that we're vaccinating
+            try :
+                max_prior = max(v1_prior.keys())
+                if (len(v1_prior[max_prior]) == 0):
+                    del v1_prior[max_prior]
+                max_prior = max(v1_prior.keys())
+            except ValueError:
+                break
+
+            shuffle(v1_prior[max_prior])
+            nid = v1_prior[max_prior].pop()
+
+            print("Node", nid, "got the first dose of vaccine")
+
+            # Set the node's status to V1
+            self.V1(nid, time_until_v2)
+
+
+            n_remaining -= 1
+
+
+        # V2
+        v2_prior = self.time_until_v2
+        v2_prior = invert_dict(v2_prior)
+        try:
+            v2_prior = v2_prior[0]
+            print(v2_prior)
+        except KeyError:
+            return
+
+        while n_remaining_2 > 0 and len(v2_prior) > 0:
+            # The node that we're vaccinating
+
+            shuffle(v2_prior)
+            nid = v2_prior.pop()
+
+            # print(nid)
+
+            print("Node", nid, "got the second dose of vaccine")
+
+            # Set the node's status to V1
+            self.V2(nid)
+
+            n_remaining_2 -= 1
 
         return

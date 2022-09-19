@@ -33,9 +33,7 @@ def random_mixing(n_nodes=1000, initial_sick=1, n_days=100, n_edges=10):
 
             # Choose edges to transmit between
             # Beta is probability of transmission if wearing a mask
-            pop.transmit(
-                [(u, v) for u, v, p in pop.edges.data('protection') if bernoulli(beta[p])]
-            )
+            pop.transmit
             # nx.draw(pop.G, with_labels=False)
             # plt.pause(0.1)
             pop.remove_edges(keep_hh=False)
