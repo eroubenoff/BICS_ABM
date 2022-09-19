@@ -33,7 +33,7 @@ class Node {
         void clear_edges();
         Node();
         Node(int age, bool gender, int num_cc);
-        Node(string id, int age, bool gender, int num_cc);
+        Node(string id, int age, bool gender, int num_cc, string hhid);
         ~Node();
 
         friend ostream & operator << (ostream &out, const Node &n);
@@ -124,9 +124,11 @@ public:
     // void remove_edge(string  e);
     // void remove_edge(Node n1, Node n2);
 
-    // Population();
+    Population();
     Population(vector<Node> nodelist);
 
 
     friend ostream & operator << (ostream &out, Population &p);
 };
+
+vector<Node> pop_from_csv(string fname = "pop.csv");

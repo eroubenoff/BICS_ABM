@@ -5,7 +5,7 @@ using namespace std;
 
 // Main contains unit tests
 int main() {
-    Node n("121", 26, false, 10);
+    Node n("121", 26, false, 10, "3");
 
     cout << "Expecting 49: " << n.id() << endl;
     if (n.id() != "121") throw "Incorrect value for id";

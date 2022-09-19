@@ -35,5 +35,9 @@ int main() {
 
 	cout << pop << endl;
 
+	Population pop2 = pop_from_csv("pop.csv");
+
+	cout << pop2 << endl;
+
 	return 0;
 }

@@ -106,14 +106,14 @@ Node::Node(int age, bool gender, int num_cc) {
     _hhid = "";
 };
 
-Node::Node(string id, int age, bool gender, int num_cc) {
+Node::Node(string id, int age, bool gender, int num_cc, string hhid) {
     _id = id;
     _age = age;
     _gender = gender;
     _num_cc = num_cc;
     _num_days_sick = 0;
     _disease_status = "S";
-    _hhid = "";
+    _hhid = hhid;
 };
 
 Node::~Node() {};
