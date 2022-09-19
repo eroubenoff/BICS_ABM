@@ -246,8 +246,3 @@ class Population:
             self.nodelist[i].remaining_days_sick -= n
             if self.nodelist[i].remaining_days_sick == 0:
                 self.nodelist[i].disease_status = "R"
-
-
-
-
-

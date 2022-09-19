@@ -10,6 +10,7 @@ from copy import deepcopy
 from itertools import chain
 from time import time
 from Population import Population
+import pickle
 
 
 
@@ -88,8 +89,6 @@ def distribute_vax(pop: Population, n_daily: int, time_until_v2: int = 25 * 24):
     except KeyError:
         return deepcopy(pop.G)
 
-    # print(n_remaining_2)
-    # print(len(v2_prior))
     while n_remaining_2 > 0 and len(v2_prior) > 0:
         # The node that we're vaccinating
 
@@ -196,9 +195,10 @@ def household_mixing_w_degree_dist(
 
 
 if __name__ == "__main__":
-    pop = household_mixing_w_degree_dist(50, initial_sick=1, n_vax_daily = 5)
-    disease_status, vaccine_status, edges_history = pop.process_history()
 
+    pop = household_mixing_w_degree_dist(50, initial_sick=1, n_vax_daily = 5)
+
+    disease_status, vaccine_status, edges_history = pop.process_history()
 
     # Print stats
     print("Susceptible: ", len(pop.node_ids_S), "of", len(pop.node_ids))
@@ -223,41 +223,46 @@ if __name__ == "__main__":
     plt.legend()
     plt.savefig("testanim.png")
 
-    run_animation = False
+    run_animation = True
 
     if run_animation:
 
         fig, ax = plt.subplots(ncols=2, figsize=(12, 8))
-        pos = nx.spring_layout(pop.G, k=2 / np.sqrt(len(anim_list[0].nodes)))
+        pop.connect_hh_edges()
+        pos = nx.spring_layout(pop.G, k=2 / np.sqrt(len(pop.G.nodes)))
         t0 = time()
 
 
         def animate(i):
             if i > 0:
-                print('\r', round(i / len(anim_list) * 100), '%:',
-                      round((time() - t0) - (time() - t0) / (i / len(anim_list))),
+                print('\r', round(i / len(edges_history) * 100), '%:',
+                      round((time() - t0) - (time() - t0) / (i / len(edges_history))),
                       'seconds estimated remaining', end='')
 
             ax[0].clear()
-            ds = [v for k, v in nodes_history[i].nodes('disease_status')]
-            nc = [coldict[d] for d in ds]
-            ec = [edgedict[v] for k, v in anim_list[i].edges('household')]
-            nx.draw(anim_list[i], pos=pos, node_color=nc, style=ec, node_size=5, ax=ax[0])
+            # Set edges
+            pop.G.remove_edges_from(list(pop.G.edges()))
+            pop.G.add_edges_from(edges_history[i])
+
+            nc = [coldict[d] for d in disease_status.iloc[:,i].tolist()]
+            # ec = [edgedict[v] for k, v in anim_list[i].edges('household')]
+            # nx.draw(anim_list[i], pos=pos, node_color=nc, style=ec, node_size=5, ax=ax[0])
+            nx.draw(pop.G, pos=pos, node_color=nc, node_size=5, ax=ax[0])
             ax[0].set_title("Day " + str(i // 24) + " hour " + str(i % 24))
             ax[0].set_xlim(-1.5, 1.5)
             ax[0].set_ylim(-1.5, 1.5)
 
             ax[1].clear()
-            ax[1].plot((nodes_history.iloc[:, :i] == 'S').sum(axis=0), color=coldict['S'])
-            ax[1].plot((nodes_history.iloc[:, :i] == 'E').sum(axis=0), color=coldict['E'])
-            ax[1].plot((nodes_history.iloc[:, :i] == 'I').sum(axis=0), color=coldict['I'])
-            ax[1].plot((nodes_history.iloc[:, :i] == 'R').sum(axis=0), color=coldict['R'])
-            ax[1].plot((nodes_history.iloc[:, :i] == 'V1').sum(axis=0), color=coldict['V1'])
-            ax[1].plot((nodes_history.iloc[:, :i] == 'V2').sum(axis=0), color=coldict['V2'])
-            ax[1].set_xlim([0, len(history.columns)])
+            ax[1].plot((disease_status.iloc[:,:i] == 'S').sum(axis=0), color=coldict['S'])
+            ax[1].plot((disease_status.iloc[:,:i] == 'E').sum(axis=0), color=coldict['E'])
+            ax[1].plot((disease_status.iloc[:,:i] == 'I').sum(axis=0), color=coldict['I'])
+            ax[1].plot((disease_status.iloc[:,:i] == 'R').sum(axis=0), color=coldict['R'])
+            ax[1].plot((vaccine_status.iloc[:,:i] == 'V1').sum(axis=0), color=coldict['V1'])
+            ax[1].plot((vaccine_status.iloc[:,:i] == 'V2').sum(axis=0), color=coldict['V2'])
+            ax[1].set_xlim([0, len(disease_status.columns)])
 
 
-        anim = animation.FuncAnimation(fig, animate, frames=len(anim_list), interval=200)
+        anim = animation.FuncAnimation(fig, animate, frames=len(edges_history), interval=50)
 
         writervideo = animation.FFMpegWriter(fps=60)
         anim.save("testanim.gif")
