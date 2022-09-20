@@ -95,7 +95,7 @@ def household_mixing_w_degree_dist(
 
 if __name__ == "__main__":
 
-    pop = household_mixing_w_degree_dist(10000, initial_sick=5, n_vax_daily=500)
+    pop = household_mixing_w_degree_dist(1000, initial_sick=5, n_vax_daily=5)
 
     disease_status, vaccine_status, edges_history = pop.process_history()
 
