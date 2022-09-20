@@ -68,6 +68,14 @@ class Population:
     households = {}
 
     def __init__(self, G=None):
+        self.node_ids_S = []
+        self.node_ids_E = []
+        self.node_ids_I = []
+        self.node_ids_R = []
+        self.node_ids_D = []
+        self.node_ids_V1 = []
+        self.node_ids_V2 = []
+
         if G is None:
             self.G = nx.Graph()
         else:
@@ -144,6 +152,7 @@ class Population:
                                  'vaccine_priority': vaccine_priority,
                                  'time_until_v2' : -1,
                                  'vaccine_status' : vaccine_status})])
+        self.node_ids_S.append(id)
         return id
 
     def add_edges(self, el, check_input=False):
@@ -299,6 +308,7 @@ class Population:
         self.G.nodes()[n]['vaccine_status'] = 'V1'
         self.G.nodes()[n]['time_until_v2'] = time_until_v2
         self.G.nodes()[n]['vaccine_priority'] = -1
+        self.node_ids_V1.append(n)
 
         return
 
@@ -306,6 +316,8 @@ class Population:
     def V2(self, n):
         self.G.nodes[n]['vaccine_status'] = 'V2'
         self.G.nodes[n]['time_until_v2'] = -1
+        self.node_ids_V1.remove(n)
+        self.node_ids_V2.append(n)
 
         return
 
@@ -323,33 +335,36 @@ class Population:
     def node_ids(self):
         return [i[0] for i in self.nodes]
 
-    @property
-    def node_ids_S(self):
-        return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'S']
+    # @property
+    # def node_ids_S(self):
+    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'S']
+    #
+    # @property
+    # def node_ids_E(self):
+    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'E']
+    #
+    # @property
+    # def node_ids_I(self):
+    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'I']
+    #
+    # @property
+    # def node_ids_R(self):
+    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'R']
+    #
+    # @property
+    # def node_ids_D(self):
+    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'D']
 
-    @property
-    def node_ids_E(self):
-        return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'E']
 
-    @property
-    def node_ids_I(self):
-        return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'I']
 
-    @property
-    def node_ids_R(self):
-        return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'R']
 
-    @property
-    def node_ids_D(self):
-        return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'D']
-
-    @property
-    def node_ids_V1(self):
-        return [k for (k, v) in nx.get_node_attributes(self.G, 'vaccine_status').items() if v == 'V1']
-
-    @property
-    def node_ids_V2(self):
-        return [k for (k, v) in nx.get_node_attributes(self.G, 'vaccine_status').items() if v == 'V2']
+    # @property
+    # def node_ids_V1(self):
+    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'vaccine_status').items() if v == 'V1']
+    #
+    # @property
+    # def node_ids_V2(self):
+    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'vaccine_status').items() if v == 'V2']
 
     @property
     def hhids(self):
@@ -380,6 +395,9 @@ class Population:
         """
         # assert isinstance(E_n, int)
 
+        self.node_ids_E.append(node)
+        self.node_ids_S.remove(node)
+
         self.G.nodes()[node]['disease_status'] = 'E'
         self.G.nodes()[node]['remaining_days_exposed'] = E_n
         self.G.nodes()[node]['remaining_days_sick'] = I_n
@@ -387,21 +405,39 @@ class Population:
 
     def decrement(self):
 
-        for i in self.node_ids_I:
-            if self.G.nodes[i]['remaining_days_sick'] == 0:
-                self.G.nodes[i]['disease_status'] = 'R'
+        node_ids_I = self.node_ids_I
+        node_ids_E = self.node_ids_E
+        # disease_status = nx.get_node_attributes(self.G, 'disease_status')
+        remaining_days_sick = nx.get_node_attributes(self.G, 'remaining_days_sick')
+        remaining_days_exposed = nx.get_node_attributes(self.G, 'remaining_days_exposed')
+        time_until_v2 = nx.get_node_attributes(self.G, 'time_until_v2')
+
+        disease_status_update = {}
+        remaining_days_sick_update = {}
+        remaining_days_exposed_update = {}
+        time_until_v2_update = {}
+
+        for i in node_ids_I:
+            if remaining_days_sick[i] == 0:
+                disease_status_update[i] = 'R'
+                self.node_ids_I.remove(i)
+                self.node_ids_R.append(i)
                 print("Node", i, "recovers")
                 continue
             else:
-                self.G.nodes[i]['remaining_days_sick'] -= 1
+                remaining_days_sick_update[i] = remaining_days_sick[i]-1
 
-        for e in self.node_ids_E:
-            if self.G.nodes[e]['remaining_days_exposed'] == 0:
-                self.G.nodes[e]['disease_status'] = 'I'
+
+        for e in node_ids_E:
+            if remaining_days_exposed[e] == 0:
+                disease_status_update[e] = 'I'
+                self.node_ids_E.remove(e)
+                self.node_ids_I.append(e)
                 print("Node", e, "became symptomatic")
                 continue
             else:
-                self.G.nodes[e]['remaining_days_exposed'] -= 1
+                remaining_days_exposed_update[e] = remaining_days_exposed[e]-1
+
 
         for v1, t in self.time_until_v2.items():
             if t == -1:
@@ -409,7 +445,12 @@ class Population:
             if t == 0:
                 continue
             else:
-                self.G.nodes[v1]['time_until_v2'] -= 1
+                time_until_v2_update[v1] = time_until_v2[v1] - 1
+
+        nx.set_node_attributes(self.G, disease_status_update, 'disease_status')
+        nx.set_node_attributes(self.G, remaining_days_sick_update, 'remaining_days_sick')
+        nx.set_node_attributes(self.G, remaining_days_exposed_update, 'remaining_days_exposed')
+        nx.set_node_attributes(self.G, time_until_v2_update, 'time_until_v2')
 
         return
 
