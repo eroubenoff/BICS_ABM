@@ -85,6 +85,7 @@ def household_mixing_w_degree_dist(
             print("Day", day, "Hour", hour)
             pop.transmit_hh(beta, E_dist, I_dist, ve)
 
+        pop.add_history()
         day += 1
         n_days -= 1
 
@@ -94,7 +95,7 @@ def household_mixing_w_degree_dist(
 
 if __name__ == "__main__":
 
-    pop = household_mixing_w_degree_dist(1000, initial_sick=1, n_vax_daily=100)
+    pop = household_mixing_w_degree_dist(1000, initial_sick=5, n_vax_daily=50)
 
     disease_status, vaccine_status, edges_history = pop.process_history()
 
@@ -121,7 +122,7 @@ if __name__ == "__main__":
     plt.legend()
     plt.savefig("testanim.png")
 
-    run_animation =False
+    run_animation = True
 
     if run_animation:
 
@@ -151,12 +152,12 @@ if __name__ == "__main__":
             ax[0].set_ylim(-1.5, 1.5)
 
             ax[1].clear()
-            ax[1].plot((disease_status.iloc[:,:i] == 'S').sum(axis=0), color=coldict['S'])
-            ax[1].plot((disease_status.iloc[:,:i] == 'E').sum(axis=0), color=coldict['E'])
-            ax[1].plot((disease_status.iloc[:,:i] == 'I').sum(axis=0), color=coldict['I'])
-            ax[1].plot((disease_status.iloc[:,:i] == 'R').sum(axis=0), color=coldict['R'])
-            ax[1].plot((vaccine_status.iloc[:,:i] == 'V1').sum(axis=0), color=coldict['V1'])
-            ax[1].plot((vaccine_status.iloc[:,:i] == 'V2').sum(axis=0), color=coldict['V2'])
+            ax[1].plot((disease_status.iloc[:,:i] == 'S').sum(axis=0), color=coldict['S'], label='S')
+            ax[1].plot((disease_status.iloc[:,:i] == 'E').sum(axis=0), color=coldict['E'], label='E')
+            ax[1].plot((disease_status.iloc[:,:i] == 'I').sum(axis=0), color=coldict['I'], label='I')
+            ax[1].plot((disease_status.iloc[:,:i] == 'R').sum(axis=0), color=coldict['R'], label='R')
+            ax[1].plot((vaccine_status.iloc[:,:i] == 'V1').sum(axis=0), color=coldict['V1'], label='V1')
+            ax[1].plot((vaccine_status.iloc[:,:i] == 'V2').sum(axis=0), color=coldict['V2'], label='V2')
             ax[1].set_xlim([0, len(disease_status.columns)])
             ax[1].legend()
 

@@ -180,13 +180,6 @@ class Population:
                 if e[0] == e[1]:
                     el.pop(e)
 
-        node_ids_I = self.node_ids_I
-        # Check to see if one or more of the nodes in the edges are sick
-        for e in range(len(el)):
-            if el[e][0] in node_ids_I or el[e][1] in node_ids_I:
-                el[e][2]['either_sick'] = True
-            else:
-                el[e][2]['either_sick'] = False
 
         self.G.add_edges_from(el)
 
@@ -240,6 +233,13 @@ class Population:
 
         return hhids
 
+
+    hhedges = [
+        (u, v, {'protection': False, 'household': True})
+        for idlist in households.values()
+        for u, v in itertools.combinations(idlist, 2)
+        ]
+
     def connect_hh_edges(self):
         """
         Adds edges for all nodes in the same household
@@ -249,18 +249,7 @@ class Population:
 
         """
 
-
-        # hhidlist = self.G.nodes.data('hhid')
-        #
-        # for h in self.hhids:
-        #     node_ids = [n for n, hh in hhidlist if h == hh]
-        #     self.add_edges([(u, v, {'protection': False, 'household': True})
-        #                     for u in node_ids for v in node_ids if u != v])
-
-        for _, idlist in self.households.items():
-            self.add_edges([
-                (u, v, {'protection': False, 'household': True}) for u, v in itertools.combinations(idlist, 2)
-            ])
+        self.add_edges(self.hhedges)
 
 
 
@@ -281,7 +270,7 @@ class Population:
         self.G.remove_edge(u, v)
         return
 
-    def remove_edges(self, keep_hh=True):
+    def remove_edges(self, keep_hh=False):
         """
         Drops all edges in the population
 
@@ -290,12 +279,13 @@ class Population:
         None
 
         """
-        if keep_hh:
-            self.G.remove_edges_from(
-                [(u, v) for u, v, d in self.G.edges.data('household') if not d]
-            )
-        else:
-            self.G.remove_edges_from(self.G.edges)
+        # if keep_hh:
+
+            # self.G.remove_edges_from(
+            #     [(u, v) for u, v, d in self.G.edges.data('household') if not d]
+            # )
+        # else:
+        self.G.remove_edges_from(self.G.edges)
 
 
         return
@@ -335,31 +325,31 @@ class Population:
 
     @property
     def node_ids_S(self):
-        return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'S']
+        return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'S']
 
     @property
     def node_ids_E(self):
-        return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'E']
+        return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'E']
 
     @property
     def node_ids_I(self):
-        return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'I']
+        return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'I']
 
     @property
     def node_ids_R(self):
-        return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'R']
+        return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'R']
 
     @property
     def node_ids_D(self):
-        return [k for (k, v) in self.G.nodes.data() if v['disease_status'] == 'D']
+        return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'D']
 
     @property
     def node_ids_V1(self):
-        return [k for (k, v) in self.G.nodes.data() if v['vaccine_status'] == 'V1']
+        return [k for (k, v) in nx.get_node_attributes(self.G, 'vaccine_status').items() if v == 'V1']
 
     @property
     def node_ids_V2(self):
-        return [k for (k, v) in self.G.nodes.data() if v['vaccine_status'] == 'V2']
+        return [k for (k, v) in nx.get_node_attributes(self.G, 'vaccine_status').items() if v == 'V2']
 
     @property
     def hhids(self):
@@ -485,42 +475,33 @@ class Population:
 
         """
 
-        transmission_list = []
-
+        disease_status = self.G.nodes('disease_status')
+        vaccine_status = self.G.nodes('vaccine_status')
 
         for n1, n2, data in self.G.edges.data():
             # See if either node is infected
-            n1_ds = self.G.nodes('disease_status')[n1]
-            n2_ds = self.G.nodes('disease_status')[n2]
+            n1_ds = disease_status[n1]
+            n2_ds = disease_status[n2]
 
             # Make sure only one is I
             if (n1_ds == 'I' and n2_ds == 'S') or (n1_ds == 'S' and n2_ds == 'I'):
-                # Do stuff
-                # For consistency, check data['either sick']
-                # if not data['either_sick']:
-                #     raise ValueError("Either node is sick, but edge attribute either_sick is false")
-
                 # Identify which node is sick
                 node_to_infect = n1 if n1_ds == 'S' else n2
 
-
-
                 # Protection
                 mask_usage = data['protection']
-                vaccine_status = self.G.nodes('vaccine_status')[node_to_infect]
+                vaccine = vaccine_status[node_to_infect]
 
                 # Flip coins
-                if bernoulli(beta[mask_usage]) and bernoulli(1-ve[vaccine_status]):
+                if bernoulli(beta[mask_usage]) and bernoulli(1-ve[vaccine]):
                     self.set_sick(node_to_infect, E_dist.rvs(), I_dist.rvs())
                     print("Node", node_to_infect, "has been infected")
-                    transmission_list.append(node_to_infect)
-
 
             else:
                 continue
 
 
-        return transmission_list
+        return #transmission_list
 
     def transmit_daytime(self, beta: dict, p_mask: float, E_dist, I_dist, ve) -> None:
         """
@@ -536,15 +517,6 @@ class Population:
 
         self.remove_edges()
 
-        # Create a subpopulation of people having contacts every hour
-        # by bootstrapping the population. Number of times a node appears in the population
-        # poisson sampling with lambda=num_cc_nonhh/10
-        # subpop = list(chain(*[
-        #     [n[0]] * rep
-        #     for n in self.G.nodes.data('num_cc_nonhh')
-        #     for rep in range(poisson.rvs(n[1] / 10))
-        # ]))
-
         # Generate the number of stubs for each node
         num_cc_nonhh = nx.get_node_attributes(self.G, 'num_cc_nonhh')
         subpop = list(chain(*[
@@ -553,17 +525,16 @@ class Population:
 
         # Shuffle this list and split into two sublists
         shuffle(subpop)
-        subpop = split_list(subpop)
+        s1, s2 = split_list(subpop)
 
         # Add edges
         # Probability that node is wearing a mask is p_mask.
         self.add_edges(
-            [(n1, n2, {'protection': bernoulli.rvs(p_mask), 'household': False})
-             for n1, n2 in zip(*subpop) if n1 != n2]
+            [(n1, n2, {'protection': mask, 'household': False})
+             for n1, n2, mask in zip(s1, s2, bernoulli.rvs(p_mask, size=len(s1))) if n1 != n2]
         )
 
         self.transmit(beta, ve, E_dist, I_dist)
-        self.add_history()
         self.decrement()
         self.remove_edges()
 
@@ -591,7 +562,6 @@ class Population:
 
 
         self.transmit(beta, ve, E_dist, I_dist)
-        self.add_history()
         self.decrement()
 
         return
@@ -612,18 +582,13 @@ class Population:
 
         """
 
-
         n_remaining = n_daily
         n_remaining_2 = n_daily
-
-
 
         # Invert the dict of priorities
         v1_prior = self.vaccine_priority
         v1_prior = invert_dict(v1_prior)
         del v1_prior[-1]
-
-
 
         # V1
         while n_remaining > 0:
@@ -644,7 +609,6 @@ class Population:
             # Set the node's status to V1
             self.V1(nid, time_until_v2)
 
-
             n_remaining -= 1
 
 
@@ -659,12 +623,8 @@ class Population:
 
         while n_remaining_2 > 0 and len(v2_prior) > 0:
             # The node that we're vaccinating
-
             shuffle(v2_prior)
             nid = v2_prior.pop()
-
-            # print(nid)
-
             print("Node", nid, "got the second dose of vaccine")
 
             # Set the node's status to V1
