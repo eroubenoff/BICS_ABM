@@ -1,1 +1,0 @@
-cdef transmit_daytime()

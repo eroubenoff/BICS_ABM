@@ -335,37 +335,6 @@ class Population:
     def node_ids(self):
         return [i[0] for i in self.nodes]
 
-    # @property
-    # def node_ids_S(self):
-    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'S']
-    #
-    # @property
-    # def node_ids_E(self):
-    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'E']
-    #
-    # @property
-    # def node_ids_I(self):
-    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'I']
-    #
-    # @property
-    # def node_ids_R(self):
-    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'R']
-    #
-    # @property
-    # def node_ids_D(self):
-    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'disease_status').items() if v == 'D']
-
-
-
-
-    # @property
-    # def node_ids_V1(self):
-    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'vaccine_status').items() if v == 'V1']
-    #
-    # @property
-    # def node_ids_V2(self):
-    #     return [k for (k, v) in nx.get_node_attributes(self.G, 'vaccine_status').items() if v == 'V2']
-
     @property
     def hhids(self):
         return {h for _, h in self.G.nodes.data('hhid')}
