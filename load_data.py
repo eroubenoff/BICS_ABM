@@ -5,47 +5,47 @@ import pdb
 import numpy as np
 import pandas as pd
 from Population import Population, Household
-import rpy2.robjects as robjects
-from rpy2.robjects import pandas2ri
+# import rpy2.robjects as robjects
+# from rpy2.robjects import pandas2ri
 
-pandas2ri.activate()
+# pandas2ri.activate()
 
 
-def load_rds(f: str) -> pd.DataFrame:
-    """
-    Loads the RDS files.
-
-    Parameters
-    ----------
-    f: str
-        path of file to load
-
-    Returns
-    -------
-    pd.DataFrame
-
-    """
-
-    readRDS = robjects.r['readRDS']
-    df = readRDS(f)
-    df = pandas2ri.rpy2py(df)
-
-    return df
+# def load_rds(f: str) -> pd.DataFrame:
+#     """
+#     Loads the RDS files.
+#
+#     Parameters
+#     ----------
+#     f: str
+#         path of file to load
+#
+#     Returns
+#     -------
+#     pd.DataFrame
+#
+#     """
+#
+#     readRDS = robjects.r['readRDS']
+#     df = readRDS(f)
+#     df = pandas2ri.rpy2py(df)
+#
+#     return df
 
 
 lucid_data = {
-    'wave0': load_rds('lucid/national_wave0.rds'),
-    'wave0_alters': load_rds('lucid/national_alters_wave0.rds'),
-    'wave1': load_rds('lucid/national_wave1.rds'),
-    'wave1_alters': load_rds('lucid/national_alters_wave1.rds'),
-    'wave2': load_rds('lucid/national_wave2.rds'),
-    'wave2_alters': load_rds('lucid/national_alters_wave2.rds'),
-    'wave3': load_rds('lucid/national_wave3.rds'),
-    'wave3_alters': load_rds('lucid/national_alters_wave3.rds'),
-    'wave4': load_rds('lucid/national_wave4.rds'),
-    'wave4_alters': load_rds('lucid/national_alters_wave4.rds'),
-    'wave5': load_rds('lucid/national_wave5.rds'),
-    'wave5_alters': load_rds('lucid/national_alters_wave5.rds')
+    'wave0': pd.read_csv('lucid/wave0.csv'),
+    'wave0_alters': pd.read_csv('lucid/wave0_alters.csv'),
+    'wave1': pd.read_csv('lucid/wave1.csv'),
+    'wave1_alters': pd.read_csv('lucid/wave1_alters.csv'),
+    'wave2': pd.read_csv('lucid/wave2.csv'),
+    'wave2_alters': pd.read_csv('lucid/wave2_alters.csv'),
+    'wave3': pd.read_csv('lucid/wave3.csv'),
+    'wave3_alters': pd.read_csv('lucid/wave3_alters.csv'),
+    'wave4': pd.read_csv('lucid/wave4.csv'),
+    'wave4_alters': pd.read_csv('lucid/wave4_alters.csv'),
+    'wave5': pd.read_csv('lucid/wave5.csv'),
+    'wave5_alters': pd.read_csv('lucid/wave5_alters.csv')
 }
 
 
@@ -266,11 +266,11 @@ def sim_pop(n_households: int,
             gen = head_data['hhr_' + str(hhr) + '_gender']
 
             if age is None or gen is None:
-                print("HH Member Age or Gender is None")
+                # print("HH Member Age or Gender is None")
                 continue
 
             if age != '[0,18)':
-                print("HH size:", hh.hhsize, "HH Member age:", age, ", HH Member gender: ", gen)
+                # print("HH size:", hh.hhsize, "HH Member age:", age, ", HH Member gender: ", gen)
 
                 # Eligible population from BICS that matches the hhsize, age, and gender of the respondent's hh member
                 df_sub = df[
@@ -285,19 +285,19 @@ def sim_pop(n_households: int,
                     continue
 
                 new_member = df_sub.sample(1, weights='weight_pooled').iloc[0, :].to_dict()
-                print(new_member)
+                # print(new_member)
 
                 hh_list[i].add_member(new_member)
 
-            elif age == '[0,18)' and not fill_polymod:
-                print("Household member is a child and fill_polymod=False")
+            # elif age == '[0,18)' and not fill_polymod:
+                # print("Household member is a child and fill_polymod=False")
 
             elif age == '[0,18)' and fill_polymod:
                 new_member = polymod[
                                  (polymod['age'] == age) & (polymod['gender'] == gen)
                              ].sample(1).iloc[0, :].to_dict()
                 new_member['ethnicity'] = str(None)
-                print(new_member)
+                # print(new_member)
 
                 hh_list[i].add_member(new_member)
 

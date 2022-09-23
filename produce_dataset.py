@@ -4,21 +4,42 @@ This script produces a .csv for use by the cpp_version.
 Output is a csv file where each line is a node.
 """
 # from load_data import sim_pop, lucid_data
+import pdb
+
 import load_data
 import csv
+import igraph as ig
 
 if __name__ == "__main__":
-    n_hh = 100
+    n_hh = 1000
     pop = load_data.sim_pop(n_hh, load_data.lucid_data['wave4'])
     popl = list()
 
-    for k, v in pop.G.nodes(data=True):
-        v["id"] = k
-        popl.append(v)
+    # Need to turn age bins from strings into labels for cpp
 
-    keys = popl[0].keys()
+    agedict = {}
+    agedict['[0,18)'] = 0
+    agedict['[18,25)'] = 1
+    agedict['[25,35)'] = 2
+    agedict['[35,45)'] = 3
+    agedict['[45,55)'] = 4
+    agedict['[55,65)'] = 5
+    agedict['[65,75)'] = 6
+    agedict['[75,85)'] = 7
+    agedict['>85'] = 8
 
-    with open('cpp_version/pop.csv', 'w', newline='') as output_file:
-        dict_writer = csv.DictWriter(output_file, keys)
-        dict_writer.writeheader()
-        dict_writer.writerows(popl)
+    pop.G.vs['age'] = [agedict[x] for x in pop.G.vs['age']]
+
+    pop = pop.G.get_vertex_dataframe()
+    pop.to_csv("cpp_version/pop.csv")
+    # for v in pop.G.vs:
+    #     pdb.set_trace()
+    #     popl.append({v[1]: v[2]})
+    #
+    # keys = popl[0].keys()
+
+    #
+    # with open('cpp_version/pop.csv', 'w', newline='') as output_file:
+    #     dict_writer = csv.DictWriter(output_file, keys)
+    #     dict_writer.writeheader()
+    #     dict_writer.writerows(popl)

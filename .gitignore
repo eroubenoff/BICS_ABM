@@ -8,3 +8,4 @@ lucid-pipeline/
 POLYMOD/
 *.gif
 *.png
+cpp_version/build/*

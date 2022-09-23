@@ -1,11 +1,12 @@
 import itertools
+import pdb
 import pandas as pd
 from uuid import uuid4
-from scipy.stats import bernoulli, poisson, randint
-from random import shuffle
+from random import shuffle, choice
 from itertools import chain
 import igraph as ig
-
+from array import array
+import cProfile
 
 def invert_dict(d):
     ret = dict()
@@ -16,6 +17,7 @@ def invert_dict(d):
             ret[value] = [key]
 
     return ret
+
 
 def split_list(l: list[str]) -> tuple[list[str], list[str]]:
     """
@@ -40,6 +42,7 @@ def split_list(l: list[str]) -> tuple[list[str], list[str]]:
 
     return l[:l_len // 2], l[l_len // 2:]
 
+
 class Household:
     def __init__(self, hhsize, head, hhid=None):
         if hhid is None:
@@ -56,13 +59,36 @@ class Household:
 
 
 class Population:
-    # History is a list of dictionaries, with keys 'nodes' and 'edges'
-    history = []
 
-    # households is iter of hhs
-    households = {}
+    # @property
+    # def node_ids_E(self):
+    #     return self._node_ids_E
 
     def __init__(self, G=None):
+        # History is a list of dictionaries, with keys 'nodes' and 'edges'
+        self.history = []
+        self.households = {}
+
+        # Create arrays for node statuses
+        self.node_ids_S = array('I')
+        self.node_ids_E = array('I')
+        self.node_ids_I = array('I')
+        self.node_ids_R = array('I')
+        self.node_ids_D = array('I')
+        self.node_ids_V1 = array('I')
+        self.node_ids_V2 = array('I')
+
+        self.mu = {
+            '[0,18)': 0,
+            '[18,25)': 0,
+            '[25,35)': 0,
+            '[35,45)': 0,
+            '[45,55)': 0,
+            '[55,65)': 0,
+            '[65,75)': 0,
+            '[75,85)': 0,
+            '>85' : 0
+        }
 
         if G is None:
             self.G = ig.Graph()
@@ -109,30 +135,29 @@ class Population:
 
         except AssertionError as e:
             print(e)
-            raise ValueError("Data passed:", id, age, disease_status, remaining_days_sick, ethnicity, num_cc_nonhh, hhid)
+            raise ValueError("Data passed:", id, age, disease_status, remaining_days_sick, ethnicity, num_cc_nonhh,
+                             hhid)
 
         # Creates node in place and returns the index of the newly created node
         id = self.G.add_vertex(age=age,
-                                 disease_status=disease_status,
-                                 remaining_days_sick=remaining_days_sick,
-                                 gender=gender,
-                                 ethnicity=ethnicity,
-                                 num_cc_nonhh=num_cc_nonhh,
-                                 hhid=hhid,
-                                 vaccne_priority=vaccine_priority,
-                                 time_until_v2=-1,
-                                 vaccine_status=vaccine_status).index
+                               disease_status=disease_status,
+                               remaining_days_sick=remaining_days_sick,
+                               gender=gender,
+                               ethnicity=ethnicity,
+                               num_cc_nonhh=num_cc_nonhh,
+                               hhid=hhid,
+                               vaccine_priority=vaccine_priority,
+                               time_until_v2=-1,
+                               vaccine_status=vaccine_status).index
 
         self.G.vs[id]['name'] = id
+        # self.node_ids_S.append(id)
 
         # Add to hhs list
         if hhid in self.households:
             self.households[hhid].append(id)
         else:
             self.households[hhid] = [id]
-
-
-
 
         return id
 
@@ -154,26 +179,6 @@ class Population:
         Tuple of edge added. Returns None if u=v
 
         """
-        # if check_input:
-        #     for e in el:
-        #         try:
-        #             assert e[0] in self.G.nodes()
-        #             assert e[1] in self.G.nodes()
-        #         except AssertionError:
-        #             raise ValueError("Both nodes must be present in graph")
-        #
-        #         try:
-        #             assert all([x in ['household', 'protection'] for x in e[2].keys()])
-        #         except AssertionError:
-        #             raise ValueError("Node must contain Household and Protection")
-        #
-        #         if e[0] == e[1]:
-        #             el.pop(e)
-        #
-        # attributes = {
-        #     'household' : [d['household'] for u,v,d in el],
-        #     'protection': [d['protection'] for u,v,d in el]
-        # }
         self.G.add_edges(es=es, attributes=attributes)
 
         return
@@ -223,11 +228,9 @@ class Population:
 
             # Add to hhedges list
             [self.hhedges.append((u, v)) for u, v in itertools.combinations(node_ids, 2)]
+            self.node_ids_S.extend(node_ids)
 
         return hhids
-
-
-
 
     def connect_hh_edges(self):
         """
@@ -238,10 +241,7 @@ class Population:
 
         """
 
-        self.add_edges(self.hhedges, attributes={'protection':False, 'household':True})
-
-
-
+        self.add_edges(self.hhedges, attributes={'protection': False, 'household': True})
 
     def remove_edge(self, u, v):
         """
@@ -257,9 +257,8 @@ class Population:
             raise ValueError("nodes must be present in graph")
 
         # self.G.remove_edge(u, v)
-        self.G.delete_edges([(u,v)])
+        self.G.delete_edges([(u, v)])
         return
-
 
     def remove_edges(self, keep_hh=False):
         """
@@ -272,13 +271,12 @@ class Population:
         """
         # if keep_hh:
 
-            # self.G.remove_edges_from(
-            #     [(u, v) for u, v, d in self.G.edges.data('household') if not d]
-            # )
+        # self.G.remove_edges_from(
+        #     [(u, v) for u, v, d in self.G.edges.data('household') if not d]
+        # )
         # else:
         # self.G.remove_edges_from(self.G.edges)
         self.G.delete_edges()
-
 
         return
 
@@ -292,17 +290,33 @@ class Population:
         self.G.vs[n]['vaccine_status'] = 'V1'
         self.G.vs[n]['time_until_v2'] = time_until_v2
         self.G.vs[n]['vaccine_priority'] = -1
+        self.node_ids_V1.append(n)
 
         return
-
 
     def V2(self, n):
         self.G.vs[n]['vaccine_status'] = 'V2'
         self.G.vs[n]['time_until_v2'] = -1
+        self.node_ids_V1.remove(n)
+        self.node_ids_V2.append(n)
 
         return
 
+    def set_mu(self, mu):
+        """
 
+        Parameters
+        ----------
+        mu: function
+
+        Returns
+        -------
+        None
+        """
+
+        self.mu = mu
+
+        return
 
     @property
     def nodes(self, nodes=None):
@@ -315,35 +329,6 @@ class Population:
     @property
     def node_ids(self):
         return self.G.vs['name']
-        # return [i['name'] for i in self.G.vs]
-
-    @property
-    def node_ids_S(self):
-        return self.G.vs.select(disease_status_eq='S')
-
-    @property
-    def node_ids_E(self):
-        return self.G.vs.select(disease_status_eq='E')
-
-    @property
-    def node_ids_I(self):
-        return self.G.vs.select(disease_status_eq='I')
-
-    @property
-    def node_ids_R(self):
-        return self.G.vs.select(disease_status_eq='R')
-
-    @property
-    def node_ids_D(self):
-        return self.G.vs.select(disease_status_eq='D')
-
-    @property
-    def node_ids_V1(self):
-        return self.G.vs.select(vaccine_status_eq='V1')
-
-    @property
-    def node_ids_V2(self):
-        return self.G.vs.select(vaccine_status_eq='V2')
 
     @property
     def hhids(self):
@@ -359,7 +344,7 @@ class Population:
         # return {k:v for k, v in self.G.nodes.data('time_until_v2')}
         return self.G.vs['time_until_v2']
 
-    def set_sick(self, node, E_n=3*24, I_n=5*24):
+    def set_sick(self, node, E_n=3 * 24, I_n=5 * 24):
         """
 
         Parameters
@@ -381,58 +366,51 @@ class Population:
         self.G.vs[node]['disease_status'] = 'E'
         self.G.vs[node]['remaining_days_exposed'] = E_n
         self.G.vs[node]['remaining_days_sick'] = I_n
+        self.node_ids_S.remove(node)
+        self.node_ids_E.append(node)
         return
 
     def decrement(self):
 
         # disease_status = nx.get_node_attributes(self.G, 'disease_status')
-        remaining_days_sick = self.G.vs['remaining_days_sick']
-        remaining_days_exposed = self.G.vs['remaining_days_exposed']
-        time_until_v2 = self.G.vs['time_until_v2']
+        # remaining_days_sick = self.G.vs['remaining_days_sick']
+        # remaining_days_exposed = self.G.vs['remaining_days_exposed']
+        # time_until_v2 = self.G.vs['time_until_v2']
 
         for i in self.node_ids_I:
-            if i['remaining_days_sick'] == 0:
-                # self.G.vs[i.index]['disease_status'] = 'R'
-                i['disease_status'] = 'R'
-                print("Node", i.index, "recovers")
+            if self.G.vs[i]['remaining_days_sick'] == 0:
+                # Determine if the nodes die based off of their age
+                if next(self.mu[self.G.vs[i]['age']]):
+                    self.node_ids_I.remove(i)
+                    self.node_ids_D.append(i)
+                    self.G.vs[i]['disease_status'] = 'D'
+                    # print("Node", i, "has died :(")
+                else:
+                    self.G.vs[i]['disease_status'] = 'R'
+                    self.node_ids_I.remove(i)
+                    self.node_ids_R.append(i)
+                    # print("Node", i, "recovers")
                 continue
             else:
-                i['remaining_days_sick'] -= 1
-
+                self.G.vs[i]['remaining_days_sick'] -= 1
 
         for e in self.node_ids_E:
-            if remaining_days_exposed[e.index] == 0:
-                # self.G.vs[e.index]['disease_status'] = 'I'
-                e['disease_status'] = 'I'
-                print("Node", e.index, "became symptomatic")
+            if self.G.vs[e]['remaining_days_exposed'] == 0:
+                self.G.vs[e]['disease_status'] = 'I'
+                self.node_ids_E.remove(e)
+                self.node_ids_I.append(e)
+                # print("Node", e, "became symptomatic")
                 continue
             else:
-                e['remaining_days_exposed'] -= 1
-
+                self.G.vs[e]['remaining_days_exposed'] -= 1
 
         for v1 in self.node_ids_V1:
-            if v1['time_until_v2'] > 0:
-                v1['time_until_v2'] -= 1
+            if self.G.vs[v1]['time_until_v2'] > 0:
+                self.G.vs[v1]['time_until_v2'] -= 1
             else:
                 continue
 
-        # for v1, t in self.time_until_v2():
-        #     if t == -1:
-        #         continue
-        #     if t == 0:
-        #         continue
-        #     else:
-        #         self.G.vs[v1]['time_until_v2'] -= 1
-                # time_until_v2_update[v1] = time_until_v2[v1] - 1
-
-        # nx.set_node_attributes(self.G, disease_status_update, 'disease_status')
-        # nx.set_node_attributes(self.G, remaining_days_sick_update, 'remaining_days_sick')
-        # nx.set_node_attributes(self.G, remaining_days_exposed_update, 'remaining_days_exposed')
-        # nx.set_node_attributes(self.G, time_until_v2_update, 'time_until_v2')
-
         return
-
-
 
     def add_history(self):
         """
@@ -449,10 +427,9 @@ class Population:
         # self.history.append({'nodes': deepcopy(n), 'edges': deepcopy(e)})
 
         self.history.append({
-            'nodes': self.G.get_vertex_dataframe(), # pickle.loads(pickle.dumps(self.G.vs)),
-            'edges': self.G.get_edge_dataframe()# pickle.loads(pickle.dumps(self.G.es))
+            'nodes': self.G.get_vertex_dataframe(),  # pickle.loads(pickle.dumps(self.G.vs)),
+            'edges': self.G.get_edge_dataframe()  # pickle.loads(pickle.dumps(self.G.es))
         })
-
 
     def process_history(self):
         """
@@ -468,20 +445,17 @@ class Population:
         if not bool(self.history):
             raise ValueError("Must have at least one saved history")
 
-
         disease_status = []
         vaccine_status = []
         edges = []
 
         for time, ne in enumerate(self.history):
-
             disease_status.append(ne['nodes']['disease_status'].rename(time))
             vaccine_status.append(ne['nodes']['vaccine_status'].rename(time))
             edges.append(ne['edges']['source'].rename(time))
             # edges.append([e for e in ne['edges']])
 
         return pd.concat(disease_status, axis=1), pd.concat(vaccine_status, axis=1), pd.concat(edges, axis=1)
-
 
     def transmit(self, beta, ve, E_dist, I_dist):
         """
@@ -499,8 +473,6 @@ class Population:
 
         disease_status = self.G.vs['disease_status']
         vaccine_status = self.G.vs['vaccine_status']
-
-        # pdb.set_trace()
 
         for e in self.G.es:
             # See if either node is infected
@@ -520,17 +492,20 @@ class Population:
                 vaccine = vaccine_status[node_to_infect]
 
                 # Flip coins
-                if bernoulli(beta[mask_usage]) and bernoulli(1-ve[vaccine]):
-                    self.set_sick(node_to_infect, E_dist.rvs(), I_dist.rvs())
-                    print("Node", node_to_infect, "has been infected")
+                m = next(beta[mask_usage])
+                v = next(ve[vaccine])
+                if m and v:
+                    self.set_sick(node_to_infect, next(E_dist), next(I_dist))
+                    # Need to update the disease_status dict so that we don't double infect
+                    disease_status[node_to_infect] = 'E'
+                    # print("Node", node_to_infect, "has been infected")
 
             else:
                 continue
 
+        return
 
-        return #transmission_list
-
-    def transmit_daytime(self, beta: dict, p_mask: float, E_dist, I_dist, ve) -> None:
+    def transmit_daytime(self, beta: dict, p_mask: float, E_dist, I_dist, ve, stubs) -> None:
         """
         Transmits during each hour of the workday
         Assume a 10 hour day. Probability of a node having a contact each hour is num_cc_nonhh/10.
@@ -545,10 +520,9 @@ class Population:
         self.remove_edges()
 
         # Generate the number of stubs for each node
-        # num_cc_nonhh = nx.get_node_attributes(self.G, 'num_cc_nonhh')
         num_cc_nonhh = dict(zip(self.node_ids, self.G.vs['num_cc_nonhh']))
         subpop = list(chain(*[
-            [k]*v for k, v in zip(num_cc_nonhh.keys(), poisson.rvs([*num_cc_nonhh.values()]) // 10)
+            [k] * next(stubs[v // 10]) for k,v in num_cc_nonhh.items()
         ]))
 
         # Shuffle this list and split into two sublists
@@ -557,15 +531,14 @@ class Population:
 
         # Add edges
         # Probability that node is wearing a mask is p_mask.
-        self.add_edges(zip(s1,s2), attributes={'protection': bernoulli.rvs(p_mask, size=len(s1)), 'household': False})
-        # self.add_edges(
-        #     [(n1, n2, {'protection': mask, 'household': False})
-        #      for n1, n2, mask in zip(s1, s2, bernoulli.rvs(p_mask, size=len(s1))) if n1 != n2]
-        # )
+        edges = [(n1, n2, {'protection': next(p_mask), 'household': False})
+                 for n1, n2 in zip(s1, s2) if n1 != n2]
+
+        self.add_edges([(n1, n2) for n1, n2, d in edges],
+                       attributes={'protection': [d['protection'] for n1, n2, d in edges], 'household': False})
 
         self.transmit(beta, ve, E_dist, I_dist)
         self.decrement()
-        self.remove_edges()
 
         return
 
@@ -583,14 +556,14 @@ class Population:
 
         Returns
         -------
-        Modifies pop in place, returns nx.Graph for anim_list
+        Modifies pop in place
 
         """
 
         # Loop through each hhid and transmit through all the tuples
 
-
         self.transmit(beta, ve, E_dist, I_dist)
+        # self.profileTransmit(beta, ve, E_dist, I_dist)
         self.decrement()
 
         return
@@ -615,14 +588,18 @@ class Population:
         n_remaining_2 = n_daily
 
         # Invert the dict of priorities
-        v1_prior = dict(zip(self.node_ids, self.G.vs['vaccine_priority'])) #self.vaccine_priority
+        v1_prior = dict(zip(self.node_ids, self.G.vs['vaccine_priority']))  # self.vaccine_priority
         v1_prior = invert_dict(v1_prior)
         del v1_prior[-1]
 
         # V1
+        # Shuffle all lists:
+        for k in v1_prior.keys():
+            shuffle(v1_prior[k])
+
         while n_remaining > 0:
             # The node that we're vaccinating
-            try :
+            try:
                 max_prior = max(v1_prior.keys())
                 if (len(v1_prior[max_prior]) == 0):
                     del v1_prior[max_prior]
@@ -630,31 +607,29 @@ class Population:
             except ValueError:
                 break
 
-            shuffle(v1_prior[max_prior])
             nid = v1_prior[max_prior].pop()
 
-            print("Node", nid, "got the first dose of vaccine")
+            # print("Node", nid, "got the first dose of vaccine")
 
             # Set the node's status to V1
             self.V1(nid, time_until_v2)
 
             n_remaining -= 1
 
-
         # V2
-        v2_prior = v1_prior = dict(zip(self.node_ids, self.G.vs['time_until_v2']))
+        v2_prior = dict(zip(self.node_ids, self.G.vs['time_until_v2']))
         v2_prior = invert_dict(v2_prior)
         try:
             v2_prior = v2_prior[0]
-            print(v2_prior)
         except KeyError:
             return
 
+        shuffle(v2_prior)
+
         while n_remaining_2 > 0 and len(v2_prior) > 0:
             # The node that we're vaccinating
-            shuffle(v2_prior)
             nid = v2_prior.pop()
-            print("Node", nid, "got the second dose of vaccine")
+            # print("Node", nid, "got the second dose of vaccine")
 
             # Set the node's status to V1
             self.V2(nid)
@@ -662,3 +637,5 @@ class Population:
             n_remaining_2 -= 1
 
         return
+
+
