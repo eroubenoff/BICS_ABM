@@ -5,32 +5,6 @@ import pdb
 import numpy as np
 import pandas as pd
 from Population import Population, Household
-# import rpy2.robjects as robjects
-# from rpy2.robjects import pandas2ri
-
-# pandas2ri.activate()
-
-
-# def load_rds(f: str) -> pd.DataFrame:
-#     """
-#     Loads the RDS files.
-#
-#     Parameters
-#     ----------
-#     f: str
-#         path of file to load
-#
-#     Returns
-#     -------
-#     pd.DataFrame
-#
-#     """
-#
-#     readRDS = robjects.r['readRDS']
-#     df = readRDS(f)
-#     df = pandas2ri.rpy2py(df)
-#
-#     return df
 
 
 lucid_data = {
@@ -108,29 +82,6 @@ def gender_remap(x: str) -> str | None:
         return None
 
 
-# def bool_remap(x: str) -> bool | None:
-#     """
-#     POLYMOD data comes in TRUE/FALSE booleans, not pythonic True/False.
-#     Parameters
-#     ----------
-#     x: str
-#
-#     Returns
-#     -------
-#     bool
-#
-#     """
-#
-#     if not isinstance(x, str):
-#         raise ValueError("x must be a string")
-#     if x is None:
-#         return None
-#     elif x == 'TRUE':
-#         return True
-#     elif x == 'FALSE':
-#         return False
-#     else:
-#         return None
 
 
 def load_polymod(path: str = 'POLYMOD') -> pd.DataFrame:
@@ -282,6 +233,7 @@ def sim_pop(n_households: int,
                 # Print if there is no suitable member
                 if len(df_sub.index) == 0:
                     print("No suitable adult hh member")
+                    # TODO: pull this person from POLYMOD
                     continue
 
                 new_member = df_sub.sample(1, weights='weight_pooled').iloc[0, :].to_dict()
@@ -289,15 +241,11 @@ def sim_pop(n_households: int,
 
                 hh_list[i].add_member(new_member)
 
-            # elif age == '[0,18)' and not fill_polymod:
-                # print("Household member is a child and fill_polymod=False")
-
             elif age == '[0,18)' and fill_polymod:
                 new_member = polymod[
                                  (polymod['age'] == age) & (polymod['gender'] == gen)
                              ].sample(1).iloc[0, :].to_dict()
                 new_member['ethnicity'] = str(None)
-                # print(new_member)
 
                 hh_list[i].add_member(new_member)
 
@@ -313,6 +261,8 @@ def sim_pop(n_households: int,
 def sim_individuals(n, df, weights='weight_pooled'):
     """
     Simulates a population of size n from df. Does not account for hh structure
+
+    Not used
 
     Parameters
     ---------
@@ -346,4 +296,3 @@ def sim_individuals(n, df, weights='weight_pooled'):
 
 if __name__ == "__main__":
     sim_pop(100, lucid_data['wave4'])
-    pdb.set_trace()

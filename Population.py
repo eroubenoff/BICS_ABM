@@ -1,12 +1,9 @@
 import itertools
-import pdb
 import pandas as pd
 from uuid import uuid4
-from random import shuffle, choice
-from itertools import chain
+from random import shuffle
 import igraph as ig
 from array import array
-import cProfile
 
 def invert_dict(d):
     ret = dict()
@@ -60,9 +57,6 @@ class Household:
 
 class Population:
 
-    # @property
-    # def node_ids_E(self):
-    #     return self._node_ids_E
 
     def __init__(self, G=None):
         # History is a list of dictionaries, with keys 'nodes' and 'edges'
@@ -91,7 +85,7 @@ class Population:
         }
 
         if G is None:
-            self.G = ig.Graph()
+            self.G = ig.Graph(directed=False)
         else:
             self.G = G
 
@@ -240,7 +234,7 @@ class Population:
         -------
 
         """
-
+        self.remove_edges()
         self.add_edges(self.hhedges, attributes={'protection': False, 'household': True})
 
     def remove_edge(self, u, v):
@@ -520,22 +514,46 @@ class Population:
         self.remove_edges()
 
         # Generate the number of stubs for each node
-        num_cc_nonhh = dict(zip(self.node_ids, self.G.vs['num_cc_nonhh']))
-        subpop = list(chain(*[
-            [k] * next(stubs[v // 10]) for k,v in num_cc_nonhh.items()
-        ]))
+        # num_cc_nonhh = dict(zip(self.node_ids, self.G.vs['num_cc_nonhh']))
+        # subpop = list(chain(*[
+        #     [k] * next(stubs[v // 10]) for k,v in num_cc_nonhh.items()
+        # ]))
+        #
+        # # Shuffle this list and split into two sublists
+        # shuffle(subpop)
+        # s1, s2 = split_list(subpop)
+        #
+        # # Add edges
+        # # Probability that node is wearing a mask is p_mask.
+        # edges = [(n1, n2, {'protection': next(p_mask), 'household': False})
+        #          for n1, n2 in zip(s1, s2) if n1 != n2]
+        #
+        # self.add_edges([(n1, n2) for n1, n2, d in edges],
+        #                attributes={'protection': [d['protection'] for n1, n2, d in edges], 'household': False})
 
-        # Shuffle this list and split into two sublists
-        shuffle(subpop)
-        s1, s2 = split_list(subpop)
+        degdist = [next(stubs[v // 10]) for v in self.G.vs['num_cc_nonhh']]
+        # Check to make sure degdist is valid
+        if (sum(degdist) % 2) != 0:
+            # Pick a random nonzero node and decrement
+            # Do this by generating a random list of the indices, shuffling it, and then traversing until we find the
+            # first nonzero
+            index = [x for x in range(len(degdist))]
+            shuffle(index)
+            for i in index:
+                if degdist[i] == 0:
+                    continue
+                elif degdist[i] > 0:
+                    degdist[i] -= 1
+                break
 
-        # Add edges
-        # Probability that node is wearing a mask is p_mask.
-        edges = [(n1, n2, {'protection': next(p_mask), 'household': False})
-                 for n1, n2 in zip(s1, s2) if n1 != n2]
+        if not ig.is_graphical(degdist):
+            raise ValueError("Invalid degree sequence!")
 
-        self.add_edges([(n1, n2) for n1, n2, d in edges],
-                       attributes={'protection': [d['protection'] for n1, n2, d in edges], 'household': False})
+
+        edges = self.G.Degree_Sequence(degdist, method="no_multiple").es
+        edges = [(e.source, e.target)
+                 for e in edges]
+        self.add_edges(edges, attributes={'protection': [next(p_mask) for _ in edges], 'household': False})
 
         self.transmit(beta, ve, E_dist, I_dist)
         self.decrement()

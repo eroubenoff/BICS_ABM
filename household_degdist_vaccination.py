@@ -1,3 +1,4 @@
+import pdb
 import random
 import numpy as np
 import pandas as pd
@@ -104,6 +105,7 @@ def household_mixing_w_degree_dist(
 
     pop.connect_hh_edges()
 
+    pdb.set_trace()
     while (len(pop.node_ids_I) + len(pop.node_ids_E) > 0) and (n_days > 0):
 
         # Morning
@@ -161,7 +163,7 @@ if __name__ == "__main__":
 
     run_graphic = True
     run_animation = False
-    run_check = True
+    run_check = False
 
     pop = household_mixing_w_degree_dist(n_hh,
                                          initial_sick=5,
@@ -221,8 +223,8 @@ if __name__ == "__main__":
 
         def animate(i):
             if i > 0:
-                print('\r', round(i / len(edges_history) * 100), '%:',
-                      round((time() - t0) - (time() - t0) / (i / len(edges_history))),
+                print('\r', round(i / len(pop.history) * 100), '%:',
+                      round((time() - t0) - (time() - t0) / (i / len(pop.history))),
                       'seconds estimated remaining', end='')
 
             ax[0].clear()

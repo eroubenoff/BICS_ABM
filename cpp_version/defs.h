@@ -33,11 +33,29 @@ void print_attributes(const igraph_t *g);
  * 
  */
 
-// class Population() {
+// class Population {
 // private:
+// 	// Base object
 // 	igraph_t graph;
 
-// public:
-// 	unordered_map households;
+// 	// Vector of hh edges 
+// 	igraph_vector_int_t hhedges;	
 
-// }
+// public:
+// 	// Constructor to create a population from a cached dataset
+// 	Population(string path);
+// 	~Population();
+
+// 	// Hashmap of households
+// 	unordered_map<string, vector<int> > hhids;
+
+// 	// Connect household edges
+// 	// void connect_hh_edges();
+
+// 	// Wrapper around print_attributes()
+// 	void print();
+
+
+
+
+// };
