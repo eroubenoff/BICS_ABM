@@ -7,6 +7,23 @@ import pandas as pd
 from Population import Population, Household
 
 
+# lucid_data = {
+#     # 'wave0': pd.read_csv('lucid-pipeline/wave0.csv'),
+#     # 'wave0_alters': pd.read_csv('lucid-pipeline/wave0_alters.csv'),
+#     'wave1': pd.read_csv('lucid-pipeline/national_wave1_unweighted.csv'),
+#     'wave1_alters': pd.read_csv('lucid-pipeline/national_alters_wave1_unweighted.csv'),
+#     'wave2': pd.read_csv('lucid-pipeline/national_wave2_unweighted.csv'),
+#     'wave2_alters': pd.read_csv('lucid-pipeline/national_alters_wave2_unweighted.csv'),
+#     'wave3': pd.read_csv('lucid-pipeline/national_wave3_unweighted.csv'),
+#     'wave3_alters': pd.read_csv('lucid-pipeline/national_alters_wave3_unweighted.csv'),
+#     'wave4': pd.read_csv('lucid-pipeline/national_wave4_unweighted.csv'),
+#     'wave4_alters': pd.read_csv('lucid-pipeline/national_alters_wave4_unweighted.csv'),
+#     'wave5': pd.read_csv('lucid-pipeline/national_wave5_unweighted.csv'),
+#     'wave5_alters': pd.read_csv('lucid-pipeline/national_alters_wave5_unweighted.csv'),
+#     'wave6': pd.read_csv('lucid-pipeline/national_wave6_unweighted.csv'),
+#     'wave6_alters': pd.read_csv('lucid-pipeline/national_alters_wave6_unweighted.csv')
+# }
+
 lucid_data = {
     'wave0': pd.read_csv('lucid/wave0.csv'),
     'wave0_alters': pd.read_csv('lucid/wave0_alters.csv'),
@@ -21,7 +38,6 @@ lucid_data = {
     'wave5': pd.read_csv('lucid/wave5.csv'),
     'wave5_alters': pd.read_csv('lucid/wave5_alters.csv')
 }
-
 
 def agecat_remap(x: float) -> str | None:
     """
@@ -129,7 +145,7 @@ def load_polymod(path: str = 'POLYMOD') -> pd.DataFrame:
 
 
 def sim_pop(n_households: int,
-            df: pd.DataFrame,
+            wave: int = 4,
             fill_polymod: bool = True) -> Population:
     """
     Simulates n households from df.
@@ -156,6 +172,10 @@ def sim_pop(n_households: int,
     Returns
     -------
     """
+
+    df = lucid_data['wave' + str(wave)]
+
+    # pdb.set_trace()
 
     polymod = load_polymod()
     polymod = polymod[polymod['age'] == '[0,18)']
@@ -295,4 +315,4 @@ def sim_individuals(n, df, weights='weight_pooled'):
 
 
 if __name__ == "__main__":
-    sim_pop(100, lucid_data['wave4'])
+    sim_pop(100, wave=4)

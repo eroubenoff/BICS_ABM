@@ -9,3 +9,6 @@ POLYMOD/
 *.gif
 *.png
 cpp_version/build/*
+*.swp
+*.swo
+*.csv

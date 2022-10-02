@@ -1,15 +1,14 @@
-import pdb
 import random
 import numpy as np
 import pandas as pd
 from scipy.stats import randint
 from matplotlib import pyplot as plt, animation
-from load_data import sim_pop, lucid_data
+from load_data import sim_pop
 from time import time
 import igraph as ig
 from scipy.stats import bernoulli, poisson
-from itertools import repeat, cycle
-from collections import Counter
+from itertools import cycle
+import pdb
 
 
 def household_mixing_w_degree_dist(
@@ -88,7 +87,7 @@ def household_mixing_w_degree_dist(
     for k, v in mu.items():
         mu[k] = cycle(bernoulli.rvs(v, size=10000))
 
-    pop = sim_pop(n_hh, lucid_data['wave4'])
+    pop = sim_pop(n_hh, wave=4)
     pop.set_mu(mu)
 
     for _ in range(initial_sick):
@@ -105,7 +104,6 @@ def household_mixing_w_degree_dist(
 
     pop.connect_hh_edges()
 
-    pdb.set_trace()
     while (len(pop.node_ids_I) + len(pop.node_ids_E) > 0) and (n_days > 0):
 
         # Morning
@@ -172,6 +170,7 @@ if __name__ == "__main__":
                                          mu=mu)
 
     disease_status, vaccine_status, edges_history = pop.process_history()
+
 
     coldict = {'S': 'blue', 'E': 'purple', 'I': 'red', 'R': 'green', 'D': 'black', 'V1': 'peru', 'V2': 'saddlebrown'}
     edgedict = {True: '-', False: '--'}

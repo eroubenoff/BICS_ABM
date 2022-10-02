@@ -1,9 +1,13 @@
 import itertools
+import pdb
+
 import pandas as pd
 from uuid import uuid4
 from random import shuffle
 import igraph as ig
 from array import array
+import Population_cy
+import numpy as np
 
 def invert_dict(d):
     ret = dict()
@@ -64,13 +68,13 @@ class Population:
         self.households = {}
 
         # Create arrays for node statuses
-        self.node_ids_S = array('I')
-        self.node_ids_E = array('I')
-        self.node_ids_I = array('I')
-        self.node_ids_R = array('I')
-        self.node_ids_D = array('I')
-        self.node_ids_V1 = array('I')
-        self.node_ids_V2 = array('I')
+        # self.node_ids_S = array('I')
+        # self.node_ids_E = array('I')
+        # self.node_ids_I = array('I')
+        # self.node_ids_R = array('I')
+        # self.node_ids_D = array('I')
+        # self.node_ids_V1 = array('I')
+        # self.node_ids_V2 = array('I')
 
         self.mu = {
             '[0,18)': 0,
@@ -91,8 +95,37 @@ class Population:
 
         self.hhedges = []
 
+    @property
+    def node_ids_S(self):
+        return [id for ds, id, in zip(self.G.vs['disease_status'], self.G.vs['name']) if ds == "S"]
+
+    @property
+    def node_ids_E(self):
+        return [id for ds, id, in zip(self.G.vs['disease_status'], self.G.vs['name']) if ds == "E"]
+
+    @property
+    def node_ids_I(self):
+        return [id for ds, id, in zip(self.G.vs['disease_status'], self.G.vs['name']) if ds == "I"]
+
+    @property
+    def node_ids_R(self):
+        return [id for ds, id, in zip(self.G.vs['disease_status'], self.G.vs['name']) if ds == "R"]
+
+    @property
+    def node_ids_D(self):
+        return [id for ds, id, in zip(self.G.vs['disease_status'], self.G.vs['name']) if ds == "D"]
+
+    @property
+    def node_ids_V1(self):
+        return [id for ds, id, in zip(self.G.vs['vaccine_status'], self.G.vs['name']) if ds == "V1"]
+
+    @property
+    def node_ids_V2(self):
+        return [id for ds, id, in zip(self.G.vs['vaccine_status'], self.G.vs['name']) if ds == "V2"]
+
     def add_node(self, age, ethnicity, gender, num_cc_nonhh, hhid=None,
                  disease_status='S', remaining_days_sick=0,
+                 remaining_days_exposed=0,
                  vaccine_priority=-1, vaccine_status=False):
         """
         Adds a node to the graph. Makes sure that all node attributes are included.
@@ -136,16 +169,17 @@ class Population:
         id = self.G.add_vertex(age=age,
                                disease_status=disease_status,
                                remaining_days_sick=remaining_days_sick,
+                               remaining_days_exposed=remaining_days_exposed,
                                gender=gender,
                                ethnicity=ethnicity,
                                num_cc_nonhh=num_cc_nonhh,
                                hhid=hhid,
                                vaccine_priority=vaccine_priority,
                                time_until_v2=-1,
+                               mu = 0,
                                vaccine_status=vaccine_status).index
 
         self.G.vs[id]['name'] = id
-        # self.node_ids_S.append(id)
 
         # Add to hhs list
         if hhid in self.households:
@@ -173,6 +207,7 @@ class Population:
         Tuple of edge added. Returns None if u=v
 
         """
+
         self.G.add_edges(es=es, attributes=attributes)
 
         return
@@ -222,7 +257,6 @@ class Population:
 
             # Add to hhedges list
             [self.hhedges.append((u, v)) for u, v in itertools.combinations(node_ids, 2)]
-            self.node_ids_S.extend(node_ids)
 
         return hhids
 
@@ -250,7 +284,6 @@ class Population:
         if u not in self.G.nodes() or v not in self.G.nodes():
             raise ValueError("nodes must be present in graph")
 
-        # self.G.remove_edge(u, v)
         self.G.delete_edges([(u, v)])
         return
 
@@ -263,19 +296,12 @@ class Population:
         None
 
         """
-        # if keep_hh:
 
-        # self.G.remove_edges_from(
-        #     [(u, v) for u, v, d in self.G.edges.data('household') if not d]
-        # )
-        # else:
-        # self.G.remove_edges_from(self.G.edges)
         self.G.delete_edges()
 
         return
 
     def set_vax_priority(self, n, priority_level):
-        # self.G.nodes()[n]['vaccine_priority'] = priority_level
         self.G.vs[n]['vaccine_priority'] = priority_level
         return
 
@@ -284,15 +310,12 @@ class Population:
         self.G.vs[n]['vaccine_status'] = 'V1'
         self.G.vs[n]['time_until_v2'] = time_until_v2
         self.G.vs[n]['vaccine_priority'] = -1
-        self.node_ids_V1.append(n)
 
         return
 
     def V2(self, n):
         self.G.vs[n]['vaccine_status'] = 'V2'
         self.G.vs[n]['time_until_v2'] = -1
-        self.node_ids_V1.remove(n)
-        self.node_ids_V2.append(n)
 
         return
 
@@ -355,54 +378,61 @@ class Population:
         """
         # assert isinstance(E_n, int)
 
-        # pdb.set_trace()
+
 
         self.G.vs[node]['disease_status'] = 'E'
         self.G.vs[node]['remaining_days_exposed'] = E_n
         self.G.vs[node]['remaining_days_sick'] = I_n
-        self.node_ids_S.remove(node)
-        self.node_ids_E.append(node)
+        self.G.vs[node]['mu'] = next(self.mu[self.G.vs[node]['age']])
+        # self.node_ids_S.remove(node)
+        # self.node_ids_E.append(node)
         return
 
-    def decrement(self):
+    def decrement(self, use_cyx = True):
 
         # disease_status = nx.get_node_attributes(self.G, 'disease_status')
         # remaining_days_sick = self.G.vs['remaining_days_sick']
         # remaining_days_exposed = self.G.vs['remaining_days_exposed']
         # time_until_v2 = self.G.vs['time_until_v2']
 
-        for i in self.node_ids_I:
-            if self.G.vs[i]['remaining_days_sick'] == 0:
-                # Determine if the nodes die based off of their age
-                if next(self.mu[self.G.vs[i]['age']]):
-                    self.node_ids_I.remove(i)
-                    self.node_ids_D.append(i)
-                    self.G.vs[i]['disease_status'] = 'D'
-                    # print("Node", i, "has died :(")
+        if not use_cyx:
+            for i in self.node_ids_I:
+                if self.G.vs[i]['remaining_days_sick'] == 0:
+                    # Determine if the nodes die based off of their age
+                    if bool(self.G.vs[i]['mu']):
+                        self.G.vs[i]['disease_status'] = 'D'
+                    else:
+                        self.G.vs[i]['disease_status'] = 'R'
+                    continue
                 else:
-                    self.G.vs[i]['disease_status'] = 'R'
-                    self.node_ids_I.remove(i)
-                    self.node_ids_R.append(i)
-                    # print("Node", i, "recovers")
-                continue
-            else:
-                self.G.vs[i]['remaining_days_sick'] -= 1
+                    self.G.vs[i]['remaining_days_sick'] -= 1
 
-        for e in self.node_ids_E:
-            if self.G.vs[e]['remaining_days_exposed'] == 0:
-                self.G.vs[e]['disease_status'] = 'I'
-                self.node_ids_E.remove(e)
-                self.node_ids_I.append(e)
-                # print("Node", e, "became symptomatic")
-                continue
-            else:
-                self.G.vs[e]['remaining_days_exposed'] -= 1
+            for e in self.node_ids_E:
+                if self.G.vs[e]['remaining_days_exposed'] == 0:
+                    self.G.vs[e]['disease_status'] = 'I'
+                    continue
+                else:
+                    self.G.vs[e]['remaining_days_exposed'] -= 1
 
-        for v1 in self.node_ids_V1:
-            if self.G.vs[v1]['time_until_v2'] > 0:
-                self.G.vs[v1]['time_until_v2'] -= 1
-            else:
-                continue
+            for v1 in self.node_ids_V1:
+                if self.G.vs[v1]['time_until_v2'] > 0:
+                    self.G.vs[v1]['time_until_v2'] -= 1
+                else:
+                    continue
+
+        elif use_cyx:
+            ds, rds, rde, tv2 = Population_cy.decrement_cy(
+                array('u', self.G.vs['disease_status']),
+                array('i', self.G.vs['remaining_days_sick']),
+                array('i', self.G.vs['remaining_days_exposed']),
+                array('i', self.G.vs['time_until_v2']),
+                array('i', self.G.vs['mu'])
+            )
+
+            self.G.vs['disease_status'] = ds
+            self.G.vs['remaining_days_sick'] = rds
+            self.G.vs['remaining_days_exposed'] = rde
+            self.G.vs['time_until_v2'] = tv2
 
         return
 
@@ -451,7 +481,7 @@ class Population:
 
         return pd.concat(disease_status, axis=1), pd.concat(vaccine_status, axis=1), pd.concat(edges, axis=1)
 
-    def transmit(self, beta, ve, E_dist, I_dist):
+    def transmit(self, beta, ve, E_dist, I_dist, use_cython=True):
         """
 
         Parameters
@@ -464,38 +494,52 @@ class Population:
 
 
         """
-
         disease_status = self.G.vs['disease_status']
         vaccine_status = self.G.vs['vaccine_status']
 
-        for e in self.G.es:
-            # See if either node is infected
-            n1 = e.source
-            n2 = e.target
-            mask_usage = e['protection']
+        if not use_cython:
+            for e in self.G.es:
+                # See if either node is infected
+                n1 = e.source
+                n2 = e.target
+                mask_usage = e['protection']
 
-            n1_ds = disease_status[n1]
-            n2_ds = disease_status[n2]
+                n1_ds = disease_status[n1]
+                n2_ds = disease_status[n2]
 
-            # Make sure only one is I
-            if (n1_ds == 'I' and n2_ds == 'S') or (n1_ds == 'S' and n2_ds == 'I'):
-                # Identify which node is sick
-                node_to_infect = n1 if n1_ds == 'S' else n2
+                # Make sure only one is I
+                if (n1_ds == 'I' and n2_ds == 'S') or (n1_ds == 'S' and n2_ds == 'I'):
+                    # Identify which node is sick
+                    node_to_infect = n1 if n1_ds == 'S' else n2
 
-                # Protection
-                vaccine = vaccine_status[node_to_infect]
+                    # Protection
+                    vaccine = vaccine_status[node_to_infect]
 
-                # Flip coins
-                m = next(beta[mask_usage])
-                v = next(ve[vaccine])
-                if m and v:
-                    self.set_sick(node_to_infect, next(E_dist), next(I_dist))
-                    # Need to update the disease_status dict so that we don't double infect
-                    disease_status[node_to_infect] = 'E'
-                    # print("Node", node_to_infect, "has been infected")
+                    # Flip coins
+                    m = next(beta[mask_usage])
+                    v = next(ve[vaccine])
+                    if m and v:
+                        self.set_sick(node_to_infect, next(E_dist), next(I_dist))
+                        # Need to update the disease_status dict so that we don't double infect
+                        disease_status[node_to_infect] = 'E'
+                        # print("Node", node_to_infect, "has been infected")
 
-            else:
-                continue
+                else:
+                    continue
+
+        if use_cython:
+            # sl, tl = Population_cy.extract_nodes_from_edgelist_cy(self.G.es)
+            nodes_to_infect = Population_cy.transmit_cy(
+                np.array(self.G.get_edgelist(), np.int),
+                np.array(self.G.es['protection'], np.bool),
+                np.array(self.G.vs['disease_status'], str),
+                np.array(self.G.vs['vaccine_status'], str),
+                beta,
+                ve
+            )
+
+            for n in nodes_to_infect:
+                self.set_sick(n, next(E_dist), next(I_dist))
 
         return
 
@@ -581,7 +625,6 @@ class Population:
         # Loop through each hhid and transmit through all the tuples
 
         self.transmit(beta, ve, E_dist, I_dist)
-        # self.profileTransmit(beta, ve, E_dist, I_dist)
         self.decrement()
 
         return

@@ -12,7 +12,7 @@ import igraph as ig
 
 if __name__ == "__main__":
     n_hh = 1000
-    pop = load_data.sim_pop(n_hh, load_data.lucid_data['wave4'])
+    pop = load_data.sim_pop(n_hh, 4)
     popl = list()
 
     # Need to turn age bins from strings into labels for cpp
@@ -32,14 +32,7 @@ if __name__ == "__main__":
 
     pop = pop.G.get_vertex_dataframe()
     pop.to_csv("cpp_version/pop.csv")
-    # for v in pop.G.vs:
-    #     pdb.set_trace()
-    #     popl.append({v[1]: v[2]})
-    #
-    # keys = popl[0].keys()
 
-    #
-    # with open('cpp_version/pop.csv', 'w', newline='') as output_file:
-    #     dict_writer = csv.DictWriter(output_file, keys)
-    #     dict_writer.writeheader()
-    #     dict_writer.writerows(popl)
+
+    for k, v in load_data.lucid_data.items():
+        v.to_csv("cpp_version/lucid/" + k + ".csv")

@@ -10,11 +10,32 @@ using namespace std;
 /*
  * Reads a csv and single row 
  * 
- * @param fstream fin File pointer
+ * @param fstream fin 
+ *  - File pointer
+ * @param int expected_length 
+ *  - The expected number of fields in the csv. 
+ *    If -1, does nothing, if not, will pad the row with "-1".
+ *
  * @return vector<string> containing the values of the row 
+ * If no data present (i.e., empty string) returns "-1" in place
+ *
  */
 
-vector<string> get_csv_row(istream &fin);
+vector<string> get_csv_row(istream &fin, int expected_length = -1, char sep = ',');
+
+/* 
+* Read a population from a csv
+* 
+* @param string path 
+* 	path of the already-generated population, probably from python
+* @param igraph_t &graph
+*	pointer to graph to initialize population in 		
+* 					  
+
+* @return none; modifies &graph in place
+*/
+void read_pop_from_csv(string path, igraph_t *graph);
+void gen_pop_from_survey_csv(string path, igraph_t *g, int n);
 
 
 
@@ -25,37 +46,43 @@ vector<string> get_csv_row(istream &fin);
  * @return void
  */
 
-void print_attributes(const igraph_t *g);
+void print_attributes(const igraph_t *g, bool nodes_only = false);
+
+/* 
+Loops through all edges and transmits if a susceptible node is in contact
+with an infectious node
+
+@return none
+*/
+
+void transmit(igraph_t *g);
 
 
 /*
- * Main class used for simulation
- * 
+Sets a node to be sick, parameterized with all conditions needed for the 
+rest of the node's lifecycle.
+
+@param int n: index of node to set sick
+@param int rde: time the node will spend exposed
+@param int rds: time the node will spend sick
+@param bool mu: if, at the end of rds, the node will die
+@return none 
+*/
+void set_sick(igraph_t *g, int n, int rde, int rds, bool mu);
+
+
+/* 
+Tallies up the disease status of all nodes and sets it them to graph attributes
+*/
+void disease_status(igraph_t *g);
+
+
+/* 
+Decrements each node's progression through disease time
+*/
+void decrement(igraph_t *g);
+
+/*
+ * Generate a random string (for hash)
  */
-
-// class Population {
-// private:
-// 	// Base object
-// 	igraph_t graph;
-
-// 	// Vector of hh edges 
-// 	igraph_vector_int_t hhedges;	
-
-// public:
-// 	// Constructor to create a population from a cached dataset
-// 	Population(string path);
-// 	~Population();
-
-// 	// Hashmap of households
-// 	unordered_map<string, vector<int> > hhids;
-
-// 	// Connect household edges
-// 	// void connect_hh_edges();
-
-// 	// Wrapper around print_attributes()
-// 	void print();
-
-
-
-
-// };
+string randstring(int length);

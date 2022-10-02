@@ -14,121 +14,81 @@ using namespace std;
 
 #define MAXCHAR 1000
 
-// Loops through each edge and transmits
-void transmit(igraph_t *g) {
-    for (int i = 0; i < igraph_ecount(g); i++) {
 
-      // Get node ids
-      int n1 = IGRAPH_FROM(g, i);
-      int n2 = IGRAPH_TO(g, i);
+void delete_all_edges(igraph_t *g) {
+  igraph_es_t es;
+  igraph_es_all(&es, IGRAPH_EDGEORDER_ID);
+  igraph_delete_edges(g, es);
+  igraph_es_destroy(&es);
 
-      // Get disease status of each 
-      string n1_ds = VAS(g, "disease_status", n1);
-      string n2_ds = VAS(g, "disease_status", n2);
-
-      if (n1_ds == "I" & n2_ds == "S") {
-        // Transmit to n2
-        SETVAS(g, "disease_status", n2, "E");
-        SETVAN(g, "remaining", n2, 3*24);
-      } 
-      else if(n1_ds == "S" & n2_ds == "I") {
-        // Transmit to n1
-        SETVAS(g, "disease_status", n1, "E");
-        SETVAN(g, "remaining_days_exposed", n1, 3*24);
-      }
-      else {
-        continue;
-      }
-
-  }
-
-}
-
-
-void disease_status(igraph_t *g) {
-
-  int S_count = 0;
-  int E_count = 0;
-  int I_count = 0;
-  int R_count = 0;
-  int D_count = 0;
-
-  for (int i = 0; i < igraph_vcount(g); i++) {
-    string ds = VAS(g, "disease_status", i);
-
-    if (ds == "S") {
-      S_count++;
-    }
-    else if (ds == "E") {
-      E_count++;
-    }
-    else if (ds == "I") {
-      I_count++;
-    } 
-    else if (ds == "R") {
-      R_count++; 
-    }
-    else if (ds == "D") {
-      D_count++;
-    }
-  }
-
-  cout << "S: " << S_count << " | ";
-  cout << "E: " << E_count << " | ";
-  cout << "I: " << I_count << " | ";
-  cout << "R: " << R_count << " | ";
-  cout << "D: " << D_count << " | ";
-  cout << endl;
-}
-
-void decrement(igraph_t *g) {
-    for (int i = 0; i < igraph_vcount(g); i++) {
-
-      string ds = VAS(g, "disease_status", i);
-
-      if (ds == "E") {
-         int rde = VAN(g, "remaining_days_exposed", i);
-         if (rde == 0) {
-          SETVAS(g, "disease_status", i, "I");
-          SETVAN(g, "remaining_days_sick", i, 5*24);
-         } else {
-           SETVAN(g, "remaining_days_exposed", i, rde - 1);
-         }
-      }
-
-      if (ds == "I") {
-         int rds = VAN(g, "remaining_days_sick", i);
-         if (rds == 0) {
-          SETVAS(g, "disease_status", i, "R");
-         } else {
-           SETVAN(g, "remaining_days_sick", i, rds - 1);
-         }
-      }
-
-
-  }
 }
 
 void daytime_mixing(igraph_t *g) {
+
+    igraph_rng_seed(igraph_rng_default(), 122);
   // Clear any edges present
-  igraph_delete_edges(g, igraph)
+  delete_all_edges(g);
+
+  // Generate degree sequence from num_cc_nonhh
+  igraph_t new_graph;
+  igraph_vector_int_t num_cc_nonhh;
+  igraph_vector_int_init(&num_cc_nonhh, igraph_vcount(g));
+
+  default_random_engine generator;
+
+  // Take a poisson value for each
+  for (int i = 0; i < igraph_vcount(g); i++) {
+    poisson_distribution<int> distribution(VAN(g, "num_cc_nonhh", i) / 10);
+    VECTOR(num_cc_nonhh)[i]=distribution(generator);
+
+  }
+
+
+  // Need to make the degree sequence sum to even number
+  // Do this by randomly sampling indices until we find a nonzero one
+  // and decrement it
+  int sum = igraph_vector_int_sum(&num_cc_nonhh);
+  cout << sum << endl;
+
+  if (sum % 2 == 1) { 
+    // Pick a random index
+    int tries = 0;
+    int randomIndex;
+    while (tries < 1000) {
+      randomIndex = rand() % igraph_vector_int_size(&num_cc_nonhh);
+
+      if (VECTOR(num_cc_nonhh)[randomIndex] > 1) {
+        VECTOR(num_cc_nonhh)[randomIndex] -= 1;
+        break;
+      }
+
+      tries++;
+
+    }
+  }
+
+  // Form degree sequence and get edgelist
+  igraph_degree_sequence_game(&new_graph, &num_cc_nonhh, NULL, IGRAPH_DEGSEQ_CONFIGURATION);
+  igraph_vector_int_t edgelist;
+  igraph_vector_int_init(&edgelist, igraph_vcount(&new_graph));
+  igraph_get_edgelist(&new_graph, &edgelist, false);
+
+  // igraph_vector_int_print(&edgelist);
+
+  // Add edgelist to old graph
+  igraph_add_edges(g, &edgelist, NULL);
+
+
+  igraph_vector_int_destroy(&num_cc_nonhh);
+  igraph_vector_int_destroy(&edgelist);
+
 
 }
 
+
 int main() {
 
-  // Create pointer to pop file and open
-  ifstream fin;
-  fin.open("pop.csv");
 
-  // Read the csv header (used to create attributes)
-  vector<string> header = get_csv_row(fin);
-
-  // Invert header into unordered map for column lookup
-  unordered_map<string, int> colnames;
-  for (int i = 0; i < header.size(); i++) {
-    colnames[header[i]] = i;
-  }
 
 
   // Create the empty graph
@@ -141,51 +101,14 @@ int main() {
   /* Create a directed graph with no vertices or edges. */
   igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
 
-  vector<string> row;
-
-  // Read a line from the input file
-
-  // Loop through the attributes of the first 5 nodes
-  int i = 0;
-  while( fin.peek() != EOF ) {
-
-    // Read the row
-    row = get_csv_row(fin);
-
-    // Add vertex 
-    igraph_add_vertices(&graph, 1, NULL);
-
-    // Age
-    SETVAN(&graph, "age", i, stoi(row[colnames["age"]]));
-
-    // Disease Status
-    SETVAS(&graph, "disease_status", i, "S");
-
-    // Gender
-    SETVAN(&graph, "gender", i, (row[colnames["gender"]] == "Male"? 1 : 0) );
-
-    // Ethnicity
-    SETVAS(&graph, "ethnicity", i, row[colnames["ethnicity"]].c_str());
-
-    // Num cc nonhh
-    SETVAN(&graph, "num_cc_nonhh", i, stoi(row[colnames["num_cc_nonhh"]]));
-
-    // Hhid
-    SETVAS(&graph, "hhid", i, row[colnames["hhid"]].c_str());
-
-    // Remaining days exposed/sick
-    SETVAN(&graph, "remaining_days_exposed", i, -1);
-    SETVAN(&graph, "remaining_days_sick", i, -1);
-
-
-    i++;
-
-  }
+ 
+  /* Generate graph by reading csv */
+  // read_pop_from_csv("pop.csv", &graph);
+  gen_pop_from_survey_csv("lucid/wave4.csv", &graph, 1000);
 
   // Create an unordered_map of hhids
   unordered_map<string, vector<int> > hhids;
-  
-  for (i = 0; i < igraph_vcount(&graph); i++) {
+  for (int i = 0; i < igraph_vcount(&graph); i++) {
     hhids[VAS(&graph, "hhid", i)].push_back(i);
   }
 
@@ -196,7 +119,7 @@ int main() {
 
     // Create all combinations within the hh by nested loop
     for (int k=0; k < h.second.size(); k++) {
-      for (int l=0; l < h.second.size(); l++) {
+      for (int l=k+1; l < h.second.size(); l++) {
         if (k == l) {
           continue;
         }
@@ -212,21 +135,61 @@ int main() {
   igraph_add_edges(&graph, &hhedges, NULL);
 
   /* Print the final result. */
-  print_attributes(&graph);
+  print_attributes(&graph, true);
 
 
+  cout << "Here! "<< endl;
   // Pick nodes at random to be infected
-  default_random_engine generator;
+  mt19937 generator(4949);
   uniform_int_distribution<int> distribution(0,igraph_vcount(&graph));
-  for (i = 0; i < 5; i++) {
-    SETVAS(&graph, "disease_status", distribution(generator), "I");
+  for (int i = 0; i < 5; i++) {
+    set_sick(&graph, distribution(generator), 3*24, 5*24, false);
   }
 
   disease_status(&graph);
-  for (int hr = 0; hr < 10*24; hr++ ) {
-    transmit(&graph);
-    decrement(&graph);
-    disease_status(&graph);
+  int day = 0;
+  int hr = 0;
+  while (GAN(&graph, "I_count") + GAN(&graph, "E_count") > 0){
+
+    // Hours 0-8
+    igraph_add_edges(&graph, &hhedges, NULL);
+    for (hr = 0; hr < 8; hr++ ) {
+      cout << "Day " << day <<  "Hour " << hr << "| ";
+      transmit(&graph);
+      decrement(&graph);
+      disease_status(&graph);
+      
+    }
+
+    delete_all_edges(&graph);
+
+    // Hours 8-16
+    for (hr = 8; hr < 16; hr++){
+      cout << "Day " << day <<  "Hour " << hr << "| ";
+      daytime_mixing(&graph);
+      transmit(&graph);
+      decrement(&graph);
+      cout << igraph_ecount(&graph) << endl;
+      disease_status(&graph);
+    }
+
+
+    // Hours 16-24
+    delete_all_edges(&graph);
+    igraph_add_edges(&graph, &hhedges, NULL);
+    for (hr = 16; hr < 24; hr++ ) {
+      cout << "Day " << day <<  "Hour " << hr << "| ";
+      transmit(&graph);
+      decrement(&graph);
+      disease_status(&graph);
+      }
+
+    day++;
+
+    // if (day > 10) {
+    //   break;
+    // }
+
   }
 
   /* Delete all remaining attributes. */
@@ -238,8 +201,6 @@ int main() {
   // Destroy vectors
   igraph_vector_int_destroy(&hhedges);
 
-  /* Close the fstream */
-  fin.close();
 
 
   return 0;

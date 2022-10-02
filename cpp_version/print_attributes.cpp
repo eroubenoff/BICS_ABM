@@ -8,10 +8,10 @@
 #include<fstream>
 #include <sstream>  
 #include <unordered_map>
-#include "defs.h"
+#include "defs.h" 
 
 /* Prints graph, vertex and edge attributes stored in a graph. */
-void print_attributes(const igraph_t *g) {
+void print_attributes(const igraph_t *g, bool nodes_only) {
     igraph_vector_int_t gtypes, vtypes, etypes;
     igraph_strvector_t gnames, vnames, enames;
     igraph_integer_t i, j;
@@ -55,19 +55,21 @@ void print_attributes(const igraph_t *g) {
         printf("\n");
     }
 
-    /* edge attributes */
-    for (i = 0; i < igraph_ecount(g); i++) {
-        printf("Edge %" IGRAPH_PRId " (%" IGRAPH_PRId "-%" IGRAPH_PRId "): ", i, IGRAPH_FROM(g, i), IGRAPH_TO(g, i));
-        for (j = 0; j < igraph_strvector_size(&enames); j++) {
-            printf("%s=", STR(enames, j));
-            if (VECTOR(etypes)[j] == IGRAPH_ATTRIBUTE_NUMERIC) {
-                igraph_real_printf(EAN(g, STR(enames, j), i));
-                putchar(' ');
-            } else {
-                printf("\"%s\" ", EAS(g, STR(enames, j), i));
+    if (!nodes_only) {
+        /* edge attributes */
+        for (i = 0; i < igraph_ecount(g); i++) {
+            printf("Edge %" IGRAPH_PRId " (%" IGRAPH_PRId "-%" IGRAPH_PRId "): ", i, IGRAPH_FROM(g, i), IGRAPH_TO(g, i));
+            for (j = 0; j < igraph_strvector_size(&enames); j++) {
+                printf("%s=", STR(enames, j));
+                if (VECTOR(etypes)[j] == IGRAPH_ATTRIBUTE_NUMERIC) {
+                    igraph_real_printf(EAN(g, STR(enames, j), i));
+                    putchar(' ');
+                } else {
+                    printf("\"%s\" ", EAS(g, STR(enames, j), i));
+                }
             }
+            printf("\n");
         }
-        printf("\n");
     }
 
     igraph_strvector_destroy(&enames);
