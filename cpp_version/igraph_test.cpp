@@ -104,7 +104,7 @@ int main() {
  
   /* Generate graph by reading csv */
   // read_pop_from_csv("pop.csv", &graph);
-  gen_pop_from_survey_csv("lucid/wave4.csv", &graph, 1000);
+  gen_pop_from_survey_csv("lucid/wave4.csv", &graph, 1000, false);
 
   // Create an unordered_map of hhids
   unordered_map<string, vector<int> > hhids;

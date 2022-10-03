@@ -3,6 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include <igraph.h>
+#include <random>
 using namespace std;
 
 
@@ -35,7 +36,7 @@ vector<string> get_csv_row(istream &fin, int expected_length = -1, char sep = ',
 * @return none; modifies &graph in place
 */
 void read_pop_from_csv(string path, igraph_t *graph);
-void gen_pop_from_survey_csv(string path, igraph_t *g, int n);
+void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod = true);
 
 
 
@@ -86,3 +87,33 @@ void decrement(igraph_t *g);
  * Generate a random string (for hash)
  */
 string randstring(int length);
+
+
+
+/* 
+ * Class to sample randomly from a distribution
+ *
+ * Basically a wrapper around discrete_distribtuion
+ * */
+
+class RandomVector{
+    private:
+        vector<int> ids;
+        discrete_distribution<int> dd;
+
+    public:
+
+    RandomVector(vector<int> _ids, vector<float> probs) {
+
+        ids = _ids;
+        dd = discrete_distribution<int>(probs.begin(), probs.end());
+        
+    }
+
+    // template<class G>
+    int operator()(mt19937 &generator) {
+        return ids[dd(generator)];
+        
+    }
+
+};

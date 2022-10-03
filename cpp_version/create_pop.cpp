@@ -428,7 +428,7 @@ auto load_POLYMOD(string path = "POLYMOD/") {
 *
 */
 
-void gen_pop_from_survey_csv(string path, igraph_t *g, int n) {
+void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod) {
     
 
     /* Create pointer to input files */
@@ -471,7 +471,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n) {
     /* Turn weight vector into sampling distribution for the whole population*/
     discrete_distribution<int> dd{weights.begin(), weights.end()};
     // default_random_engine generator;
-    mt19937 generator(4949);
+    mt19937 generator(49);
 
 
     /* Need to create sampling distributions for all 
@@ -515,7 +515,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n) {
     /* Create a hash of the distributions */
     map<key, discrete_distribution<>> hh_distn;
 
-    /* Loop through hashes and turn into a sampling distn */
+    /* Loop through )ashes and turn into a sampling distn */
     for (auto combo: eligible_nodes) {
 
         hh_distn[combo.first] = discrete_distribution<>(combo.second.begin(), combo.second.end());
@@ -579,6 +579,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n) {
                         hhid) ;
 
         // Sample who matches that 
+        if (false) {
          for (int j = 1; j < min(5,hhsize); j++) {
 
             string hhmember_age = input_data[i][colnames["resp_hh_roster#1_" + to_string(j) + "_1"]];
@@ -593,7 +594,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n) {
 
 
             // Check if key exists in map
-            if (!hh_distn.count(k)) {
+            if (!hh_distn.count(k) & fill_polymod) {
 
                 // Check if the key is in the POLYMOD distributions m.find("f") == m.end()
 
@@ -616,6 +617,8 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n) {
 
 
                 continue;
+            } else {
+                continue;
             }
 
 
@@ -630,6 +633,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n) {
                             stoi(input_data[hh_member][colnames["num_cc_nonhh"]]), 
                             hhid) ;
 
+        }
         }
 
     }
