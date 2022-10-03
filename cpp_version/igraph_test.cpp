@@ -48,7 +48,6 @@ void daytime_mixing(igraph_t *g) {
   // Do this by randomly sampling indices until we find a nonzero one
   // and decrement it
   int sum = igraph_vector_int_sum(&num_cc_nonhh);
-  cout << sum << endl;
 
   if (sum % 2 == 1) { 
     // Pick a random index
@@ -104,7 +103,7 @@ int main() {
  
   /* Generate graph by reading csv */
   // read_pop_from_csv("pop.csv", &graph);
-  gen_pop_from_survey_csv("lucid/wave4.csv", &graph, 1000, false);
+  gen_pop_from_survey_csv("lucid/wave4.csv", &graph, 1000, true);
 
   // Create an unordered_map of hhids
   unordered_map<string, vector<int> > hhids;
@@ -138,12 +137,14 @@ int main() {
   print_attributes(&graph, true);
 
 
-  cout << "Here! "<< endl;
   // Pick nodes at random to be infected
-  mt19937 generator(4949);
+  mt19937 generator(49);
   uniform_int_distribution<int> distribution(0,igraph_vcount(&graph));
   for (int i = 0; i < 5; i++) {
-    set_sick(&graph, distribution(generator), 3*24, 5*24, false);
+      int index_case = distribution(generator);
+      cout << "index case " << index_case << endl;
+        set_sick(&graph, index_case, 3*24, 5*24, false);
+      cout << "Here! "<< endl;
   }
 
   disease_status(&graph);
@@ -157,7 +158,7 @@ int main() {
       cout << "Day " << day <<  "Hour " << hr << "| ";
       transmit(&graph);
       decrement(&graph);
-      disease_status(&graph);
+       // disease_status(&graph);
       
     }
 
@@ -169,8 +170,8 @@ int main() {
       daytime_mixing(&graph);
       transmit(&graph);
       decrement(&graph);
-      cout << igraph_ecount(&graph) << endl;
-      disease_status(&graph);
+      // cout << igraph_ecount(&graph) << endl;
+      // disease_status(&graph);
     }
 
 
@@ -181,7 +182,7 @@ int main() {
       cout << "Day " << day <<  "Hour " << hr << "| ";
       transmit(&graph);
       decrement(&graph);
-      disease_status(&graph);
+      // disease_status(&graph);
       }
 
     day++;

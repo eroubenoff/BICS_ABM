@@ -50,7 +50,7 @@ void add_vertex(igraph_t *g,
     SETVAN(g, "remaining_days_exposed", i, -1);
     SETVAN(g, "remaining_days_sick", i, -1);
 
-    cout << "Successfully added vertex" << endl;
+    cout << "Successfully added vertex" << '\n' << endl;
 
 
 
@@ -469,9 +469,10 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
 
 
     /* Turn weight vector into sampling distribution for the whole population*/
-    discrete_distribution<int> dd{weights.begin(), weights.end()};
+    RandomVector dd(weights);
+    // discrete_distribution<int> dd{weights.begin(), weights.end()};
     // default_random_engine generator;
-    mt19937 generator(49);
+    mt19937 generator(4949);
 
 
     /* Need to create sampling distributions for all 
@@ -490,7 +491,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
 
     /* Tuple for keys*/ 
     typedef tuple <int,string,string> key;
-    map<key, vector<float>> eligible_nodes;
+    map<key, vector<int>> eligible_nodes;
 
     /* Loop through each node; append node id to the corresponding
     * key in the hash
@@ -502,23 +503,24 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
                     input_data[i][colnames["age"]],
                     input_data[i][colnames["gender"]]);
 
-        /* If empty, initialize a vector of size nrow */
-        if (eligible_nodes[k].size() == 0) {
-            eligible_nodes[k] = vector<float>(nrow, 0);
-        }
 
-        eligible_nodes[k][i] = stof(input_data[i][colnames["weight_pooled"]]);
+        eligible_nodes[k].push_back(i);
     }
 
 
 
     /* Create a hash of the distributions */
-    map<key, discrete_distribution<>> hh_distn;
+    map<key, RandomVector> hh_distn;
 
     /* Loop through )ashes and turn into a sampling distn */
-    for (auto combo: eligible_nodes) {
+    for (const auto& [k, v]: eligible_nodes) {
+        weights.clear();
 
-        hh_distn[combo.first] = discrete_distribution<>(combo.second.begin(), combo.second.end());
+        for (int i: v) {
+            weights.push_back(stof(input_data[i][colnames["weight_pooled"]]));
+        }
+
+        hh_distn[k] = RandomVector(eligible_nodes[k], weights);
 
     }
 
@@ -528,8 +530,8 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
     int nrow_POLYMOD = POLYMOD_data.size(); 
 
     /* Create lookups for distributions */ 
-    map<key, vector<float>> eligible_POLYMOD;
-    map<key, discrete_distribution<>> distributions_POLYMOD;
+    map<key, vector<int>> eligible_POLYMOD;
+    map<key, RandomVector> distributions_POLYMOD;
 
     for (int i = 0; i < nrow_POLYMOD; i++ ) {
         /* Create key */
@@ -538,23 +540,24 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
                     POLYMOD_data[i][POLYMOD_colnames["part_age"]],
                     POLYMOD_data[i][POLYMOD_colnames["part_gender"]]);
 
-        /* If empty, initialize a vector of size nrow */
-        if (eligible_POLYMOD[k].size() == 0) {
-            eligible_POLYMOD[k] = vector<float>(nrow, 0);
-        }
-
-        eligible_POLYMOD[k][i] = 1;
+        eligible_POLYMOD[k].push_back(i);
     }
 
 
     /* Convert to distributions */ 
 
-    for (auto combo: eligible_POLYMOD) {
 
-        distributions_POLYMOD[combo.first] = discrete_distribution<>(combo.second.begin(), combo.second.end());
+    for (const auto& [k, v]: eligible_POLYMOD) {
+        weights.clear();
+
+        for (int i: v) {
+            // Unknown weights for POLYMOD; sample equally
+            weights.push_back(1);
+        }
+
+        distributions_POLYMOD[k] = RandomVector(eligible_POLYMOD[k], weights);
 
     }
-
 
 
     /* 
@@ -565,11 +568,15 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
      * 
      */
     for (int i = 0; i < n; i++) {
+        cout <<"Initializing new hh"<< endl;
+
         int hhead = dd(generator);
-        int hhsize = stoi(input_data[i][colnames["hhsize"]]); 
+        cout << hhead << endl;
+        int hhsize = stoi(input_data[hhead][colnames["hhsize"]]); 
+        cout << hhsize << endl;
         string hhid = randstring(16);
 
-        cout << "Adding respondent " << hhead << " to hhid "<< hhid << endl;
+        cout << "Adding respondent " << hhead << " as head of hhid "<< hhid << endl;
 
         add_vertex(g,
                         input_data[hhead][colnames["age"]],
@@ -579,11 +586,10 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
                         hhid) ;
 
         // Sample who matches that 
-        if (false) {
          for (int j = 1; j < min(5,hhsize); j++) {
 
-            string hhmember_age = input_data[i][colnames["resp_hh_roster#1_" + to_string(j) + "_1"]];
-            string hhmember_gender = input_data[i][colnames["resp_hh_roster#2_" + to_string(j)]];
+            string hhmember_age = input_data[hhead][colnames["resp_hh_roster#1_" + to_string(j) + "_1"]];
+            string hhmember_gender = input_data[hhead][colnames["resp_hh_roster#2_" + to_string(j)]];
 
             if (hhmember_age == "") {cout<<"Not enough info on household member" << endl; continue;}
 
@@ -617,9 +623,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
 
 
                 continue;
-            } else {
-                continue;
-            }
+            } 
 
 
             // Sample a corresponding person
@@ -634,12 +638,9 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
                             hhid) ;
 
         }
-        }
 
     }
     cout << "made it!" << endl;
-
-
 
 
 }

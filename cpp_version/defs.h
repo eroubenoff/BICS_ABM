@@ -103,9 +103,20 @@ class RandomVector{
 
     public:
 
+    RandomVector() {}
+
     RandomVector(vector<int> _ids, vector<float> probs) {
 
         ids = _ids;
+        dd = discrete_distribution<int>(probs.begin(), probs.end());
+        
+    }
+
+    RandomVector(vector<float> probs) {
+
+        for (int i = 0; i < probs.size(); i++) {
+            ids.push_back(i);
+        };
         dd = discrete_distribution<int>(probs.begin(), probs.end());
         
     }
