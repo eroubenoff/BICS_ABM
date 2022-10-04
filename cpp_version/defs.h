@@ -25,16 +25,16 @@ using namespace std;
 vector<string> get_csv_row(istream &fin, int expected_length = -1, char sep = ',');
 
 /* 
-* Read a population from a csv
-* 
-* @param string path 
-* 	path of the already-generated population, probably from python
-* @param igraph_t &graph
-*	pointer to graph to initialize population in 		
-* 					  
+ * Read a population from a csv
+ * 
+ * @param string path 
+ * 	path of the already-generated population, probably from python
+ * @param igraph_t &graph
+ *	pointer to graph to initialize population in 		
+ * 					  
 
-* @return none; modifies &graph in place
-*/
+ * @return none; modifies &graph in place
+ */
 void read_pop_from_csv(string path, igraph_t *graph);
 void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod = true);
 
@@ -50,37 +50,39 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod 
 void print_attributes(const igraph_t *g, bool nodes_only = false);
 
 /* 
-Loops through all edges and transmits if a susceptible node is in contact
-with an infectious node
+   Loops through all edges and transmits if a susceptible node is in contact
+   with an infectious node
 
-@return none
-*/
+   @return none
+   */
 
 void transmit(igraph_t *g);
 
 
 /*
-Sets a node to be sick, parameterized with all conditions needed for the 
-rest of the node's lifecycle.
+   Sets a node to be sick, parameterized with all conditions needed for the 
+   rest of the node's lifecycle.
 
-@param int n: index of node to set sick
-@param int rde: time the node will spend exposed
-@param int rds: time the node will spend sick
-@param bool mu: if, at the end of rds, the node will die
-@return none 
-*/
+   @param int n: index of node to set sick
+   @param int rde: time the node will spend exposed
+   @param int rds: time the node will spend sick
+   @param bool mu: if, at the end of rds, the node will die
+   @return none 
+   */
 void set_sick(igraph_t *g, int n, int rde, int rds, bool mu);
 
 
 /* 
-Tallies up the disease status of all nodes and sets it them to graph attributes
-*/
+   DEPRECATED; NOW DONE IN decrement 
+
+   Tallies up the disease status of all nodes and sets it them to graph attributes
+   */
 void disease_status(igraph_t *g);
 
 
 /* 
-Decrements each node's progression through disease time
-*/
+   Decrements each node's progression through disease time
+   */
 void decrement(igraph_t *g);
 
 /*
@@ -103,28 +105,28 @@ class RandomVector{
 
     public:
 
-    RandomVector() {}
+        RandomVector() {}
 
-    RandomVector(vector<int> _ids, vector<float> probs) {
+        RandomVector(vector<int> _ids, vector<float> probs) {
 
-        ids = _ids;
-        dd = discrete_distribution<int>(probs.begin(), probs.end());
-        
-    }
+            ids = _ids;
+            dd = discrete_distribution<int>(probs.begin(), probs.end());
 
-    RandomVector(vector<float> probs) {
+        }
 
-        for (int i = 0; i < probs.size(); i++) {
-            ids.push_back(i);
-        };
-        dd = discrete_distribution<int>(probs.begin(), probs.end());
-        
-    }
+        RandomVector(vector<float> probs) {
 
-    // template<class G>
-    int operator()(mt19937 &generator) {
-        return ids[dd(generator)];
-        
-    }
+            for (int i = 0; i < probs.size(); i++) {
+                ids.push_back(i);
+            };
+            dd = discrete_distribution<int>(probs.begin(), probs.end());
+
+        }
+
+        // template<class G>
+        int operator()(mt19937 &generator) {
+            return ids[dd(generator)];
+
+        }
 
 };

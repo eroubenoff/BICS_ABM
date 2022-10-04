@@ -24,9 +24,9 @@ void print_attributes(const igraph_t *g, bool nodes_only) {
     igraph_strvector_init(&enames, 0);
 
     igraph_cattribute_list(g,
-                           &gnames, &gtypes,
-                           &vnames, &vtypes,
-                           &enames, &etypes);
+            &gnames, &gtypes,
+            &vnames, &vtypes,
+            &enames, &etypes);
 
     /* graph attributes */
     for (i = 0; i < igraph_strvector_size(&gnames); i++) {

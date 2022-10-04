@@ -17,11 +17,11 @@ using namespace std;
  * @param i index of node to add 
  */
 void add_vertex(igraph_t *g,
-                string age,
-                string gender,
-                string ethnicity,
-                int num_cc_nonhh, 
-                string hhid) {
+        string age,
+        string gender,
+        string ethnicity,
+        int num_cc_nonhh, 
+        string hhid) {
 
     cout << "Age: " << age << " Gender: " << gender << " Ethnicity: " << \
         ethnicity << " num_Cc_nonhh: " << num_cc_nonhh << " hhid: " << hhid << endl;
@@ -62,16 +62,16 @@ void add_vertex(igraph_t *g,
 
 
 /* 
-* Read a population from a csv
-* 
-* @param string path 
-* 	path of the already-generated population, probably from python
-* @param igraph_t &graph
-*	pointer to graph to initialize population in 		
-* 					  
+ * Read a population from a csv
+ * 
+ * @param string path 
+ * 	path of the already-generated population, probably from python
+ * @param igraph_t &graph
+ *	pointer to graph to initialize population in 		
+ * 					  
 
-* @return none; modifies &graph in place
-*/
+ * @return none; modifies &graph in place
+ */
 void read_pop_from_csv(string path, igraph_t *g) {
 
     // Create pointer to pop file and open
@@ -83,8 +83,8 @@ void read_pop_from_csv(string path, igraph_t *g) {
 
     // Invert header into unordered map for column lookup
     unordered_map<string, int> colnames;
-            for (int i = 0; i < header.size(); i++) {
-                    colnames[header[i]] = i;
+    for (int i = 0; i < header.size(); i++) {
+        colnames[header[i]] = i;
     }
 
     // Loop through the attributes of the first nodes
@@ -92,18 +92,18 @@ void read_pop_from_csv(string path, igraph_t *g) {
     int i = 0;
     while( fin.peek() != EOF ) {
 
-            // Read the row
-            row = get_csv_row(fin);
+        // Read the row
+        row = get_csv_row(fin);
 
-            add_vertex(g, 
-                    row[colnames["age"]],
-                    row[colnames["gender"]],
-                    row[colnames["ethnicity"]],
-                    stoi(row[colnames["num_cc_nonhh"]]),
-                    row[colnames["hhid"]]
-                    );
+        add_vertex(g, 
+                row[colnames["age"]],
+                row[colnames["gender"]],
+                row[colnames["ethnicity"]],
+                stoi(row[colnames["num_cc_nonhh"]]),
+                row[colnames["hhid"]]
+                );
 
-            i++;
+        i++;
 
     }
 
@@ -242,23 +242,23 @@ auto load_POLYMOD(string path = "POLYMOD/") {
 
         polymod_participants.push_back(
                 get_csv_row(polymod_f, ncol)
-        );
+                );
 
         /* 
          * Recode age to match BICS distributions 
          * */
 
         polymod_participants[n_polymod][age_idx] = recode_age(
-            polymod_participants[n_polymod][age_idx]
-        );
+                polymod_participants[n_polymod][age_idx]
+                );
 
         /* 
          * Recode gender to match BICS distributions 
          * */
 
         polymod_participants[n_polymod][gen_idx] = recode_gender(
-            polymod_participants[n_polymod][gen_idx]
-        );
+                polymod_participants[n_polymod][gen_idx]
+                );
 
 
         n_polymod++;
@@ -287,7 +287,7 @@ auto load_POLYMOD(string path = "POLYMOD/") {
     header = get_csv_row(polymod_f);
     unordered_map<string, int> polymod_contact_colnames;
     for (int i = 0; i < header.size(); i++) {
-            polymod_contact_colnames[header[i]] = i;
+        polymod_contact_colnames[header[i]] = i;
     }
 
 
@@ -362,7 +362,7 @@ auto load_POLYMOD(string path = "POLYMOD/") {
     header = get_csv_row(polymod_f);
     unordered_map<string, int> polymod_hh_colnames;
     for (int i = 0; i < header.size(); i++) {
-            polymod_hh_colnames[header[i]] = i;
+        polymod_hh_colnames[header[i]] = i;
     }
 
     /* 
@@ -387,9 +387,9 @@ auto load_POLYMOD(string path = "POLYMOD/") {
 
         hh_size[row[polymod_hh_colnames["hh_id"]]] = row[polymod_hh_colnames["hh_size"]];
 
-        
+
     }
-    
+
     polymod_f.close();
 
 
@@ -402,7 +402,7 @@ auto load_POLYMOD(string path = "POLYMOD/") {
     polymod_participants_colnames["hh_size"] = polymod_participants_colnames.size();
     int hh_idx = polymod_participants_colnames["hh_id"]; 
     for (int i = 0; i < n_polymod; i++) {
-    
+
         /* 
          * Consistency check to make sure we haven't already appended 
          * */
@@ -423,13 +423,13 @@ auto load_POLYMOD(string path = "POLYMOD/") {
 
 
 /* 
-*
-* Generates a population of n households within graph g
-*
-*/
+ *
+ * Generates a population of n households within graph g
+ *
+ */
 
 void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod) {
-    
+
 
     /* Create pointer to input files */
     ifstream fin; 
@@ -443,8 +443,8 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
 
     /* Invert header into unordered map for column lookup */
     unordered_map<string, int> colnames;
-            for (int i = 0; i < header.size(); i++) {
-                    colnames[header[i]] = i;
+    for (int i = header.size(); i--;) {
+        colnames[header[i]] = i;
     }
 
     /* Get each row and append it */
@@ -452,19 +452,19 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
     vector<string> row;
 
     while (fin.peek() != EOF) {
-            row = get_csv_row(fin);
+        row = get_csv_row(fin);
 
-            input_data.push_back(row);
+        input_data.push_back(row);
 
-            nrow++;
+        nrow++;
     }
 
     cout << nrow << " rows read" << endl;
 
     /* Create vector of weights */
     vector<float> weights(nrow);
-    for (int i = 0; i < nrow; i++) {
-            weights[i] = stof(input_data[i][colnames["weight_pooled"]]);
+    for (int i = nrow; i--; ) {
+        weights[i] = stof(input_data[i][colnames["weight_pooled"]]);
     }
 
 
@@ -476,32 +476,32 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
 
 
     /* Need to create sampling distributions for all 
-    * combinations of age, gender, and hhsize
-    
-    * The process here is to create tuple keys for all combinations of
-    * hhsize, age, gender, in that order
-    *
-    * Then create a hash of weights, by tuple key. For each 
-    * combination of <hhsize, age, gender> initialize a vector of 
-    * zeros. If a node is of the correct combination, put it's weight
-    * in the corresponding point in the vector.
-    *
-    * Then, create sampling distributions from each key combination.
-    */
+     * combinations of age, gender, and hhsize
+
+     * The process here is to create tuple keys for all combinations of
+     * hhsize, age, gender, in that order
+     *
+     * Then create a hash of weights, by tuple key. For each 
+     * combination of <hhsize, age, gender> initialize a vector of 
+     * zeros. If a node is of the correct combination, put it's weight
+     * in the corresponding point in the vector.
+     *
+     * Then, create sampling distributions from each key combination.
+     */
 
     /* Tuple for keys*/ 
     typedef tuple <int,string,string> key;
     map<key, vector<int>> eligible_nodes;
 
     /* Loop through each node; append node id to the corresponding
-    * key in the hash
-    */
-    for (int i = 0; i < nrow; i++ ) {
+     * key in the hash
+     */
+    for (int i = nrow; i--; ) {
         /* Create key */
         key k = key(
-                    stoi(input_data[i][colnames["hhsize"]]),
-                    input_data[i][colnames["age"]],
-                    input_data[i][colnames["gender"]]);
+                stoi(input_data[i][colnames["hhsize"]]),
+                input_data[i][colnames["age"]],
+                input_data[i][colnames["gender"]]);
 
 
         eligible_nodes[k].push_back(i);
@@ -533,12 +533,12 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
     map<key, vector<int>> eligible_POLYMOD;
     map<key, RandomVector> distributions_POLYMOD;
 
-    for (int i = 0; i < nrow_POLYMOD; i++ ) {
+    for (int i = nrow_POLYMOD; i--;  ) {
         /* Create key */
         key k = key(
-                    stoi(POLYMOD_data[i][POLYMOD_colnames["hh_size"]]),
-                    POLYMOD_data[i][POLYMOD_colnames["part_age"]],
-                    POLYMOD_data[i][POLYMOD_colnames["part_gender"]]);
+                stoi(POLYMOD_data[i][POLYMOD_colnames["hh_size"]]),
+                POLYMOD_data[i][POLYMOD_colnames["part_age"]],
+                POLYMOD_data[i][POLYMOD_colnames["part_gender"]]);
 
         eligible_POLYMOD[k].push_back(i);
     }
@@ -567,7 +567,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
      * Create a node for each within the passed graph.
      * 
      */
-    for (int i = 0; i < n; i++) {
+    for (n; n--; ) {
         cout <<"Initializing new hh"<< endl;
 
         int hhead = dd(generator);
@@ -579,21 +579,21 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
         cout << "Adding respondent " << hhead << " as head of hhid "<< hhid << endl;
 
         add_vertex(g,
-                        input_data[hhead][colnames["age"]],
-                        input_data[hhead][colnames["gender"]],
-                        input_data[hhead][colnames["ethnicity"]],
-                        stoi(input_data[hhead][colnames["num_cc_nonhh"]]), 
-                        hhid) ;
+                input_data[hhead][colnames["age"]],
+                input_data[hhead][colnames["gender"]],
+                input_data[hhead][colnames["ethnicity"]],
+                stoi(input_data[hhead][colnames["num_cc_nonhh"]]), 
+                hhid) ;
 
         // Sample who matches that 
-         for (int j = 1; j < min(5,hhsize); j++) {
+        for (int j = 1; j < min(5,hhsize); j++) {
 
             string hhmember_age = input_data[hhead][colnames["resp_hh_roster#1_" + to_string(j) + "_1"]];
             string hhmember_gender = input_data[hhead][colnames["resp_hh_roster#2_" + to_string(j)]];
 
             if (hhmember_age == "") {cout<<"Not enough info on household member" << endl; continue;}
 
-            
+
             // Create  vector of weights; set weight to 0 if doesn't match
             key k = key(hhsize, hhmember_age, hhmember_gender);
             cout << get<0>(k) << "  " << get<1>(k) << "  " <<  get<2>(k) << endl;
@@ -610,16 +610,16 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
                     continue;
 
                 }
-                
+
                 int pmod_member = distributions_POLYMOD[k](generator); 
 
                 cout << "Adding POLYMOD respondent " << pmod_member << " to hhid "<< hhid << endl;
                 add_vertex(g,
-                                POLYMOD_data[pmod_member][POLYMOD_colnames["part_age"]],
-                                POLYMOD_data[pmod_member][POLYMOD_colnames["part_gender"]],
-                                "NA", // POLYMOD_data[i][POLYMOD_colnames["ethnicity"]],
-                                stoi(POLYMOD_data[pmod_member][POLYMOD_colnames["num_cc_nonhh"]]), 
-                                hhid) ;
+                        POLYMOD_data[pmod_member][POLYMOD_colnames["part_age"]],
+                        POLYMOD_data[pmod_member][POLYMOD_colnames["part_gender"]],
+                        "NA", // POLYMOD_data[i][POLYMOD_colnames["ethnicity"]],
+                        stoi(POLYMOD_data[pmod_member][POLYMOD_colnames["num_cc_nonhh"]]), 
+                        hhid) ;
 
 
                 continue;
@@ -629,13 +629,13 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
             // Sample a corresponding person
             int hh_member = hh_distn[k](generator) ;
             cout << "Adding respondent " << hh_member << " to hhid "<< hhid << endl;
-            
+
             add_vertex(g,
-                            input_data[hh_member][colnames["age"]],
-                            input_data[hh_member][colnames["gender"]],
-                            input_data[hh_member][colnames["ethnicity"]],
-                            stoi(input_data[hh_member][colnames["num_cc_nonhh"]]), 
-                            hhid) ;
+                    input_data[hh_member][colnames["age"]],
+                    input_data[hh_member][colnames["gender"]],
+                    input_data[hh_member][colnames["ethnicity"]],
+                    stoi(input_data[hh_member][colnames["num_cc_nonhh"]]), 
+                    hhid) ;
 
         }
 
