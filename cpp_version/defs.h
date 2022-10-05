@@ -7,6 +7,43 @@
 using namespace std;
 
 
+/*
+ * Wrapper around Vector that will always return 
+ */
+template <class T>
+class CyclingVector {
+
+    private: 
+        vector<T> values;
+        int index; 
+        int size;
+
+    public:
+        CyclingVector() = default;
+
+        CyclingVector(vector<T> _values) {
+            index = 0;
+            size = _values.size();
+            values = _values;
+        }
+
+        template <class G>
+        CyclingVector(int _size, G gen){
+            size = _size;
+            index = 0;
+            values.resize(size);
+            generate(values.begin(), values.end(), gen);
+            
+        }
+
+        T next() {
+            if (index==size-1) index = 0;
+            else index++;
+
+            return values[index];
+            
+        }
+};
 
 /*
  * Reads a csv and single row 
@@ -53,10 +90,18 @@ void print_attributes(const igraph_t *g, bool nodes_only = false);
    Loops through all edges and transmits if a susceptible node is in contact
    with an infectious node
 
+   @param CyclingVector *gamma_vec, *sigma_vec: 
+    - pointers to vectors that contain random draws of latent and infectious
+    periods. CyclingVector has method .next() which returns the next value
+    and loops to the beginning when exhausted.
    @return none
    */
 
-void transmit(igraph_t *g);
+void transmit(igraph_t *g, 
+        CyclingVector<int> *beta_vec = nullptr, 
+        CyclingVector<int> *gamma_vec = nullptr, 
+        CyclingVector<int> *sigma_vec = nullptr, 
+        unordered_map<string, CyclingVector<int> > *mu = nullptr) ;
 
 
 /*
@@ -130,3 +175,6 @@ class RandomVector{
         }
 
 };
+
+
+

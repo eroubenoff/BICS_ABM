@@ -7,6 +7,16 @@
 #include "defs.h"
 #include <random>
 #include <map>
+/*
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/vector.hpp>
+*/
+#include <fstream>
+#include <iostream>
 using namespace std;
 
 
@@ -23,8 +33,10 @@ void add_vertex(igraph_t *g,
         int num_cc_nonhh, 
         string hhid) {
 
-    cout << "Age: " << age << " Gender: " << gender << " Ethnicity: " << \
-        ethnicity << " num_Cc_nonhh: " << num_cc_nonhh << " hhid: " << hhid << endl;
+    if (false) {
+        cout << "Age: " << age << " Gender: " << gender << " Ethnicity: " << \
+            ethnicity << " num_Cc_nonhh: " << num_cc_nonhh << " hhid: " << hhid << endl;
+    }
     // Add vertex 
     igraph_add_vertices(g, 1, NULL);
 
@@ -50,7 +62,6 @@ void add_vertex(igraph_t *g,
     SETVAN(g, "remaining_days_exposed", i, -1);
     SETVAN(g, "remaining_days_sick", i, -1);
 
-    cout << "Successfully added vertex" << '\n' << endl;
 
 
 
@@ -177,10 +188,6 @@ string recode_gender(string gender) {
 }
 
 
-
-
-
-
 /* 
  * Load POLYMOD 
  *
@@ -222,7 +229,7 @@ auto load_POLYMOD(string path = "POLYMOD/") {
 
     unordered_map<string, int> polymod_participants_colnames;
     for (int i = 0; i < header.size(); i++) {
-        cout << header[i] << endl;
+        // cout << header[i] << endl;
         polymod_participants_colnames[header[i]] = i;
     }
 
@@ -557,7 +564,9 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
 
         distributions_POLYMOD[k] = RandomVector(eligible_POLYMOD[k], weights);
 
-    }
+        }
+
+
 
 
     /* 
@@ -568,15 +577,15 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
      * 
      */
     for (n; n--; ) {
-        cout <<"Initializing new hh"<< endl;
+        // cout <<"Initializing new hh"<< endl;
 
         int hhead = dd(generator);
-        cout << hhead << endl;
+        // cout << hhead << endl;
         int hhsize = stoi(input_data[hhead][colnames["hhsize"]]); 
-        cout << hhsize << endl;
+        // cout << hhsize << endl;
         string hhid = randstring(16);
 
-        cout << "Adding respondent " << hhead << " as head of hhid "<< hhid << endl;
+        // cout << "Adding respondent " << hhead << " as head of hhid "<< hhid << endl;
 
         add_vertex(g,
                 input_data[hhead][colnames["age"]],
@@ -591,12 +600,12 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
             string hhmember_age = input_data[hhead][colnames["resp_hh_roster#1_" + to_string(j) + "_1"]];
             string hhmember_gender = input_data[hhead][colnames["resp_hh_roster#2_" + to_string(j)]];
 
-            if (hhmember_age == "") {cout<<"Not enough info on household member" << endl; continue;}
+            if (hhmember_age == "") {/*cout<<"Not enough info on household member" << endl; */continue;}
 
 
             // Create  vector of weights; set weight to 0 if doesn't match
             key k = key(hhsize, hhmember_age, hhmember_gender);
-            cout << get<0>(k) << "  " << get<1>(k) << "  " <<  get<2>(k) << endl;
+            //cout << get<0>(k) << "  " << get<1>(k) << "  " <<  get<2>(k) << endl;
 
 
             // Check if key exists in map
@@ -605,7 +614,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
                 // Check if the key is in the POLYMOD distributions m.find("f") == m.end()
 
                 if (distributions_POLYMOD.find(k) == distributions_POLYMOD.end()) {
-                    cout << "Corresponding person not found in POLYMOD" << endl;
+                    //cout << "Corresponding person not found in POLYMOD" << endl;
 
                     continue;
 
@@ -613,7 +622,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
 
                 int pmod_member = distributions_POLYMOD[k](generator); 
 
-                cout << "Adding POLYMOD respondent " << pmod_member << " to hhid "<< hhid << endl;
+                // cout << "Adding POLYMOD respondent " << pmod_member << " to hhid "<< hhid << endl;
                 add_vertex(g,
                         POLYMOD_data[pmod_member][POLYMOD_colnames["part_age"]],
                         POLYMOD_data[pmod_member][POLYMOD_colnames["part_gender"]],
@@ -628,7 +637,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
 
             // Sample a corresponding person
             int hh_member = hh_distn[k](generator) ;
-            cout << "Adding respondent " << hh_member << " to hhid "<< hhid << endl;
+            //cout << "Adding respondent " << hh_member << " to hhid "<< hhid << endl;
 
             add_vertex(g,
                     input_data[hh_member][colnames["age"]],
@@ -640,7 +649,6 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
         }
 
     }
-    cout << "made it!" << endl;
 
 
 }

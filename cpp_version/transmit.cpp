@@ -6,7 +6,11 @@
 #include <random>
 using namespace std;
 
-void transmit(igraph_t *g) {
+void transmit(igraph_t *g, 
+        CyclingVector<int> *beta_vec,
+        CyclingVector<int> *gamma_vec, 
+        CyclingVector<int> *sigma_vec, 
+        unordered_map<string, CyclingVector<int> > *mu ){
 
     int n_nodes = igraph_vcount(g);
     igraph_vector_int_t neighbors;
@@ -22,8 +26,8 @@ void transmit(igraph_t *g) {
             n_neighbors = igraph_vector_int_size(&neighbors);
             for (n_neighbors; n_neighbors--; ) {
                 n2 = VECTOR(neighbors)[n_neighbors];
-                if (VAS(g, "disease_status", n2)[0] == 'S' ) {
-                    set_sick(g, n2, 3*24, 5*24, false);
+                if ((VAS(g, "disease_status", n2)[0] == 'S') & (*beta_vec).next()) {
+                    set_sick(g, n2, (*gamma_vec).next(), (*sigma_vec).next(), (*mu)[VAS(g, "age", n2)].next());
                 }
             }
         }

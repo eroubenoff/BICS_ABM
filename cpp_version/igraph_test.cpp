@@ -25,7 +25,7 @@ void delete_all_edges(igraph_t *g) {
 
 void daytime_mixing(igraph_t *g, vector<poisson_distribution<int>> &pois,  mt19937 &generator) {
 
-    igraph_rng_seed(igraph_rng_default(), 122);
+    igraph_rng_seed(igraph_rng_default(), generator());
     // Clear any edges present
     delete_all_edges(g);
 
@@ -72,7 +72,7 @@ void daytime_mixing(igraph_t *g, vector<poisson_distribution<int>> &pois,  mt199
     }
 
     // Form degree sequence and get edgelist
-    igraph_degree_sequence_game(&new_graph, &num_cc_nonhh, NULL, IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE ); // IGRAPH_DEGSEQ_CONFIGURATION);
+    igraph_degree_sequence_game(&new_graph, &num_cc_nonhh, NULL, IGRAPH_DEGSEQ_CONFIGURATION); //IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE ); // IGRAPH_DEGSEQ_CONFIGURATION);
     igraph_vector_int_t edgelist;
     igraph_vector_int_init(&edgelist, igraph_vcount(&new_graph));
     igraph_get_edgelist(&new_graph, &edgelist, false);
@@ -89,8 +89,107 @@ void daytime_mixing(igraph_t *g, vector<poisson_distribution<int>> &pois,  mt199
 
 }
 
+/*
+ * Vector to float. Assumes that vector is defined with 
+ * hard brackets [] and commas, otherwise will fail.
+ *
+ */
 
-int main() {
+vector<float> stovf(string s) {
+    string word;
+    vector<float> vec;
+
+    for (int i = 0; i < s.size(); i++) {
+        if (s[i] == '[') {
+            continue;
+        }
+        else if (s[i] == ']') {
+            vec.push_back(stof(word));
+            return vec;
+        }
+        else if (s[i] == ',') {
+            vec.push_back(stof(word));
+        }
+        else {
+            word += s[i];
+        }
+
+    }
+
+    if (word != "" ) vec.push_back(stof(word));
+
+    return vec;
+
+}
+
+
+int main(int argc, char **argv) {
+
+    // Parse command line options into an unordered map
+    unordered_map<string, string> args;
+
+    for (int i = 1; i < argc; i++) {
+        if ((argv[i][0] == '-') & (argv[i+1][0] != '-'))  {
+            // Pull a pair like 
+            args[argv[i]] = argv[i+1]; 
+            i++;
+        } else {
+            args[argv[i]] = "true";
+        }
+    }
+
+    for (auto i: args) {
+        cout << i.first << ": " << i.second<< endl;
+    }
+
+    // return 0;
+    // Parse the args
+    // Run in interactive mode?
+    // const bool INTERACTIVE = args.find("-i") == args.end() ? false : true;
+    // Save hourly node and edgelist
+    // const bool FULL_HISTORY = args.find("-full_history") == args.end() ? false : true;
+    // Number of households
+    const int N_HH = args.find("-n_hh") == args.end() ? 1000: stoi(args["-n_hh"]);
+    // Wave to simulate from
+    const string WAVE = args.find("-wave") == args.end() ? "4": args["-wave"];
+    // Lower and upper bounds on latent period, in hours
+    const int GAMMA_MIN = args.find("-gamma_min") == args.end() ? 2*24: stoi(args["-gamma_min"]);
+    const int GAMMA_MAX = args.find("-gamma_max") == args.end() ? 4*24: stoi(args["-gamma_max"]);
+    // Lower and upper bounds on infectious period, in hours
+    const int SIGMA_MIN = args.find("-sigma_min") == args.end() ? 3*24: stoi(args["-sigma_min"]);
+    const int SIGMA_MAX = args.find("-sigma_max") == args.end() ? 7*24: stoi(args["-sigma_max"]);
+    // Per-contact probability of transmission
+    const float BETA = args.find("-beta") == args.end() ? 0.2: stof(args["-beta"]);
+    // Mortality rate vector. Must be as long age 
+    const vector<float> MU_VEC = args.find("-mu") == args.end() ? vector<float>{0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1}: stovf(args["-mu"]);
+    // Number of initial cases
+    const int INDEX_CASES = args.find("-index_cases") == args.end() ? 5 : stoi(args["-index_cases"]);                
+    // Passed to generator
+    const int SEED = args.find("-seed") == args.end() ? 494949 : stoi(args["-seed"]);                   
+    mt19937 generator(SEED);
+
+
+
+    /* 
+     * Pre-generate all distributions as cycling vectors
+     *
+     * */ 
+
+    CyclingVector<int> gamma_vec(1000, [&generator, GAMMA_MIN, GAMMA_MAX](){return (uniform_int_distribution<int>(GAMMA_MIN, GAMMA_MAX))(generator);});
+    CyclingVector<int> sigma_vec(1000, [&generator, SIGMA_MIN, SIGMA_MAX](){return (uniform_int_distribution<int>(SIGMA_MIN, SIGMA_MAX))(generator);});
+    CyclingVector<int> beta_vec(1000, [&generator, BETA](){return (bernoulli_distribution(BETA))(generator);});
+
+    // Create mortality
+    unordered_map<string, CyclingVector<int> >mu;
+    mu["[0,18)"]  = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[0]))(generator);});
+    mu["[18,25)"] = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[1]))(generator);});
+    mu["[25,35)"] = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[2]))(generator);});
+    mu["[35,45)"] = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[3]))(generator);});
+    mu["[45,55)"] = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[4]))(generator);});
+    mu["[55,65)"] = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[5]))(generator);});
+    mu["[65,75)"] = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[6]))(generator);});
+    mu["[75,85)"] = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[7]))(generator);});
+    mu[">85"]     = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[8]))(generator);});
 
 
 
@@ -108,7 +207,7 @@ int main() {
 
     /* Generate graph by reading csv */
     // read_pop_from_csv("pop.csv", &graph);
-    gen_pop_from_survey_csv("lucid/wave4.csv", &graph, 10000, true);
+    gen_pop_from_survey_csv("lucid/wave" + WAVE + ".csv", &graph, N_HH, true);
 
     // Create an unordered_map of hhids
     unordered_map<string, vector<int> > hhids;
@@ -139,17 +238,15 @@ int main() {
     // igraph_add_edges(&graph, &hhedges, NULL);
 
     /* Print the final result. */
-    print_attributes(&graph, true);
+    // print_attributes(&graph, true);
 
 
     // Pick nodes at random to be infected
-    mt19937 generator(49);
     uniform_int_distribution<int> distribution(0,igraph_vcount(&graph));
     for (int i = 0; i < 5; i++) {
         int index_case = distribution(generator);
         cout << "index case " << index_case << endl;
         set_sick(&graph, index_case, 3*24, 5*24, false);
-        cout << "Here! "<< endl;
     }
 
     int day = 0;
@@ -164,13 +261,16 @@ int main() {
     }
 
 
+
+
+
     while (GAN(&graph, "I_count") + GAN(&graph, "E_count") > 0){
 
         // Hours 0-8
         igraph_add_edges(&graph, &hhedges, NULL);
         for (hr = 0; hr < 8; hr++ ) {
-            cout << "Day " << day <<  "Hour " << hr << "| ";
-            transmit(&graph);
+            cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
+            transmit(&graph, &beta_vec, &gamma_vec, &sigma_vec, &mu);
             decrement(&graph);
 
         }
@@ -179,9 +279,9 @@ int main() {
 
         // Hours 8-16
         for (hr = 8; hr < 16; hr++){
-            cout << "Day " << day <<  "Hour " << hr << "| ";
+            cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             daytime_mixing(&graph, num_cc_nonhh, generator);
-            transmit(&graph);
+            transmit(&graph, &beta_vec, &gamma_vec, &sigma_vec, &mu);
             decrement(&graph);
         }
 
@@ -190,8 +290,8 @@ int main() {
         delete_all_edges(&graph);
         igraph_add_edges(&graph, &hhedges, NULL);
         for (hr = 16; hr < 24; hr++ ) {
-            cout << "Day " << day <<  "Hour " << hr << "| ";
-            transmit(&graph);
+            cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
+            transmit(&graph, &beta_vec, &gamma_vec, &sigma_vec, &mu);
             decrement(&graph);
         }
 

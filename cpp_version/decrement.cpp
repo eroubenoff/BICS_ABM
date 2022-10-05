@@ -24,6 +24,7 @@ void decrement(igraph_t *g) {
     int D_count = 0;
 
     int vcount = igraph_vcount(g);
+    int mu;
 
     for (int i = vcount; i--; ) {
         ds = VAS(g, "disease_status", i);
@@ -46,9 +47,14 @@ void decrement(igraph_t *g) {
 
             case 'I':
                 rds = VAN(g, "remaining_days_sick", i);
-                if (rds == 0) {
+                mu = VAN(g, "mu", i);
+                if ((rds == 0) & (mu == 0)) {
                     SETVAS(g, "disease_status", i, "R");
                     R_count++;
+
+                } else if ((rds == 0 ) & (mu == 1) ) {
+                    SETVAS(g, "disease_status", i, "D");
+                    D_count++;
 
                 } else {
                     SETVAN(g, "remaining_days_sick", i, rds - 1);
@@ -75,11 +81,11 @@ void decrement(igraph_t *g) {
     SETGAN(g, "R_count", R_count);
     SETGAN(g, "D_count", D_count);
 
-    cout << "S: " << S_count << " | ";
-    cout << "E: " << E_count << " | ";
-    cout << "I: " << I_count << " | ";
-    cout << "R: " << R_count << " | ";
-    cout << "D: " << D_count << " | ";
-    cout << endl;
+    cout << "S: " << std::setw(5) << S_count << " | ";
+    cout << "E: " << std::setw(5) << E_count << " | ";
+    cout << "I: " << std::setw(5) << I_count << " | ";
+    cout << "R: " << std::setw(5) << R_count << " | ";
+    cout << "D: " << std::setw(5) << D_count << " | ";
+    cout << flush;
 
 }
