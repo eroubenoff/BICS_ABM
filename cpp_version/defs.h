@@ -45,6 +45,45 @@ class CyclingVector {
         }
 };
 
+/* 
+ * Class to sample randomly from a distribution
+ *
+ * Basically a wrapper around discrete_distribtuion
+ * */
+
+class RandomVector{
+    private:
+        vector<int> ids;
+        discrete_distribution<int> dd;
+
+    public:
+
+        RandomVector() {}
+
+        RandomVector(vector<int> _ids, vector<float> probs) {
+
+            ids = _ids;
+            dd = discrete_distribution<int>(probs.begin(), probs.end());
+
+        }
+
+        RandomVector(vector<float> probs) {
+
+            for (int i = 0; i < probs.size(); i++) {
+                ids.push_back(i);
+            };
+            dd = discrete_distribution<int>(probs.begin(), probs.end());
+
+        }
+
+        // template<class G>
+        int operator()(mt19937 &generator) {
+            return ids[dd(generator)];
+
+        }
+
+};
+
 /*
  * Reads a csv and single row 
  * 
@@ -98,7 +137,7 @@ void print_attributes(const igraph_t *g, bool nodes_only = false);
    */
 
 void transmit(igraph_t *g, 
-        CyclingVector<int> *beta_vec = nullptr, 
+        unordered_map<int, CyclingVector<int> > *beta_vec = nullptr, 
         CyclingVector<int> *gamma_vec = nullptr, 
         CyclingVector<int> *sigma_vec = nullptr, 
         unordered_map<string, CyclingVector<int> > *mu = nullptr) ;
@@ -137,44 +176,6 @@ string randstring(int length);
 
 
 
-/* 
- * Class to sample randomly from a distribution
- *
- * Basically a wrapper around discrete_distribtuion
- * */
+vector<float> stovf(string s) ;
 
-class RandomVector{
-    private:
-        vector<int> ids;
-        discrete_distribution<int> dd;
-
-    public:
-
-        RandomVector() {}
-
-        RandomVector(vector<int> _ids, vector<float> probs) {
-
-            ids = _ids;
-            dd = discrete_distribution<int>(probs.begin(), probs.end());
-
-        }
-
-        RandomVector(vector<float> probs) {
-
-            for (int i = 0; i < probs.size(); i++) {
-                ids.push_back(i);
-            };
-            dd = discrete_distribution<int>(probs.begin(), probs.end());
-
-        }
-
-        // template<class G>
-        int operator()(mt19937 &generator) {
-            return ids[dd(generator)];
-
-        }
-
-};
-
-
-
+void distribute_vax(igraph_t *g, int n_daily, int time_until_v2);

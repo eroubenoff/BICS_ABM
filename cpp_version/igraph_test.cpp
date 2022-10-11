@@ -89,38 +89,6 @@ void daytime_mixing(igraph_t *g, vector<poisson_distribution<int>> &pois,  mt199
 
 }
 
-/*
- * Vector to float. Assumes that vector is defined with 
- * hard brackets [] and commas, otherwise will fail.
- *
- */
-
-vector<float> stovf(string s) {
-    string word;
-    vector<float> vec;
-
-    for (int i = 0; i < s.size(); i++) {
-        if (s[i] == '[') {
-            continue;
-        }
-        else if (s[i] == ']') {
-            vec.push_back(stof(word));
-            return vec;
-        }
-        else if (s[i] == ',') {
-            vec.push_back(stof(word));
-        }
-        else {
-            word += s[i];
-        }
-
-    }
-
-    if (word != "" ) vec.push_back(stof(word));
-
-    return vec;
-
-}
 
 
 int main(int argc, char **argv) {
@@ -168,6 +136,11 @@ int main(int argc, char **argv) {
     const int SEED = args.find("-seed") == args.end() ? 494949 : stoi(args["-seed"]);                   
     mt19937 generator(SEED);
 
+    // Vaccine params
+    const int N_VAX_DAILY= args.find("-n_vax_daily") == args.end() ? N_HH / 20: stoi(args["-n_vax_daily"]);                   
+    const float VE1 = args.find("-ve1") == args.end() ? 0.75 : stof(args["-ve1"]);                   
+    const float VE2 = args.find("-ve2") == args.end() ? 0.95 : stof(args["-ve2"]);                   
+
 
 
     /* 
@@ -177,7 +150,14 @@ int main(int argc, char **argv) {
 
     CyclingVector<int> gamma_vec(1000, [&generator, GAMMA_MIN, GAMMA_MAX](){return (uniform_int_distribution<int>(GAMMA_MIN, GAMMA_MAX))(generator);});
     CyclingVector<int> sigma_vec(1000, [&generator, SIGMA_MIN, SIGMA_MAX](){return (uniform_int_distribution<int>(SIGMA_MIN, SIGMA_MAX))(generator);});
-    CyclingVector<int> beta_vec(1000, [&generator, BETA](){return (bernoulli_distribution(BETA))(generator);});
+    // CyclingVector<int> beta_vec(1000, [&generator, BETA](){return (bernoulli_distribution(BETA))(generator);});
+
+    // Transmission probability 
+    unordered_map<int, CyclingVector<int>> beta;
+    beta[0] = CyclingVector<int>(1000, [&generator, BETA](){return(bernoulli_distribution(BETA)(generator));});
+    beta[1] = CyclingVector<int>(1000, [&generator, BETA, VE1](){return(bernoulli_distribution(BETA*(1-VE1))(generator));});
+    beta[2] = CyclingVector<int>(1000, [&generator, BETA, VE2](){return(bernoulli_distribution(BETA*(1-VE2))(generator));});
+
 
     // Create mortality
     unordered_map<string, CyclingVector<int> >mu;
@@ -190,6 +170,7 @@ int main(int argc, char **argv) {
     mu["[65,75)"] = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[6]))(generator);});
     mu["[75,85)"] = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[7]))(generator);});
     mu[">85"]     = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[8]))(generator);});
+    
 
 
 
@@ -270,18 +251,20 @@ int main(int argc, char **argv) {
         igraph_add_edges(&graph, &hhedges, NULL);
         for (hr = 0; hr < 8; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            transmit(&graph, &beta_vec, &gamma_vec, &sigma_vec, &mu);
+            transmit(&graph, &beta, &gamma_vec, &sigma_vec, &mu);
             decrement(&graph);
 
         }
 
         delete_all_edges(&graph);
 
+        distribute_vax(&graph, N_VAX_DAILY, 25*24);
+
         // Hours 8-16
         for (hr = 8; hr < 16; hr++){
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             daytime_mixing(&graph, num_cc_nonhh, generator);
-            transmit(&graph, &beta_vec, &gamma_vec, &sigma_vec, &mu);
+            transmit(&graph, &beta, &gamma_vec, &sigma_vec, &mu);
             decrement(&graph);
         }
 
@@ -291,7 +274,7 @@ int main(int argc, char **argv) {
         igraph_add_edges(&graph, &hhedges, NULL);
         for (hr = 16; hr < 24; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            transmit(&graph, &beta_vec, &gamma_vec, &sigma_vec, &mu);
+            transmit(&graph, &beta, &gamma_vec, &sigma_vec, &mu);
             decrement(&graph);
         }
 

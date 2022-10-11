@@ -31,6 +31,7 @@ void add_vertex(igraph_t *g,
         string gender,
         string ethnicity,
         int num_cc_nonhh, 
+        int vaccine_priority,
         string hhid) {
 
     if (false) {
@@ -61,6 +62,9 @@ void add_vertex(igraph_t *g,
     SETVAS(g, "disease_status", i, "S");
     SETVAN(g, "remaining_days_exposed", i, -1);
     SETVAN(g, "remaining_days_sick", i, -1);
+    SETVAN(g, "vaccine_status", i, 0);
+    SETVAN(g, "vaccine_priority", i, vaccine_priority);
+    SETVAN(g, "time_until_v2", i, -1);
 
 
 
@@ -111,6 +115,7 @@ void read_pop_from_csv(string path, igraph_t *g) {
                 row[colnames["gender"]],
                 row[colnames["ethnicity"]],
                 stoi(row[colnames["num_cc_nonhh"]]),
+                0,
                 row[colnames["hhid"]]
                 );
 
@@ -567,6 +572,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
         }
 
 
+    CyclingVector<int> vax_vec(100, [&generator](){return (discrete_distribution{1,1,1,1})(generator) - 1;});
 
 
     /* 
@@ -592,7 +598,8 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
                 input_data[hhead][colnames["gender"]],
                 input_data[hhead][colnames["ethnicity"]],
                 stoi(input_data[hhead][colnames["num_cc_nonhh"]]), 
-                hhid) ;
+                vax_vec.next(),
+                hhid);
 
         // Sample who matches that 
         for (int j = 1; j < min(5,hhsize); j++) {
@@ -628,7 +635,8 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
                         POLYMOD_data[pmod_member][POLYMOD_colnames["part_gender"]],
                         "NA", // POLYMOD_data[i][POLYMOD_colnames["ethnicity"]],
                         stoi(POLYMOD_data[pmod_member][POLYMOD_colnames["num_cc_nonhh"]]), 
-                        hhid) ;
+                        vax_vec.next(),
+                        hhid);
 
 
                 continue;
@@ -644,6 +652,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
                     input_data[hh_member][colnames["gender"]],
                     input_data[hh_member][colnames["ethnicity"]],
                     stoi(input_data[hh_member][colnames["num_cc_nonhh"]]), 
+                    vax_vec.next(),
                     hhid) ;
 
         }

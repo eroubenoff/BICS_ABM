@@ -17,6 +17,8 @@ add_executable(igraph_test
     transmit.cpp
     create_pop.cpp
     randstring.cpp
+    utils.cpp
+    distribute_vax.cpp
     )
 
 target_link_libraries(igraph_test PUBLIC igraph::igraph)

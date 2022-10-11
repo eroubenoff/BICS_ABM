@@ -14,7 +14,7 @@ using namespace std;
 
 
 void decrement(igraph_t *g) {
-    int rds, rde;
+    int rds, rde, vs, tv2;
     const char* ds;
 
     int S_count = 0;
@@ -22,12 +22,15 @@ void decrement(igraph_t *g) {
     int I_count = 0;
     int R_count = 0;
     int D_count = 0;
+    int V1_count = 0;
+    int V2_count = 0;
 
     int vcount = igraph_vcount(g);
     int mu;
 
     for (int i = vcount; i--; ) {
         ds = VAS(g, "disease_status", i);
+        vs = VAN(g, "vaccine_status", i);
 
         switch(ds[0]) {
             case 'S': 
@@ -72,6 +75,22 @@ void decrement(igraph_t *g) {
 
         }
 
+        switch(vs) {
+            case -1: 
+                break;
+            case 0: 
+                break;
+            case 1: 
+                V1_count++;
+                tv2 = VAN(g, "time_until_v2", i);
+                if (tv2 > 0) SETVAN(g, "time_until_v2", i,  tv2 - 1);
+                break;
+            case 2:
+                V2_count++;
+                break;
+
+        }
+
     }
 
 
@@ -80,12 +99,16 @@ void decrement(igraph_t *g) {
     SETGAN(g, "I_count", I_count);
     SETGAN(g, "R_count", R_count);
     SETGAN(g, "D_count", D_count);
+    SETGAN(g, "V1_count", V1_count);
+    SETGAN(g, "V2_count", V2_count);
 
     cout << "S: " << std::setw(5) << S_count << " | ";
     cout << "E: " << std::setw(5) << E_count << " | ";
     cout << "I: " << std::setw(5) << I_count << " | ";
     cout << "R: " << std::setw(5) << R_count << " | ";
     cout << "D: " << std::setw(5) << D_count << " | ";
+    cout << "V1: " << std::setw(5) << V1_count << " | ";
+    cout << "V2: " << std::setw(5) << V2_count << " | ";
     cout << flush;
 
 }
