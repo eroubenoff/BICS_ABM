@@ -153,10 +153,10 @@ int main(int argc, char **argv) {
     // CyclingVector<int> beta_vec(1000, [&generator, BETA](){return (bernoulli_distribution(BETA))(generator);});
 
     // Transmission probability 
-    unordered_map<int, CyclingVector<int>> beta;
-    beta[0] = CyclingVector<int>(1000, [&generator, BETA](){return(bernoulli_distribution(BETA)(generator));});
-    beta[1] = CyclingVector<int>(1000, [&generator, BETA, VE1](){return(bernoulli_distribution(BETA*(1-VE1))(generator));});
-    beta[2] = CyclingVector<int>(1000, [&generator, BETA, VE2](){return(bernoulli_distribution(BETA*(1-VE2))(generator));});
+    unordered_map<int, CyclingVector<int>*> beta;
+    beta[0] = new CyclingVector<int>(1000, [&generator, BETA](){return(bernoulli_distribution(BETA)(generator));});
+    beta[1] = new CyclingVector<int>(1000, [&generator, BETA, VE1](){return(bernoulli_distribution(BETA*(1-VE1))(generator));});
+    beta[2] = new CyclingVector<int>(1000, [&generator, BETA, VE2](){return(bernoulli_distribution(BETA*(1-VE2))(generator));});
 
 
     // Create mortality
@@ -171,6 +171,9 @@ int main(int argc, char **argv) {
     mu["[75,85)"] = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[7]))(generator);});
     mu[">85"]     = CyclingVector<int>(1000, [&generator, MU_VEC](){return (bernoulli_distribution(MU_VEC[8]))(generator);});
     
+
+    // History object
+    History history(2000);
 
 
 
@@ -232,7 +235,7 @@ int main(int argc, char **argv) {
 
     int day = 0;
     int hr = 0;
-    decrement(&graph);
+    decrement(&graph, &history);
 
 
     /* For daytime, need to create poisson generators for contact */
@@ -244,15 +247,15 @@ int main(int argc, char **argv) {
 
 
 
+    igraph_add_edges(&graph, &hhedges, NULL);
 
     while (GAN(&graph, "I_count") + GAN(&graph, "E_count") > 0){
 
         // Hours 0-8
-        igraph_add_edges(&graph, &hhedges, NULL);
         for (hr = 0; hr < 8; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            transmit(&graph, &beta, &gamma_vec, &sigma_vec, &mu);
-            decrement(&graph);
+            transmit(&graph, beta, gamma_vec, sigma_vec, mu);
+            decrement(&graph, &history);
 
         }
 
@@ -264,8 +267,8 @@ int main(int argc, char **argv) {
         for (hr = 8; hr < 16; hr++){
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             daytime_mixing(&graph, num_cc_nonhh, generator);
-            transmit(&graph, &beta, &gamma_vec, &sigma_vec, &mu);
-            decrement(&graph);
+            transmit(&graph, beta, gamma_vec, sigma_vec, mu);
+            decrement(&graph, &history);
         }
 
 
@@ -274,14 +277,16 @@ int main(int argc, char **argv) {
         igraph_add_edges(&graph, &hhedges, NULL);
         for (hr = 16; hr < 24; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            transmit(&graph, &beta, &gamma_vec, &sigma_vec, &mu);
-            decrement(&graph);
+            transmit(&graph, beta, gamma_vec, sigma_vec, mu);
+            decrement(&graph, &history);
         }
 
         day++;
 
 
     }
+
+    history.save();
 
     /* Delete all remaining attributes. */
     DELALL(&graph);
@@ -291,6 +296,10 @@ int main(int argc, char **argv) {
 
     // Destroy vectors
     igraph_vector_int_destroy(&hhedges);
+
+    delete beta[0];
+    delete beta[1];
+    delete beta[2];
 
 
 

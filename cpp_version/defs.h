@@ -84,6 +84,23 @@ class RandomVector{
 
 };
 
+class History {
+    private:
+        vector<int> S;
+        vector<int> E;
+        vector<int> I;
+        vector<int> R;
+        vector<int> D;
+        vector<int> V1;
+        vector<int> V2;
+        int counter;
+        int length;
+    public: 
+        History(int initial_length = 2000);
+        History() {};
+        void add_history(int _S, int _E, int _I, int _R, int _D, int _V1, int _V2);
+        void save(string path = "history.csv");
+};
 /*
  * Reads a csv and single row 
  * 
@@ -137,10 +154,10 @@ void print_attributes(const igraph_t *g, bool nodes_only = false);
    */
 
 void transmit(igraph_t *g, 
-        unordered_map<int, CyclingVector<int> > *beta_vec = nullptr, 
-        CyclingVector<int> *gamma_vec = nullptr, 
-        CyclingVector<int> *sigma_vec = nullptr, 
-        unordered_map<string, CyclingVector<int> > *mu = nullptr) ;
+        unordered_map<int, CyclingVector<int>* > &beta_vec, 
+        CyclingVector<int> &gamma_vec, 
+        CyclingVector<int> &sigma_vec, 
+        unordered_map<string, CyclingVector<int> > &mu) ;
 
 
 /*
@@ -167,7 +184,7 @@ void disease_status(igraph_t *g);
 /* 
    Decrements each node's progression through disease time
    */
-void decrement(igraph_t *g);
+void decrement(igraph_t *g, History *h);
 
 /*
  * Generate a random string (for hash)
@@ -179,3 +196,4 @@ string randstring(int length);
 vector<float> stovf(string s) ;
 
 void distribute_vax(igraph_t *g, int n_daily, int time_until_v2);
+

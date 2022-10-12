@@ -13,9 +13,11 @@
 using namespace std;
 
 
-void decrement(igraph_t *g) {
-    int rds, rde, vs, tv2;
-    const char* ds;
+void decrement(igraph_t *g, History *h) {
+    igraph_real_t rds, rde, tv2;
+
+    short int ds;
+    igraph_real_t vs;
 
     int S_count = 0;
     int E_count = 0;
@@ -25,56 +27,63 @@ void decrement(igraph_t *g) {
     int V1_count = 0;
     int V2_count = 0;
 
+    const char S = 'S';
+    const char E = 'E';
+    const char I = 'I';
+    const char R = 'R';
+    const char D = 'D';
+
     int vcount = igraph_vcount(g);
     int mu;
 
     for (int i = vcount; i--; ) {
-        ds = VAS(g, "disease_status", i);
+        ds = VAS(g, "disease_status", i)[0];
         vs = VAN(g, "vaccine_status", i);
 
-        switch(ds[0]) {
-            case 'S': 
-                S_count++;
+        switch(ds) {
+            case S: 
+                ++S_count;
                 break;
 
-            case 'E':
+            case E:
                 rde = VAN(g, "remaining_days_exposed", i);
-                if (rde == 0) {
+                if (rde == 0.0) {
                     SETVAS(g, "disease_status", i, "I");
-                    I_count++;
+                    ++I_count;
                 } else {
-                    SETVAN(g, "remaining_days_exposed", i, rde - 1);
-                    E_count++;
+                    SETVAN(g, "remaining_days_exposed", i, rde - 1.0);
+                    ++E_count;
                 }
                 break;
 
-            case 'I':
+            case I:
                 rds = VAN(g, "remaining_days_sick", i);
                 mu = VAN(g, "mu", i);
-                if ((rds == 0) & (mu == 0)) {
+                if ((rds == 0.0) & (mu == 0.0)) {
                     SETVAS(g, "disease_status", i, "R");
-                    R_count++;
+                    ++R_count;
 
-                } else if ((rds == 0 ) & (mu == 1) ) {
+                } else if ((rds == 0.0 ) & (mu == 1.0) ) {
                     SETVAS(g, "disease_status", i, "D");
-                    D_count++;
+                    ++D_count;
 
                 } else {
-                    SETVAN(g, "remaining_days_sick", i, rds - 1);
-                    I_count++;
+                    SETVAN(g, "remaining_days_sick", i, rds - 1.0);
+                    ++I_count;
                 }
                 break;
 
-            case 'R':
-                R_count++;
+            case R:
+                ++R_count;
                 break;
 
-            case 'D':
-                D_count++;
+            case D:
+                ++D_count;
                 break;
 
         }
 
+        /*
         switch(vs) {
             case -1: 
                 break;
@@ -90,6 +99,17 @@ void decrement(igraph_t *g) {
                 break;
 
         }
+        */
+
+        if (vs == 1.0) {
+            ++V1_count;
+            tv2 = VAN(g, "time_until_v2", i);
+            if (tv2 > 0.0) SETVAN(g, "time_until_v2", i,  tv2 - 1.0);
+        } else if (vs == 2.0) {
+            ++V2_count;
+        } else {
+            continue;
+        }
 
     }
 
@@ -101,6 +121,8 @@ void decrement(igraph_t *g) {
     SETGAN(g, "D_count", D_count);
     SETGAN(g, "V1_count", V1_count);
     SETGAN(g, "V2_count", V2_count);
+
+    h->add_history(S_count, E_count, I_count, R_count, D_count, V1_count, V2_count);
 
     cout << "S: " << std::setw(5) << S_count << " | ";
     cout << "E: " << std::setw(5) << E_count << " | ";
