@@ -287,6 +287,7 @@ int main(int argc, char **argv) {
     }
 
     history.save();
+    history.plot_trajectory();
 
     /* Delete all remaining attributes. */
     DELALL(&graph);

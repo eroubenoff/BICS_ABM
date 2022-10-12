@@ -29,10 +29,10 @@ if(Python3_NumPy_FOUND)
 else()
   target_compile_definitions(matplotlib_cpp INTERFACE WITHOUT_NUMPY)
 endif()
-install(
-  TARGETS matplotlib_cpp
-  EXPORT install_targets
-)
+# install(
+#   TARGETS matplotlib_cpp
+#   EXPORT install_targets
+# )
 
 find_package(igraph REQUIRED)
 
@@ -49,9 +49,12 @@ add_executable(igraph_test
     utils.cpp
     distribute_vax.cpp
     history.cpp
-    matplotlib.h
+    matplotlibcpp.h
     )
 
 target_link_libraries(igraph_test PUBLIC igraph::igraph)
 target_link_libraries(igraph_test PRIVATE matplotlib_cpp)
+
+
+# Install headers
 

@@ -100,6 +100,7 @@ class History {
         History() {};
         void add_history(int _S, int _E, int _I, int _R, int _D, int _V1, int _V2);
         void save(string path = "history.csv");
+        void plot_trajectory(string path = "plot.png") ;
 };
 /*
  * Reads a csv and single row 

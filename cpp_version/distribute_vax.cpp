@@ -7,8 +7,8 @@
 #include <random>
 
 void distribute_vax(igraph_t *g, int n_daily, int time_until_v2) {
-    int n_remaining_v1 = n_daily;
-    int n_remaining_v2 = n_daily;
+    int n_remaining_v1 = n_daily / 2;
+    int n_remaining_v2 = n_daily / 2;
     default_random_engine gen;
     /* 
      * Get the list of highest priority people

@@ -6,7 +6,7 @@
 #include<string>
 #include<iostream>
 #include<fstream>
-#include "matplotlib.h"
+#include "matplotlibcpp.h"
 #include "defs.h"
 using namespace std;
 namespace plt = matplotlibcpp;
@@ -36,7 +36,6 @@ void History::add_history(int _S, int _E, int _I, int _R, int _D, int _V1, int _
         V2.resize(length, -1);
     }
 
-    counter++; 
 
     S[counter] = _S;
     E[counter] = _E;
@@ -46,6 +45,7 @@ void History::add_history(int _S, int _E, int _I, int _R, int _D, int _V1, int _
     V1[counter] = _V1;
     V2[counter] = _V2;
 
+    counter++; 
 }
 
 void History::save(string path) {
@@ -69,4 +69,37 @@ void History::save(string path) {
 
     } 
         
+}
+
+void History::plot_trajectory(string path) {
+
+    S.resize(counter);
+    E.resize(counter);
+    I.resize(counter);
+    R.resize(counter);
+    D.resize(counter);
+    V1.resize(counter);
+    V2.resize(counter);
+
+    vector<float> time;
+    for (int i = 0; i < counter; i++) {
+        time.push_back(i/24.0);
+    }
+
+    // Set the size of output image to 1200x780 pixels
+    plt::figure_size(1200, 780);
+    plt::named_plot("S", time, S);
+    plt::named_plot("E", time, E);
+    plt::named_plot("I", time, I);
+    plt::named_plot("R", time, R);
+    plt::named_plot("D", time, D);
+    plt::named_plot("V1", time, V1);
+    plt::named_plot("V2", time, V2);
+    plt::title("Trajectories");
+    // Enable legend.
+    plt::legend();
+    // Save the image (file format is determined by the extension)
+    plt::save(path);
+
+
 }
