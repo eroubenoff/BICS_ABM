@@ -7,16 +7,10 @@
 #include "defs.h"
 #include <random>
 #include <map>
-/*
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/unordered_map.hpp>
-#include <boost/serialization/vector.hpp>
-*/
 #include <fstream>
 #include <iostream>
+
+
 using namespace std;
 
 
@@ -193,6 +187,28 @@ string recode_gender(string gender) {
 }
 
 
+/*
+ * Helper function to wrap any strings containing
+ * commas in quotes
+ *
+ */
+string escape_commas(string s) {
+
+    bool has_comma = false;
+
+    for (int i = 0; i < s.size(); i++) {
+        if (s[i] == ',') has_comma = true;
+        else continue;
+    }
+
+    if (has_comma) {
+        s = "\""  + s + "\"";
+    }
+
+    return s;
+    
+}
+
 /* 
  * Load POLYMOD 
  *
@@ -213,7 +229,42 @@ string recode_gender(string gender) {
  *
  * */
 
-auto load_POLYMOD(string path = "POLYMOD/") {
+auto load_POLYMOD(string path, bool cached) {
+
+    unordered_map<string, int> polymod_participants_colnames;
+    vector<vector<string> > polymod_participants;
+    ifstream  polymod_f;
+    ofstream fout; 
+
+    /*
+    if (cached) {
+
+        polymod_f.open("polymod_participants.csv"); 
+        while (polymod_f.peek() != EOF) {
+            polymod_participants.push_back(get_csv_row(polymod_f));
+        }
+
+        polymod_f.open("polymod_participants_colnames.csv");
+        while (polymod_f.peek() != EOF) {
+            get_csv_row(polymod_f);
+
+        }
+
+        cout <<  "here!" << endl;
+        for (auto i: polymod_participants_colnames) {
+            fout << escape_commas(i.first) << "," << escape_commas(to_string(i.second) ) << endl;
+        }
+        fout.close();
+
+
+        return make_tuple(polymod_participants_colnames, polymod_participants);
+
+        // return polymod_participants
+
+
+
+    }
+    */
 
     /*----------------------------------------------
      *
@@ -222,7 +273,6 @@ auto load_POLYMOD(string path = "POLYMOD/") {
      *---------------------------------------------*/
 
     int n_polymod = 0;
-    ifstream  polymod_f;
     polymod_f.open(path + "2008_Mossong_POLYMOD_participant_common.csv");
 
     /* 
@@ -232,7 +282,6 @@ auto load_POLYMOD(string path = "POLYMOD/") {
 
     vector<string> header = get_csv_row(polymod_f);
 
-    unordered_map<string, int> polymod_participants_colnames;
     for (int i = 0; i < header.size(); i++) {
         // cout << header[i] << endl;
         polymod_participants_colnames[header[i]] = i;
@@ -242,7 +291,6 @@ auto load_POLYMOD(string path = "POLYMOD/") {
      * Read in the participants file 
      * */ 
 
-    vector<vector<string> > polymod_participants;
     int ncol = polymod_participants_colnames.size();
     int age_idx = polymod_participants_colnames["part_age"];
     int gen_idx = polymod_participants_colnames["part_gender"];
@@ -427,8 +475,36 @@ auto load_POLYMOD(string path = "POLYMOD/") {
 
     }
 
+    
+
+    /*
+     * Cache the data into a csv
+     *
+     */
+
+    /*
+    fout.open("polymod_participants.csv");
+
+    for (int i = 0; i < polymod_participants.size(); i++) {
+        for (int j = 0; j < polymod_participants[0].size(); j++) {
+            fout << escape_commas(polymod_participants[i][j]); 
+            if (j < polymod_participants[0].size() - 1) fout << ",";
+        }
+        fout << endl;
+    }
+    fout.close();
+
+    fout.open("polymod_participants_colnames.csv");
+
+    for (auto i: polymod_participants_colnames) {
+        fout << escape_commas(i.first) << "," << escape_commas(to_string(i.second) ) << endl;
+    }
+    fout.close();
+    */
+
 
     return make_tuple(polymod_participants_colnames, polymod_participants);
+
 
 
 }
@@ -440,7 +516,7 @@ auto load_POLYMOD(string path = "POLYMOD/") {
  *
  */
 
-void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod) {
+void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool cached, bool fill_polymod) {
 
 
     /* Create pointer to input files */
@@ -479,6 +555,9 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
         weights[i] = stof(input_data[i][colnames["weight_pooled"]]);
     }
 
+    /* load polymod */
+    auto [POLYMOD_colnames, POLYMOD_data] = load_POLYMOD("POLYMOD/", cached);
+    int nrow_POLYMOD = POLYMOD_data.size(); 
 
     /* Turn weight vector into sampling distribution for the whole population*/
     RandomVector dd(weights);
@@ -538,8 +617,6 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool fill_polymod)
 
 
     /* Need to do the same for POLYMOD */
-    auto [POLYMOD_colnames, POLYMOD_data] = load_POLYMOD();
-    int nrow_POLYMOD = POLYMOD_data.size(); 
 
     /* Create lookups for distributions */ 
     map<key, vector<int>> eligible_POLYMOD;

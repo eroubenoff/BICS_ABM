@@ -135,6 +135,8 @@ int main(int argc, char **argv) {
     // Passed to generator
     const int SEED = args.find("-seed") == args.end() ? 494949 : stoi(args["-seed"]);                   
     mt19937 generator(SEED);
+    // Used cached data
+    const bool cached = args.find("-cached") == args.end() ? 1 : (args["-cached"] == "false" ? 0  : 1);
 
     // Vaccine params
     const int N_VAX_DAILY= args.find("-n_vax_daily") == args.end() ? N_HH / 20: stoi(args["-n_vax_daily"]);                   
@@ -191,7 +193,12 @@ int main(int argc, char **argv) {
 
     /* Generate graph by reading csv */
     // read_pop_from_csv("pop.csv", &graph);
-    gen_pop_from_survey_csv("lucid/wave" + WAVE + ".csv", &graph, N_HH, true);
+    gen_pop_from_survey_csv("lucid/wave" + WAVE + ".csv", &graph, N_HH, cached);
+
+    /* Having an issue with loading later waves */
+    print_attributes(&graph);
+
+    cout << igraph_vcount(&graph) << endl;
 
     // Create an unordered_map of hhids
     unordered_map<string, vector<int> > hhids;
