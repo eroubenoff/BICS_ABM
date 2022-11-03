@@ -130,7 +130,7 @@ vector<string> get_csv_row(istream &fin, int expected_length = -1, char sep = ',
  * @return none; modifies &graph in place
  */
 void read_pop_from_csv(string path, igraph_t *graph);
-void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool cached = true, bool fill_polymod = true);
+void gen_pop_from_survey_csv(int wave, igraph_t *g, int n, bool cached = true, bool fill_polymod = true);
 
 
 

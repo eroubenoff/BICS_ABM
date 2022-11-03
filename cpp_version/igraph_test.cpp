@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
     // Number of households
     const int N_HH = args.find("-n_hh") == args.end() ? 1000: stoi(args["-n_hh"]);
     // Wave to simulate from
-    const string WAVE = args.find("-wave") == args.end() ? "4": args["-wave"];
+    const int WAVE = args.find("-wave") == args.end() ? 4: stoi(args["-wave"]);
     // Lower and upper bounds on latent period, in hours
     const int GAMMA_MIN = args.find("-gamma_min") == args.end() ? 2*24: stoi(args["-gamma_min"]);
     const int GAMMA_MAX = args.find("-gamma_max") == args.end() ? 4*24: stoi(args["-gamma_max"]);
@@ -193,10 +193,11 @@ int main(int argc, char **argv) {
 
     /* Generate graph by reading csv */
     // read_pop_from_csv("pop.csv", &graph);
-    gen_pop_from_survey_csv("lucid/wave" + WAVE + ".csv", &graph, N_HH, cached);
+    // gen_pop_from_survey_csv("lucid/wave" + WAVE + ".csv", &graph, N_HH, cached);
+    gen_pop_from_survey_csv(WAVE, &graph, N_HH, cached);
 
     /* Having an issue with loading later waves */
-    print_attributes(&graph);
+    //    print_attributes(&graph);
 
     cout << igraph_vcount(&graph) << endl;
 

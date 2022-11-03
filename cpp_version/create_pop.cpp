@@ -136,6 +136,8 @@ void read_pop_from_csv(string path, igraph_t *g) {
  */
 string recode_age(string age_s) {
 
+    if (age_s == "NA") return 0; 
+
     int age = stoi(age_s);
 
     if (age < 18)
@@ -516,12 +518,14 @@ auto load_POLYMOD(string path, bool cached) {
  *
  */
 
-void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool cached, bool fill_polymod) {
+void gen_pop_from_survey_csv(int wave, igraph_t *g, int n, bool cached, bool fill_polymod) {
+
+    bool verbose = false;
 
 
     /* Create pointer to input files */
     ifstream fin; 
-    fin.open(path);
+    fin.open("df_all_waves.csv");
 
     /* Return object as vector of vectors */
     vector<vector<string> >  input_data;
@@ -541,6 +545,18 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool cached, bool 
 
     while (fin.peek() != EOF) {
         row = get_csv_row(fin);
+
+        /* Filter out any NAs */
+        if (  (row[colnames["hhsize"]] == "NA") | 
+              (row[colnames["age"]] == "NA") | 
+              (row[colnames["gender"]] == "NA")  
+           ) continue; 
+
+        /* Recode age to string */ 
+        row[colnames["age"]] = recode_age(row[colnames["age"]]);
+
+        /* Filter by wave */ 
+        if (stoi(row[colnames["wave"]] ) != wave)  continue;
 
         input_data.push_back(row);
 
@@ -603,7 +619,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool cached, bool 
     /* Create a hash of the distributions */
     map<key, RandomVector> hh_distn;
 
-    /* Loop through )ashes and turn into a sampling distn */
+    /* Loop through hashes and turn into a sampling distn */
     for (const auto& [k, v]: eligible_nodes) {
         weights.clear();
 
@@ -668,7 +684,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool cached, bool 
         // cout << hhsize << endl;
         string hhid = randstring(16);
 
-        // cout << "Adding respondent " << hhead << " as head of hhid "<< hhid << endl;
+        if (verbose) cout << "Adding respondent " << hhead << " as head of hhid "<< hhid << " of size " << hhsize << endl;
 
         add_vertex(g,
                 input_data[hhead][colnames["age"]],
@@ -681,10 +697,10 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool cached, bool 
         // Sample who matches that 
         for (int j = 1; j < min(5,hhsize); j++) {
 
-            string hhmember_age = input_data[hhead][colnames["resp_hh_roster#1_" + to_string(j) + "_1"]];
-            string hhmember_gender = input_data[hhead][colnames["resp_hh_roster#2_" + to_string(j)]];
+            string hhmember_age = recode_age(input_data[hhead][colnames["resp_hh_roster#1_" + to_string(j) + "_1"]]);
+            string hhmember_gender = recode_gender(input_data[hhead][colnames["resp_hh_roster#2_" + to_string(j)]]);
 
-            if (hhmember_age == "") {/*cout<<"Not enough info on household member" << endl; */continue;}
+            if (hhmember_age == "") {cout<<"Not enough info on household member" << endl; continue;}
 
 
             // Create  vector of weights; set weight to 0 if doesn't match
@@ -698,7 +714,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool cached, bool 
                 // Check if the key is in the POLYMOD distributions m.find("f") == m.end()
 
                 if (distributions_POLYMOD.find(k) == distributions_POLYMOD.end()) {
-                    //cout << "Corresponding person not found in POLYMOD" << endl;
+                    if (verbose) cout << "Corresponding person not found in POLYMOD" << endl;
 
                     continue;
 
@@ -706,7 +722,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool cached, bool 
 
                 int pmod_member = distributions_POLYMOD[k](generator); 
 
-                // cout << "Adding POLYMOD respondent " << pmod_member << " to hhid "<< hhid << endl;
+                if (verbose)cout << "Adding POLYMOD respondent " << pmod_member << " to hhid "<< hhid << endl;
                 add_vertex(g,
                         POLYMOD_data[pmod_member][POLYMOD_colnames["part_age"]],
                         POLYMOD_data[pmod_member][POLYMOD_colnames["part_gender"]],
@@ -722,7 +738,7 @@ void gen_pop_from_survey_csv(string path, igraph_t *g, int n, bool cached, bool 
 
             // Sample a corresponding person
             int hh_member = hh_distn[k](generator) ;
-            //cout << "Adding respondent " << hh_member << " to hhid "<< hhid << endl;
+            if (verbose) cout << "Adding respondent " << hh_member << " to hhid "<< hhid << endl;
 
             add_vertex(g,
                     input_data[hh_member][colnames["age"]],
