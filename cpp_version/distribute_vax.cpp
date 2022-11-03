@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include <igraph.h>
-#include "defs.h"
+#include "BICS_ABM.h"
 #include <random>
 
 void distribute_vax(igraph_t *g, int n_daily, int time_until_v2) {

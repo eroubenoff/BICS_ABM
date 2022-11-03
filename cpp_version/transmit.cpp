@@ -2,7 +2,7 @@
 #include<vector>
 #include<string>
 #include<iostream>
-#include "defs.h"
+#include "BICS_ABM.h"
 #include <random>
 using namespace std;
 

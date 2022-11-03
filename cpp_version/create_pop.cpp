@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <igraph.h>
 #include<fstream>
-#include "defs.h"
+#include "BICS_ABM.h"
 #include <random>
 #include <map>
 #include <fstream>

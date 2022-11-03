@@ -8,7 +8,7 @@
 #include<fstream>
 #include <sstream>  
 #include <unordered_map>
-#include "defs.h"
+#include "BICS_ABM.h"
 #include <random>
 using namespace std;
 

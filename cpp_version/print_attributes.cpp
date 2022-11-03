@@ -8,7 +8,7 @@
 #include<fstream>
 #include <sstream>  
 #include <unordered_map>
-#include "defs.h" 
+// #include "BICS_ABM.h" 
 
 /* Prints graph, vertex and edge attributes stored in a graph. */
 void print_attributes(const igraph_t *g, bool nodes_only) {

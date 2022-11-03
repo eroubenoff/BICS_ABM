@@ -37,8 +37,6 @@ endif()
 find_package(igraph REQUIRED)
 
 add_executable(BICS_ABM
-    BICS_ABM.cpp 
-    defs.h 
     get_csv_row.cpp
     print_attributes.cpp
     decrement.cpp
@@ -46,10 +44,12 @@ add_executable(BICS_ABM
     transmit.cpp
     create_pop.cpp
     randstring.cpp
-    utils.cpp
     distribute_vax.cpp
     history.cpp
     matplotlibcpp.h
+    main.cpp 
+    BICS_ABM.h 
+    stovf.cpp
     )
 
 target_link_libraries(BICS_ABM PUBLIC igraph::igraph)
