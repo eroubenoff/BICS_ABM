@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 # add_compile_options(-Wall -Wextra -Werror)
 # add_compile_options(-pg -g)
 set (CMAKE_CXX_STANDARD 17)
-project(igraph_test)
+project(BICS_ABM)
 
 
 # add_compile_options(-I /usr/local/Cellar/python@2/2.7.15_3/Frameworks/Python.framework/Versions/2.7/include/python2.7/Python.h)
@@ -36,8 +36,8 @@ endif()
 
 find_package(igraph REQUIRED)
 
-add_executable(igraph_test 
-    igraph_test.cpp 
+add_executable(BICS_ABM
+    BICS_ABM.cpp 
     defs.h 
     get_csv_row.cpp
     print_attributes.cpp
@@ -52,8 +52,8 @@ add_executable(igraph_test
     matplotlibcpp.h
     )
 
-target_link_libraries(igraph_test PUBLIC igraph::igraph)
-target_link_libraries(igraph_test PRIVATE matplotlib_cpp)
+target_link_libraries(BICS_ABM PUBLIC igraph::igraph)
+target_link_libraries(BICS_ABM PRIVATE matplotlib_cpp)
 
 
 # Install headers
