@@ -6,10 +6,8 @@
 #include<string>
 #include<iostream>
 #include<fstream>
-#include "matplotlibcpp.h"
 #include "BICS_ABM.h"
 using namespace std;
-namespace plt = matplotlibcpp;
 
 History::History(int initial_length) {
     length = initial_length;
@@ -71,6 +69,7 @@ void History::save(string path) {
         
 }
 
+/*
 void History::plot_trajectory(string path) {
 
     S.resize(counter);
@@ -103,3 +102,10 @@ void History::plot_trajectory(string path) {
 
 
 }
+*/
+
+/*
+ * Expose "History" class to python
+ * See https://tech.blueyonder.com/python-calling-c++/ for ex
+ */
+

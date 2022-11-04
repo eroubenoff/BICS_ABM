@@ -12,3 +12,4 @@ cpp_version/build/*
 *.swp
 *.swo
 *.csv
+*/boost_*/
