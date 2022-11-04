@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <igraph.h>
 #include <random>
+#include <map>
 using namespace std;
 
 
@@ -20,6 +21,7 @@ class Params {
         vector<float> MU_VEC;
         int INDEX_CASES;
         int SEED;
+        int POP_SEED;
         int N_VAX_DAILY;
         float VE1;
         float VE2;
@@ -37,6 +39,7 @@ class Params {
             MU_VEC = {0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1};
             INDEX_CASES = 5;
             SEED = 4949;
+            POP_SEED = 4949;
             N_VAX_DAILY = N_HH / 20;
             VE1 = 0.75;
             VE2 = 0.95;
@@ -110,6 +113,12 @@ class Params {
         }
         void seed(int SEED_) {
             SEED= SEED_;
+        }
+        int pop_seed() const {
+            return POP_SEED;
+        }
+        void pop_seed(int POP_SEED_) {
+            POP_SEED= POP_SEED_;
         }
 
         int n_vax_daily() const {
@@ -231,6 +240,39 @@ class History {
         void plot_trajectory(string path = "plot.png") ;
 };
 
+
+
+typedef tuple <int,string,string> key;
+
+class Data {
+
+    public:
+
+        int BICS_nrow;
+        unordered_map<string, int> BICS_colnames;
+        vector<vector<string>> BICS_data;
+        vector<float> BICS_weights;
+
+        int POLYMOD_nrow;
+        unordered_map<string, int> POLYMOD_colnames;
+        vector<vector<string>> POLYMOD_data;
+
+        map<key, vector<int>> eligible_nodes;
+        map<key, vector<int>> eligible_POLYMOD;
+        map<key, RandomVector> distributions_POLYMOD;
+        map<key, RandomVector> hh_distn;
+
+
+        void load_BICS(int wave=4, string path="df_all_waves.csv");
+        void load_POLYMOD(string path = "./");
+        void create_sampling_distns(); 
+
+        // Constructor
+        Data();
+
+
+
+};
 /*
  * Reads a csv and single row 
  * 
@@ -259,8 +301,7 @@ vector<string> get_csv_row(istream &fin, int expected_length = -1, char sep = ',
  * @return none; modifies &graph in place
  */
 void read_pop_from_csv(string path, igraph_t *graph);
-void gen_pop_from_survey_csv(int wave, igraph_t *g, int n, bool cached = true, bool fill_polymod = true);
-
+void gen_pop_from_survey_csv(Data *data, igraph_t *g, int n, int pop_seed);
 
 
 /*
@@ -334,5 +375,9 @@ vector<float> stovf(string s);
 
 /* Python interface */
 extern "C" void hello_world();
-void BICS_ABM(Params params);
 extern "C" void BICS_ABM_py();
+
+string recode_age(string age_s) ;
+string recode_gender(string gender) ;
+
+void BICS_ABM(Data *data, Params *params);

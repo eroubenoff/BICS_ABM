@@ -211,305 +211,9 @@ string escape_commas(string s) {
     
 }
 
-/* 
- * Load POLYMOD 
- *
- * POLYMOD is split into a number of files, and we only
- * need a little bit of data from each. The main operation
- * is to merge the polymod_participants file (containing
- * the participant information) with the polymod_contacts
- * file (from which we derive num_cc_nonhh). Need to also
- * pull in household size from file hh_common, which contains
- * household contacts
- *
- * @param path: location of the polymod file
- *
- * @return is a tuple containing:
- *  - unordered_map<string, int> containing the colnames and locations
- *  - vector<vector<string> >, the actual data in row-major format
- *
- *
- * */
 
-auto load_POLYMOD(string path, bool cached) {
 
-    unordered_map<string, int> polymod_participants_colnames;
-    vector<vector<string> > polymod_participants;
-    ifstream  polymod_f;
-    ofstream fout; 
 
-    /*
-    if (cached) {
-
-        polymod_f.open("polymod_participants.csv"); 
-        while (polymod_f.peek() != EOF) {
-            polymod_participants.push_back(get_csv_row(polymod_f));
-        }
-
-        polymod_f.open("polymod_participants_colnames.csv");
-        while (polymod_f.peek() != EOF) {
-            get_csv_row(polymod_f);
-
-        }
-
-        cout <<  "here!" << endl;
-        for (auto i: polymod_participants_colnames) {
-            fout << escape_commas(i.first) << "," << escape_commas(to_string(i.second) ) << endl;
-        }
-        fout.close();
-
-
-        return make_tuple(polymod_participants_colnames, polymod_participants);
-
-        // return polymod_participants
-
-
-
-    }
-    */
-
-    /*----------------------------------------------
-     *
-     * Load participants file
-     *
-     *---------------------------------------------*/
-
-    int n_polymod = 0;
-    polymod_f.open(path + "2008_Mossong_POLYMOD_participant_common.csv");
-
-    /* 
-     * Get header from polymod_participants and loop through to 
-     * create a hash 
-     * */
-
-    vector<string> header = get_csv_row(polymod_f);
-
-    for (int i = 0; i < header.size(); i++) {
-        // cout << header[i] << endl;
-        polymod_participants_colnames[header[i]] = i;
-    }
-
-    /* 
-     * Read in the participants file 
-     * */ 
-
-    int ncol = polymod_participants_colnames.size();
-    int age_idx = polymod_participants_colnames["part_age"];
-    int gen_idx = polymod_participants_colnames["part_gender"];
-    while (polymod_f.peek() != EOF) {
-
-        /* 
-         * Push back the row 
-         * */ 
-
-        polymod_participants.push_back(
-                get_csv_row(polymod_f, ncol)
-                );
-
-        /* 
-         * Recode age to match BICS distributions 
-         * */
-
-        polymod_participants[n_polymod][age_idx] = recode_age(
-                polymod_participants[n_polymod][age_idx]
-                );
-
-        /* 
-         * Recode gender to match BICS distributions 
-         * */
-
-        polymod_participants[n_polymod][gen_idx] = recode_gender(
-                polymod_participants[n_polymod][gen_idx]
-                );
-
-
-        n_polymod++;
-
-    }
-
-    polymod_f.close();
-
-
-
-
-
-    /*----------------------------------------------
-     *
-     * Read in the contact_common file. All that we need here is the 
-     * number of entries for each participant id; so, we'll create
-     * a hash immediately on this count.
-     *
-     *---------------------------------------------*/
-
-
-    /* 
-     * Read the header and create a hash on colnames 
-     * */ 
-    polymod_f.open(path + "2008_Mossong_POLYMOD_contact_common.csv");
-    header = get_csv_row(polymod_f);
-    unordered_map<string, int> polymod_contact_colnames;
-    for (int i = 0; i < header.size(); i++) {
-        polymod_contact_colnames[header[i]] = i;
-    }
-
-
-    /* 
-     * Create a hash of ids of number of household contacts
-     * and read file to fill, incrementing the corresponding number
-     *
-     * */
-
-    unordered_map<string, int> num_cc_nonhh;
-    vector<string> row;
-
-    while(polymod_f.peek() != EOF) {
-        row = get_csv_row(polymod_f, polymod_contact_colnames.size());
-
-        /* 
-         * Only take nonhousehold contacts 
-         * */
-
-        if (!(row[polymod_contact_colnames["cnt_home"]] == "TRUE") ) {
-
-            /* 
-             * Increment the corresponding hash entry 
-             * */ 
-
-            num_cc_nonhh[row[polymod_contact_colnames["part_id"]]] += 1;
-        }
-    }
-
-    polymod_f.close(); 
-
-
-
-
-    /* 
-     * Add this as a field to the main df 
-     * */
-
-    int part_id_col = polymod_participants_colnames["part_id"];
-    polymod_participants_colnames["num_cc_nonhh"] = polymod_participants_colnames.size();
-
-    for (int i = 0; i < n_polymod; i++) {
-
-        /* 
-         * Pull the participant id of row i for indexing num_cc_nonhh 
-         * */
-
-        string part_id = polymod_participants[i][part_id_col];
-
-        /* 
-         * Push this to the last field 
-         * */
-
-        int part_num_cc_nonhh = num_cc_nonhh[part_id];
-        polymod_participants[i].push_back(to_string(part_num_cc_nonhh));
-
-    }
-
-
-
-
-
-    /*---------------------------------------------
-     *
-     * Read in the households file. Similar to the contact_common
-     * file, all we need here is the hhsize; so, just 
-     * extract this field, hash it, and add to the main df 
-     * 
-     *---------------------------------------------*/
-
-    polymod_f.open(path + "2008_Mossong_POLYMOD_hh_common.csv") ;
-    header = get_csv_row(polymod_f);
-    unordered_map<string, int> polymod_hh_colnames;
-    for (int i = 0; i < header.size(); i++) {
-        polymod_hh_colnames[header[i]] = i;
-    }
-
-    /* 
-     * All we need from this file are the hh_id
-     * and the corresponding hh_size; note that we are 
-     * merging on household id not participant id.
-     * Create a hash of this information 
-     *
-     * */
-
-    unordered_map<string, string> hh_size;
-    while (polymod_f.peek() != EOF) {
-
-        /* 
-         * Read row 
-         * */
-        row = get_csv_row(polymod_f, polymod_hh_colnames.size());
-
-        /* 
-         * Get the corresponding data from the row
-         * */ 
-
-        hh_size[row[polymod_hh_colnames["hh_id"]]] = row[polymod_hh_colnames["hh_size"]];
-
-
-    }
-
-    polymod_f.close();
-
-
-
-
-    /* 
-     * Cycle through polymod participants and append household size 
-     * */ 
-
-    polymod_participants_colnames["hh_size"] = polymod_participants_colnames.size();
-    int hh_idx = polymod_participants_colnames["hh_id"]; 
-    for (int i = 0; i < n_polymod; i++) {
-
-        /* 
-         * Consistency check to make sure we haven't already appended 
-         * */
-
-        if (!(polymod_participants[i].size() == (polymod_participants_colnames.size() -1))) {
-            throw runtime_error("Trying to append hh_id twice");
-        }
-
-        polymod_participants[i].push_back(hh_size[polymod_participants[i][hh_idx]]);
-
-    }
-
-    
-
-    /*
-     * Cache the data into a csv
-     *
-     */
-
-    /*
-    fout.open("polymod_participants.csv");
-
-    for (int i = 0; i < polymod_participants.size(); i++) {
-        for (int j = 0; j < polymod_participants[0].size(); j++) {
-            fout << escape_commas(polymod_participants[i][j]); 
-            if (j < polymod_participants[0].size() - 1) fout << ",";
-        }
-        fout << endl;
-    }
-    fout.close();
-
-    fout.open("polymod_participants_colnames.csv");
-
-    for (auto i: polymod_participants_colnames) {
-        fout << escape_commas(i.first) << "," << escape_commas(to_string(i.second) ) << endl;
-    }
-    fout.close();
-    */
-
-
-    return make_tuple(polymod_participants_colnames, polymod_participants);
-
-
-
-}
 
 
 /* 
@@ -518,154 +222,21 @@ auto load_POLYMOD(string path, bool cached) {
  *
  */
 
-void gen_pop_from_survey_csv(int wave, igraph_t *g, int n, bool cached, bool fill_polymod) {
+void gen_pop_from_survey_csv(Data *data, igraph_t *g, int n, int pop_seed) {
 
     bool verbose = false;
+    bool fill_polymod = true;
 
-
-    /* Create pointer to input files */
-    ifstream fin; 
-    fin.open("df_all_waves.csv");
-
-    /* Return object as vector of vectors */
-    vector<vector<string> >  input_data;
-
-    /* Get the header */
-    vector<string> header = get_csv_row(fin);
-
-    /* Invert header into unordered map for column lookup */
-    unordered_map<string, int> colnames;
-    for (int i = header.size(); i--;) {
-        colnames[header[i]] = i;
-    }
-
-    /* Get each row and append it */
-    int nrow = 0;
-    vector<string> row;
-
-    while (fin.peek() != EOF) {
-        row = get_csv_row(fin);
-
-        /* Filter out any NAs */
-        if (  (row[colnames["hhsize"]] == "NA") | 
-              (row[colnames["age"]] == "NA") | 
-              (row[colnames["gender"]] == "NA")  
-           ) continue; 
-
-        /* Recode age to string */ 
-        row[colnames["age"]] = recode_age(row[colnames["age"]]);
-
-        /* Filter by wave */ 
-        if (stoi(row[colnames["wave"]] ) != wave)  continue;
-
-        input_data.push_back(row);
-
-        nrow++;
-    }
-
-    cout << nrow << " rows read" << endl;
-
-    /* Create vector of weights */
-    vector<float> weights(nrow);
-    for (int i = nrow; i--; ) {
-        weights[i] = stof(input_data[i][colnames["weight_pooled"]]);
-    }
-
-    /* load polymod */
-    auto [POLYMOD_colnames, POLYMOD_data] = load_POLYMOD("POLYMOD/", cached);
-    int nrow_POLYMOD = POLYMOD_data.size(); 
-
-    /* Turn weight vector into sampling distribution for the whole population*/
-    RandomVector dd(weights);
+    RandomVector dd(data->BICS_weights);
+ 
     // discrete_distribution<int> dd{weights.begin(), weights.end()};
     // default_random_engine generator;
-    mt19937 generator(4949);
+    mt19937 generator(pop_seed);
+    CyclingVector<int> vax_vec(100, [&generator](){return (discrete_distribution{1,1,1,1})(generator) - 1;});
 
-
-    /* Need to create sampling distributions for all 
-     * combinations of age, gender, and hhsize
-
-     * The process here is to create tuple keys for all combinations of
-     * hhsize, age, gender, in that order
-     *
-     * Then create a hash of weights, by tuple key. For each 
-     * combination of <hhsize, age, gender> initialize a vector of 
-     * zeros. If a node is of the correct combination, put it's weight
-     * in the corresponding point in the vector.
-     *
-     * Then, create sampling distributions from each key combination.
-     */
 
     /* Tuple for keys*/ 
     typedef tuple <int,string,string> key;
-    map<key, vector<int>> eligible_nodes;
-
-    /* Loop through each node; append node id to the corresponding
-     * key in the hash
-     */
-    for (int i = nrow; i--; ) {
-        /* Create key */
-        key k = key(
-                stoi(input_data[i][colnames["hhsize"]]),
-                input_data[i][colnames["age"]],
-                input_data[i][colnames["gender"]]);
-
-
-        eligible_nodes[k].push_back(i);
-    }
-
-
-
-    /* Create a hash of the distributions */
-    map<key, RandomVector> hh_distn;
-
-    /* Loop through hashes and turn into a sampling distn */
-    for (const auto& [k, v]: eligible_nodes) {
-        weights.clear();
-
-        for (int i: v) {
-            weights.push_back(stof(input_data[i][colnames["weight_pooled"]]));
-        }
-
-        hh_distn[k] = RandomVector(eligible_nodes[k], weights);
-
-    }
-
-
-    /* Need to do the same for POLYMOD */
-
-    /* Create lookups for distributions */ 
-    map<key, vector<int>> eligible_POLYMOD;
-    map<key, RandomVector> distributions_POLYMOD;
-
-    for (int i = nrow_POLYMOD; i--;  ) {
-        /* Create key */
-        key k = key(
-                stoi(POLYMOD_data[i][POLYMOD_colnames["hh_size"]]),
-                POLYMOD_data[i][POLYMOD_colnames["part_age"]],
-                POLYMOD_data[i][POLYMOD_colnames["part_gender"]]);
-
-        eligible_POLYMOD[k].push_back(i);
-    }
-
-
-    /* Convert to distributions */ 
-
-
-    for (const auto& [k, v]: eligible_POLYMOD) {
-        weights.clear();
-
-        for (int i: v) {
-            // Unknown weights for POLYMOD; sample equally
-            weights.push_back(1);
-        }
-
-        distributions_POLYMOD[k] = RandomVector(eligible_POLYMOD[k], weights);
-
-        }
-
-
-    CyclingVector<int> vax_vec(100, [&generator](){return (discrete_distribution{1,1,1,1})(generator) - 1;});
 
 
     /* 
@@ -680,25 +251,25 @@ void gen_pop_from_survey_csv(int wave, igraph_t *g, int n, bool cached, bool fil
 
         int hhead = dd(generator);
         // cout << hhead << endl;
-        int hhsize = stoi(input_data[hhead][colnames["hhsize"]]); 
+        int hhsize = stoi(data->BICS_data[hhead][data->BICS_colnames["hhsize"]]); 
         // cout << hhsize << endl;
         string hhid = randstring(16);
 
         if (verbose) cout << "Adding respondent " << hhead << " as head of hhid "<< hhid << " of size " << hhsize << endl;
 
         add_vertex(g,
-                input_data[hhead][colnames["age"]],
-                input_data[hhead][colnames["gender"]],
-                input_data[hhead][colnames["ethnicity"]],
-                stoi(input_data[hhead][colnames["num_cc_nonhh"]]), 
+                data->BICS_data[hhead][data->BICS_colnames["age"]],
+                data->BICS_data[hhead][data->BICS_colnames["gender"]],
+                data->BICS_data[hhead][data->BICS_colnames["ethnicity"]],
+                stoi(data->BICS_data[hhead][data->BICS_colnames["num_cc_nonhh"]]), 
                 vax_vec.next(),
                 hhid);
 
         // Sample who matches that 
         for (int j = 1; j < min(5,hhsize); j++) {
 
-            string hhmember_age = recode_age(input_data[hhead][colnames["resp_hh_roster#1_" + to_string(j) + "_1"]]);
-            string hhmember_gender = recode_gender(input_data[hhead][colnames["resp_hh_roster#2_" + to_string(j)]]);
+            string hhmember_age = recode_age(data->BICS_data[hhead][data->BICS_colnames["resp_hh_roster#1_" + to_string(j) + "_1"]]);
+            string hhmember_gender = recode_gender(data->BICS_data[hhead][data->BICS_colnames["resp_hh_roster#2_" + to_string(j)]]);
 
             if (hhmember_age == "") {cout<<"Not enough info on household member" << endl; continue;}
 
@@ -709,25 +280,25 @@ void gen_pop_from_survey_csv(int wave, igraph_t *g, int n, bool cached, bool fil
 
 
             // Check if key exists in map
-            if (!hh_distn.count(k) & fill_polymod) {
+            if (!data->hh_distn.count(k) & fill_polymod) {
 
                 // Check if the key is in the POLYMOD distributions m.find("f") == m.end()
 
-                if (distributions_POLYMOD.find(k) == distributions_POLYMOD.end()) {
+                if (data->distributions_POLYMOD.find(k) == data->distributions_POLYMOD.end()) {
                     if (verbose) cout << "Corresponding person not found in POLYMOD" << endl;
 
                     continue;
 
                 }
 
-                int pmod_member = distributions_POLYMOD[k](generator); 
+                int pmod_member = data->distributions_POLYMOD[k](generator); 
 
-                if (verbose)cout << "Adding POLYMOD respondent " << pmod_member << " to hhid "<< hhid << endl;
+                if (verbose) cout << "Adding POLYMOD respondent " << pmod_member << " to hhid "<< hhid << endl;
                 add_vertex(g,
-                        POLYMOD_data[pmod_member][POLYMOD_colnames["part_age"]],
-                        POLYMOD_data[pmod_member][POLYMOD_colnames["part_gender"]],
+                        data->POLYMOD_data[pmod_member][data->POLYMOD_colnames["part_age"]],
+                        data->POLYMOD_data[pmod_member][data->POLYMOD_colnames["part_gender"]],
                         "NA", // POLYMOD_data[i][POLYMOD_colnames["ethnicity"]],
-                        stoi(POLYMOD_data[pmod_member][POLYMOD_colnames["num_cc_nonhh"]]), 
+                        stoi(data->POLYMOD_data[pmod_member][data->POLYMOD_colnames["num_cc_nonhh"]]), 
                         vax_vec.next(),
                         hhid);
 
@@ -737,14 +308,14 @@ void gen_pop_from_survey_csv(int wave, igraph_t *g, int n, bool cached, bool fil
 
 
             // Sample a corresponding person
-            int hh_member = hh_distn[k](generator) ;
+            int hh_member = data->hh_distn[k](generator) ;
             if (verbose) cout << "Adding respondent " << hh_member << " to hhid "<< hhid << endl;
 
             add_vertex(g,
-                    input_data[hh_member][colnames["age"]],
-                    input_data[hh_member][colnames["gender"]],
-                    input_data[hh_member][colnames["ethnicity"]],
-                    stoi(input_data[hh_member][colnames["num_cc_nonhh"]]), 
+                    data->BICS_data[hh_member][data->BICS_colnames["age"]],
+                    data->BICS_data[hh_member][data->BICS_colnames["gender"]],
+                    data->BICS_data[hh_member][data->BICS_colnames["ethnicity"]],
+                    stoi(data->BICS_data[hh_member][data->BICS_colnames["num_cc_nonhh"]]), 
                     vax_vec.next(),
                     hhid) ;
 

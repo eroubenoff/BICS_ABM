@@ -81,7 +81,10 @@ int main(int argc, char **argv) {
 
     // Passed to generator
     if (args.find("-seed") != args.end()) {
-        params.seed(stoi(args["-seed"]));
+        params.pop_seed(stoi(args["-seed"]));
+    }
+    if (args.find("-pop_seed") != args.end()) {
+        params.pop_seed(stoi(args["-pop_seed"]));
     }
     // Used cached data
     // const bool cached = args.find("-cached") == args.end() ? 1 : (args["-cached"] == "false" ? 0  : 1);
@@ -98,8 +101,14 @@ int main(int argc, char **argv) {
     }
 
 
+    Data data;
 
-    BICS_ABM(params);
+    for (int i = 0; i < 10; i++) {
+        cout << "sim no " << i << endl;
+        params.seed(49+i);
+        params.pop_seed(49+i);
+        BICS_ABM(&data, &params);
+    }
 
 
     return 0;

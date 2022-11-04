@@ -2,7 +2,7 @@ import os
 import ctypes
 
 path = os.getcwd()
-path = os.path.join(path, "build", "libBICS_ABM.so")
+path = os.path.join(path, "build", "libBICS_ABM_lib.so")
 BICS_ABM = ctypes.CDLL(path)
 
 mu = (ctypes.c_float* 9)()
@@ -16,4 +16,4 @@ mu[6] = 0.0001
 mu[7] = 0.0001
 mu[8] = 0.0001
 
-BICS_ABM.BICS_ABM_py()
+BICS_ABM.BICS_ABM()
