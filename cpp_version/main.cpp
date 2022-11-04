@@ -18,6 +18,10 @@ using namespace std;
 
 int main(int argc, char **argv) {
 
+    Params params;
+    Data data;
+    History history;
+
     // Parse command line options into an unordered map
     unordered_map<string, string> args;
 
@@ -36,7 +40,6 @@ int main(int argc, char **argv) {
     }
 
     // Parse the args into params object
-    Params params;
 
     // Number of households
     if (args.find("-n_hh") != args.end()) {
@@ -101,13 +104,12 @@ int main(int argc, char **argv) {
     }
 
 
-    Data data;
 
     for (int i = 0; i < 10; i++) {
         cout << "sim no " << i << endl;
         params.seed(49+i);
         params.pop_seed(49+i);
-        BICS_ABM(&data, &params);
+        BICS_ABM(&data, &params, &history);
     }
 
 

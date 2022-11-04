@@ -234,7 +234,6 @@ class History {
         int counter;
         int length;
         History(int initial_length = 2000);
-        History() {};
         void add_history(int _S, int _E, int _I, int _R, int _D, int _V1, int _V2);
         void save(string path = "history.csv");
         void plot_trajectory(string path = "plot.png") ;
@@ -380,4 +379,4 @@ extern "C" void BICS_ABM_py();
 string recode_age(string age_s) ;
 string recode_gender(string gender) ;
 
-void BICS_ABM(Data *data, Params *params);
+void BICS_ABM(Data *data, Params *params, History *history);

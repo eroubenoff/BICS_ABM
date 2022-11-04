@@ -88,13 +88,13 @@ void daytime_mixing(igraph_t *g, vector<poisson_distribution<int>> &pois,  mt199
 }
 
 
-void BICS_ABM(Data *data, Params *params) {
+void BICS_ABM(Data *data, Params *params, History *history) {
 
     const bool cached = false;
     mt19937 generator(params->seed());
 
     // History object
-    History history(2000);
+    //  history(2000);
     /* 
      * Pre-generate all distributions as cycling vectors
      *
@@ -180,7 +180,7 @@ void BICS_ABM(Data *data, Params *params) {
 
     int day = 0;
     int hr = 0;
-    decrement(&graph, &history);
+    decrement(&graph, history);
 
 
     /* For daytime, need to create poisson generators for contact */
@@ -197,7 +197,7 @@ void BICS_ABM(Data *data, Params *params) {
         for (hr = 0; hr < 8; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             transmit(&graph, beta, gamma_vec, sigma_vec, mu);
-            decrement(&graph, &history);
+            decrement(&graph, history);
 
         }
 
@@ -210,7 +210,7 @@ void BICS_ABM(Data *data, Params *params) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             daytime_mixing(&graph, num_cc_nonhh, generator);
             transmit(&graph, beta, gamma_vec, sigma_vec, mu);
-            decrement(&graph, &history);
+            decrement(&graph, history);
         }
 
 
@@ -220,7 +220,7 @@ void BICS_ABM(Data *data, Params *params) {
         for (hr = 16; hr < 24; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             transmit(&graph, beta, gamma_vec, sigma_vec, mu);
-            decrement(&graph, &history);
+            decrement(&graph, history);
         }
 
         day++;
@@ -228,7 +228,7 @@ void BICS_ABM(Data *data, Params *params) {
 
     }
 
-    history.save();
+    // history.save();
     // history.plot_trajectory();
 
     /* Delete all remaining attributes. */
