@@ -8,142 +8,30 @@
 using namespace std;
 
 
-class Params {
+extern "C" struct Params {
 
-    private:
-        int N_HH;
-        int WAVE;
-        int GAMMA_MIN;
-        int GAMMA_MAX;
-        int SIGMA_MIN;
-        int SIGMA_MAX;
-        float BETA;
-        vector<float> MU_VEC;
-        int INDEX_CASES;
-        int SEED;
-        int POP_SEED;
-        int N_VAX_DAILY;
-        float VE1;
-        float VE2;
-
-    public: 
-        /* Default constructor */
-        Params() {
-            N_HH = 1000;
-            WAVE = 4 ;
-            GAMMA_MIN = 2*24;
-            GAMMA_MAX = 4*24;
-            SIGMA_MIN = 3*24;
-            SIGMA_MAX = 7*24;
-            BETA = 0.1;
-            MU_VEC = {0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1};
-            INDEX_CASES = 5;
-            SEED = 4949;
-            POP_SEED = 4949;
-            N_VAX_DAILY = N_HH / 20;
-            VE1 = 0.75;
-            VE2 = 0.95;
-        } ;
-
-        int n_hh() const {
-            return N_HH;
-        }
-        void n_hh(int N_HH_) {
-            N_HH = N_HH_;
-        }
-
-        int wave() const {
-            return WAVE;
-        }
-        void wave(int WAVE_) {
-            WAVE = WAVE_;
-        }
-
-        int gamma_min() const {
-            return GAMMA_MIN;
-        }
-        void gamma_min(int GAMMA_MIN_) {
-            GAMMA_MIN= GAMMA_MIN_;
-        }
-
-        int gamma_max() const {
-            return GAMMA_MAX;
-        }
-        void gamma_max(int GAMMA_MAX_) {
-            GAMMA_MAX= GAMMA_MAX_;
-        }
-
-        int sigma_min() const {
-            return SIGMA_MIN;
-        }
-        void sigma_min(int SIGMA_MIN_) {
-            SIGMA_MIN= SIGMA_MIN_;
-        }
-
-        int sigma_max() const {
-            return SIGMA_MAX;
-        }
-        void sigma_max(int SIGMA_MAX_) {
-            SIGMA_MAX= SIGMA_MAX_;
-        }
-
-        float beta() const {
-            return SIGMA_MAX;
-        }
-        void beta(float BETA_) {
-            BETA = BETA_;
-        }
-
-        vector<float> mu_vec() const {
-            return MU_VEC;
-        }
-        void mu_vec(vector<float> MU_VEC_) {
-            MU_VEC = MU_VEC_;
-        }
-        
-        int index_cases() const {
-            return INDEX_CASES;
-        }
-        void index_cases(int INDEX_CASES_) {
-            INDEX_CASES= INDEX_CASES_;
-        }
-        
-        int seed() const {
-            return SEED;
-        }
-        void seed(int SEED_) {
-            SEED= SEED_;
-        }
-        int pop_seed() const {
-            return POP_SEED;
-        }
-        void pop_seed(int POP_SEED_) {
-            POP_SEED= POP_SEED_;
-        }
-
-        int n_vax_daily() const {
-            return N_VAX_DAILY;
-        }
-        void n_vax_daily(int N_VAX_DAILY_) {
-            N_VAX_DAILY = N_VAX_DAILY_;
-        }
-
-        int ve1() const {
-            return VE1;
-        }
-        void ve1(int VE1_) {
-            VE1 = VE1_;
-        }
-
-        int ve2() const {
-            return VE2;
-        }
-        void ve2(int VE2_) {
-            VE2 = VE2_;
-        }
+    int N_HH;
+    int WAVE;
+    int GAMMA_MIN;
+    int GAMMA_MAX;
+    int SIGMA_MIN;
+    int SIGMA_MAX;
+    float BETA;
+    float MU_VEC[9];
+    int INDEX_CASES;
+    int SEED;
+    int POP_SEED;
+    int N_VAX_DAILY;
+    float VE1;
+    float VE2;
 
 
 };
+
+extern "C" struct Params init_params(); 
+
+
+
 
 /*
  * Wrapper around Vector that will always return 
@@ -374,9 +262,9 @@ vector<float> stovf(string s);
 
 /* Python interface */
 extern "C" void hello_world();
-extern "C" void BICS_ABM_py();
 
 string recode_age(string age_s) ;
 string recode_gender(string gender) ;
 
 void BICS_ABM(Data *data, Params *params, History *history);
+

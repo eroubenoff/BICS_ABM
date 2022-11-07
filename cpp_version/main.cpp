@@ -18,7 +18,7 @@ using namespace std;
 
 int main(int argc, char **argv) {
 
-    Params params;
+    Params params = init_params();
     Data data;
     History history;
 
@@ -43,72 +43,72 @@ int main(int argc, char **argv) {
 
     // Number of households
     if (args.find("-n_hh") != args.end()) {
-        params.n_hh(stoi(args["-n_hh"]));
+        params.N_HH = stoi(args["-n_hh"]);
     }
 
     // Wave to simulate from
     if (args.find("-wave") != args.end()){
-        params.wave(stoi(args["-wave"])); 
+        params.WAVE = stoi(args["-wave"]); 
     }
 
     // Lower and upper bounds on latent period, in hours
     if (args.find("-gamma_min") != args.end() ){
-        params.gamma_min(stoi(args["-gamma_min"]));
+        params.GAMMA_MIN = stoi(args["-gamma_min"]);
     }
     if (args.find("-gamma_max") != args.end() ){
-        params.gamma_max(stoi(args["-gamma_max"]));
+        params.GAMMA_MAX = stoi(args["-gamma_max"]);
     }
 
     // Lower and upper bounds on infectious period, in hours
     if (args.find("-sigma_min") != args.end() ){
-        params.sigma_min(stoi(args["-sigma_min"]));
+        params.SIGMA_MIN = stoi(args["-sigma_min"]);
     }
     if (args.find("-sigma_max") != args.end() ){
-        params.sigma_max(stoi(args["-sigma_max"]));
+        params.SIGMA_MAX = stoi(args["-sigma_max"]);
     }
 
     // Per-contact probability of transmission
     if (args.find("-beta") != args.end()){
-        params.beta(stof(args["-beta"]));
+        params.BETA = stof(args["-beta"]);
     }
 
     // Mortality rate vector. Must be as long age 
     if (args.find("-mu") != args.end()) {
-        params.mu_vec(stovf(args["-mu"]));
+        vector<float> muvec = stovf(args["-mu"]) ; 
+        copy(muvec.begin(), muvec.end(), params.MU_VEC);
+        // params.MU_VEC = stovf(args["-mu"]);
     }
 
     // Number of initial cases
     if (args.find("-index_cases") != args.end()) {
-        params.index_cases(stoi(args["-index_cases"]));
+        params.INDEX_CASES = stoi(args["-index_cases"]);
     }
 
     // Passed to generator
     if (args.find("-seed") != args.end()) {
-        params.pop_seed(stoi(args["-seed"]));
+        params.POP_SEED = stoi(args["-seed"]);
     }
     if (args.find("-pop_seed") != args.end()) {
-        params.pop_seed(stoi(args["-pop_seed"]));
+        params.POP_SEED = stoi(args["-pop_seed"]);
     }
-    // Used cached data
-    // const bool cached = args.find("-cached") == args.end() ? 1 : (args["-cached"] == "false" ? 0  : 1);
 
     // Vaccine params
     if (args.find("-n_vax_daily") != args.end() ) {
-        params.n_vax_daily(stoi(args["-n_vax_daily"]));
+        params.N_VAX_DAILY = stoi(args["-n_vax_daily"]);
     }
     if (args.find("-ve1") != args.end()) {
-        params.ve1(stof(args["-ve1"]));
+        params.VE1 = stof(args["-ve1"]);
     }
     if (args.find("-ve2") != args.end()) {
-        params.ve2(stof(args["-ve2"]));
+        params.VE2 = stof(args["-ve2"]);
     }
 
 
 
     for (int i = 0; i < 10; i++) {
         cout << "sim no " << i << endl;
-        params.seed(49+i);
-        params.pop_seed(49+i);
+        params.SEED = 49+i;
+        params.POP_SEED = 49+i;
         BICS_ABM(&data, &params, &history);
     }
 

@@ -12,6 +12,27 @@
 #include "BICS_ABM.h"
 #include <random>
 
+extern "C" struct Params init_params() {
+    Params params; 
+
+    params.N_HH = 1000;
+    params.WAVE = 4 ;
+    params.GAMMA_MIN = 2*24;
+    params.GAMMA_MAX = 4*24;
+    params.SIGMA_MIN = 3*24;
+    params.SIGMA_MAX = 7*24;
+    params.BETA = 0.1;
+    vector<float> mu_vec{0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1};
+    copy(mu_vec.begin(), mu_vec.end(), params.MU_VEC);
+    params.INDEX_CASES = 5;
+    params.SEED = 4949;
+    params.POP_SEED = 4949;
+    params.N_VAX_DAILY = params.N_HH / 20;
+    params.VE1 = 0.75;
+    params.VE2 = 0.95;
+
+    return params;
+};
 
 void delete_all_edges(igraph_t *g) {
     igraph_es_t es;
@@ -91,7 +112,7 @@ void daytime_mixing(igraph_t *g, vector<poisson_distribution<int>> &pois,  mt199
 void BICS_ABM(Data *data, Params *params, History *history) {
 
     const bool cached = false;
-    mt19937 generator(params->seed());
+    mt19937 generator(params->SEED);
 
     // History object
     //  history(2000);
@@ -100,28 +121,28 @@ void BICS_ABM(Data *data, Params *params, History *history) {
      *
      * */ 
 
-    CyclingVector<int> gamma_vec(1000, [&generator, &params](){return (uniform_int_distribution<int>(params->gamma_min(), params->gamma_max()))(generator);});
-    CyclingVector<int> sigma_vec(1000, [&generator, &params](){return (uniform_int_distribution<int>(params->sigma_min(), params->sigma_max()))(generator);});
+    CyclingVector<int> gamma_vec(1000, [&generator, &params](){return (uniform_int_distribution<int>(params->GAMMA_MIN, params->GAMMA_MAX))(generator);});
+    CyclingVector<int> sigma_vec(1000, [&generator, &params](){return (uniform_int_distribution<int>(params->SIGMA_MIN, params->SIGMA_MAX))(generator);});
     // CyclingVector<int> beta_vec(1000, [&generator, BETA](){return (bernoulli_distribution(BETA))(generator);});
 
     // Transmission probability 
     unordered_map<int, CyclingVector<int>*> beta;
-    beta[0] = new CyclingVector<int>(1000, [&generator, &params](){return(bernoulli_distribution(params->beta())(generator));});
-    beta[1] = new CyclingVector<int>(1000, [&generator, &params](){return(bernoulli_distribution(params->beta()*(1-params->ve1()))(generator));});
-    beta[2] = new CyclingVector<int>(1000, [&generator, &params](){return(bernoulli_distribution(params->beta()*(1-params->ve2()))(generator));});
+    beta[0] = new CyclingVector<int>(1000, [&generator, &params](){return(bernoulli_distribution(params->BETA)(generator));});
+    beta[1] = new CyclingVector<int>(1000, [&generator, &params](){return(bernoulli_distribution(params->BETA*(1-params->VE1))(generator));});
+    beta[2] = new CyclingVector<int>(1000, [&generator, &params](){return(bernoulli_distribution(params->BETA*(1-params->VE2))(generator));});
 
 
     // Create mortality
     unordered_map<string, CyclingVector<int> >mu;
-    mu["[0,18)"]  = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->mu_vec()[0]))(generator);});
-    mu["[18,25)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->mu_vec()[1]))(generator);});
-    mu["[25,35)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->mu_vec()[2]))(generator);});
-    mu["[35,45)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->mu_vec()[3]))(generator);});
-    mu["[45,55)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->mu_vec()[4]))(generator);});
-    mu["[55,65)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->mu_vec()[5]))(generator);});
-    mu["[65,75)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->mu_vec()[6]))(generator);});
-    mu["[75,85)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->mu_vec()[7]))(generator);});
-    mu[">85"]     = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->mu_vec()[8]))(generator);});
+    mu["[0,18)"]  = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[0]))(generator);});
+    mu["[18,25)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[1]))(generator);});
+    mu["[25,35)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[2]))(generator);});
+    mu["[35,45)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[3]))(generator);});
+    mu["[45,55)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[4]))(generator);});
+    mu["[55,65)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[5]))(generator);});
+    mu["[65,75)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[6]))(generator);});
+    mu["[75,85)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[7]))(generator);});
+    mu[">85"]     = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[8]))(generator);});
     
 
     // Create the empty graph
@@ -134,7 +155,7 @@ void BICS_ABM(Data *data, Params *params, History *history) {
     igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
 
     /* Generate population*/
-    gen_pop_from_survey_csv(data, &graph, params->n_hh(), params->pop_seed());
+    gen_pop_from_survey_csv(data, &graph, params->N_HH, params->POP_SEED);
 
     cout << "N vertices: " << igraph_vcount(&graph) << endl;
 
@@ -172,7 +193,7 @@ void BICS_ABM(Data *data, Params *params, History *history) {
 
     // Pick nodes at random to be infected
     uniform_int_distribution<int> distribution(0,igraph_vcount(&graph));
-    for (int i = 0; i < params->index_cases(); i++) {
+    for (int i = 0; i < params->INDEX_CASES; i++) {
         int index_case = distribution(generator);
         cout << "index case " << index_case << endl;
         set_sick(&graph, index_case, 3*24, 5*24, false);
@@ -203,7 +224,7 @@ void BICS_ABM(Data *data, Params *params, History *history) {
 
         delete_all_edges(&graph);
 
-        distribute_vax(&graph, params->n_vax_daily(), 25*24);
+        distribute_vax(&graph, params->N_VAX_DAILY, 25*24);
 
         // Hours 8-16
         for (hr = 8; hr < 16; hr++){
@@ -245,11 +266,3 @@ void BICS_ABM(Data *data, Params *params, History *history) {
     delete beta[2];
 
 }
-
-/* Overloaded version: if called with no params, calls with default ones */
-/*
-extern "C" void BICS_ABM_py() {
-    Params params;
-    BICS_ABM(params);
-}
-*/

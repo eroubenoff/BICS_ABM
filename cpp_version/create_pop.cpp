@@ -239,6 +239,7 @@ void gen_pop_from_survey_csv(Data *data, igraph_t *g, int n, int pop_seed) {
     typedef tuple <int,string,string> key;
 
 
+
     /* 
      * Draw n random nids to be the head of hh. Then,
      * booststrap the population to match the reported
