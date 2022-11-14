@@ -12,27 +12,6 @@
 #include "BICS_ABM.h"
 #include <random>
 
-extern "C" struct Params init_params() {
-    Params params; 
-
-    params.N_HH = 1000;
-    params.WAVE = 4 ;
-    params.GAMMA_MIN = 2*24;
-    params.GAMMA_MAX = 4*24;
-    params.SIGMA_MIN = 3*24;
-    params.SIGMA_MAX = 7*24;
-    params.BETA = 0.1;
-    vector<float> mu_vec{0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1};
-    copy(mu_vec.begin(), mu_vec.end(), params.MU_VEC);
-    params.INDEX_CASES = 5;
-    params.SEED = 4949;
-    params.POP_SEED = 4949;
-    params.N_VAX_DAILY = params.N_HH / 20;
-    params.VE1 = 0.75;
-    params.VE2 = 0.95;
-
-    return params;
-};
 
 void delete_all_edges(igraph_t *g) {
     igraph_es_t es;
@@ -108,8 +87,58 @@ void daytime_mixing(igraph_t *g, vector<poisson_distribution<int>> &pois,  mt199
 
 }
 
+/*
+    int N_HH;
+    int WAVE;
+    int GAMMA_MIN;
+    int GAMMA_MAX;
+    int SIGMA_MIN;
+    int SIGMA_MAX;
+    float BETA;
+    float MU_VEC[9];
+    int INDEX_CASES;
+    int SEED;
+    int POP_SEED;
+    int N_VAX_DAILY;
+    float VE1;
+    float VE2;
 
-void BICS_ABM(Data *data, Params *params, History *history) {
+    char VAX_RULES_COLS[1000];
+    char VAX_RULES_VALS[1000];
+    int VAX_CONDS_N[100];
+    int VAX_RULES_N;
+    */
+
+void print_params(const Params *params) {
+    cout << "----------------------------------------"<< endl;
+    cout << "Parameters passed to simulation:" << endl;
+
+    cout << "N_HH:            " << params->N_HH << endl;
+    cout << "GAMMA_MIN, _MAX: " << params->GAMMA_MIN << ", " << params->GAMMA_MAX << endl;
+    cout << "SIGMA_MIN, _MAX: " << params->SIGMA_MIN << ", " << params->SIGMA_MAX << endl;
+    cout << "BETA:            " << params->BETA<< endl;
+    cout << "MU_VEC:          ";
+    for (auto i: params->MU_VEC) {
+        cout << i << "  ";
+    }   
+    cout << endl;
+    cout << "INDEX_CASES:     " << params->INDEX_CASES << endl;
+    cout << "SEED:            " << params->SEED<< endl;
+    cout << "POP_SEED:        " << params->POP_SEED<< endl;
+    cout << "N_VAX_DAILY:     " << params->N_VAX_DAILY<< endl;
+    cout << "VE1, VE2:        " << params->VE1 << ", " << params->VE2 << endl;
+    cout << "VAX_RULES_COLS:  " << params->VAX_RULES_COLS << endl;
+    cout << "VAX_RULES_VALS:  " << params->VAX_RULES_VALS << endl;
+    cout << "VAX_CONDS_N:     " << params->VAX_CONDS_N << endl;
+    cout << "VAX_RULES_N:     " << params->VAX_RULES_N << endl;
+    cout << "----------------------------------------"<< endl;
+
+}
+
+
+void BICS_ABM(const Data *data, const Params *params, History *history) {
+
+    print_params(params);
 
     const bool cached = false;
     mt19937 generator(params->SEED);
@@ -155,7 +184,7 @@ void BICS_ABM(Data *data, Params *params, History *history) {
     igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
 
     /* Generate population*/
-    gen_pop_from_survey_csv(data, &graph, params->N_HH, params->POP_SEED);
+    gen_pop_from_survey_csv(data, &graph, params);
 
     cout << "N vertices: " << igraph_vcount(&graph) << endl;
 
@@ -192,12 +221,16 @@ void BICS_ABM(Data *data, Params *params, History *history) {
 
 
     // Pick nodes at random to be infected
-    uniform_int_distribution<int> distribution(0,igraph_vcount(&graph));
+    uniform_int_distribution<int> distribution(0,igraph_vcount(&graph) - 1);
+    cout << "Index cases: ";
     for (int i = 0; i < params->INDEX_CASES; i++) {
         int index_case = distribution(generator);
-        cout << "index case " << index_case << endl;
+        cout << index_case << "  " ;
         set_sick(&graph, index_case, 3*24, 5*24, false);
     }
+
+    cout << endl;
+
 
     int day = 0;
     int hr = 0;

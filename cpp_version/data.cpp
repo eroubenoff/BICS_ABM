@@ -12,8 +12,8 @@
 
 using namespace std;
 
-Data::Data() {
-    load_BICS();
+Data::Data(int wave) {
+    load_BICS(wave);
     cout << "Loaded BICS" << endl;
     load_POLYMOD();
     cout << "Loaded POLYMOD" << endl;

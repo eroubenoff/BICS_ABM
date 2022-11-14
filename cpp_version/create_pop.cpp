@@ -9,6 +9,7 @@
 #include <map>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 
 using namespace std;
@@ -212,9 +213,159 @@ string escape_commas(string s) {
 }
 
 
+/*
+ * Generates vaccine priorties. Rules come in the form of:
+ *
+ * > tuple(string colname, string value)
+ *
+ * So, to have first priority go to oldest age group and second
+ * go to black women of any age:
+ *
+ * [
+ *  [("age", "[65, 100]")],
+ *  [("race", "black"), ("gender" "F")] // Follows AND logic
+ * ]
+ *
+ * Priority is descending: people get the highest priority
+ * they are eligible for.
+ *
+ * "hesitancy" can be passed as special tuple as well. If passed,
+ * this special will take bernoulli draw if the node will take vaccine
+ * or not. 
+ *
+ *
+ * The first entries are BICS and the second are POLYMOD,
+ * so the full length of the vector is BICS_nrow + POLYMOD_nrow
+ *
+ */
+
+vector<int> vaccine_priority(
+        const Data *data, 
+        const vector<vector<tuple<string, string>>> rules,
+        mt19937 generator
+        ){
+
+    /* Right now this is an nrow * nconditions operation: slow*/
+
+    int priority;
+    bool satisfies;
+    string colname;
+    string condition;
+    vector<int> priority_vec; 
+
+    /* Loop through each row */
+    for (int i = 0; i < data->BICS_nrow; i++) {
+        /* Loop through each priority level */
+        priority = -1;
+
+        for (int j = 0; j < rules.size(); j++) {
+            satisfies = true;
+            /* Loop through each condition */
+            for (int k = 0; k < rules[j].size(); k++) {
+
+                colname = get<0>(rules[j][k]);
+                condition = get<1>(rules[j][k]);
+
+                if (colname == "hesitancy") {
+                   satisfies *= bernoulli_distribution{stof(condition)}(generator); 
+                } else if (data->BICS(i, colname) == condition) {
+                    satisfies *= true;
+                } else {
+                    satisfies *= false;
+                }
+
+            }
+
+            if (satisfies) {
+                priority = j;
+                break;
+            } 
+
+        }
+
+        priority_vec.push_back(priority);
+    }
+
+    /* Repeat with POLYMOD*/
+    for (int i = 0; i < data->POLYMOD_nrow; i++) {
+        /* Loop through each priority level */
+        priority = -1;
+
+        for (int j = 0; j < rules.size(); j++) {
+            satisfies = true;
+            /* Loop through each condition */
+            for (int k = 0; k < rules[j].size(); k++) {
+
+                colname = get<0>(rules[j][k]);
+                condition = get<1>(rules[j][k]);
+
+                if (colname == "hesitancy") {
+                   satisfies *= bernoulli_distribution{stof(condition)}(generator); 
+                } else if (data->POLYMOD(i, colname) == condition) {
+                    satisfies *= true;
+                } else {
+                    satisfies *= false;
+                }
+
+            }
+
+            if (satisfies) {
+                priority = j;
+                break;
+            } 
+
+        }
+
+        priority_vec.push_back(priority);
+    }
+
+    return priority_vec;
+
+}
 
 
+/*
+ * Function to parse params into rules
+ *
+ */
+vector<rule> create_vax_rules(const char Colname[], const char Value[], const int n_conditions[], const int n_rules) {
+    vector<rule> rules;
+    rule temp_rule;
 
+    // Get the number of rules
+    // size_t n_rules = sizeof(n_conditions)/sizeof(n_conditions[0]);
+    if (n_rules == 0) {return rules;}
+
+
+    /* Accumulate colname and value into vectors using get_csv_row*/
+
+    string Colname_s(Colname);
+    string Value_s(Value);
+
+    stringstream Colname_ss(Colname_s);
+    vector<string> Colname_v = get_csv_row(Colname_ss, -1, ';');
+
+    stringstream Value_ss(Value_s);
+    vector<string> Value_v = get_csv_row(Value_ss, -1, ';');
+
+    if (Colname_v.size() == 0 & Value_v.size() == 0) {
+        return rules;
+    }
+
+    int idx = 0;
+    for (int i = 0; i < n_rules; i++) {
+        temp_rule = {};
+        for (int j = 0; j < n_conditions[i]; j++) {
+
+            temp_rule.push_back(make_tuple(Colname_v[idx], Value_v[idx]));
+            idx++;
+        }
+        rules.push_back(temp_rule);
+    }
+
+
+    return rules;
+}
 
 /* 
  *
@@ -222,18 +373,29 @@ string escape_commas(string s) {
  *
  */
 
-void gen_pop_from_survey_csv(Data *data, igraph_t *g, int n, int pop_seed) {
+void gen_pop_from_survey_csv(
+        const Data *data, 
+        igraph_t *g, 
+        const Params *params) {
 
     bool verbose = false;
     bool fill_polymod = true;
 
     RandomVector dd(data->BICS_weights);
  
-    // discrete_distribution<int> dd{weights.begin(), weights.end()};
-    // default_random_engine generator;
-    mt19937 generator(pop_seed);
-    CyclingVector<int> vax_vec(100, [&generator](){return (discrete_distribution{1,1,1,1})(generator) - 1;});
+    mt19937 generator(params->POP_SEED);
+    vector<rule> vax_rules = create_vax_rules(params->VAX_RULES_COLS, params->VAX_RULES_VALS, params->VAX_CONDS_N, params->VAX_RULES_N);
+    vector<int> vax_vec = vaccine_priority(data, vax_rules, generator);
 
+    cout << "Parsed the following vax rules: " << endl;
+    for (int i = 0; i < vax_rules.size(); i++) {
+        cout << "Priority no. " << i << ": ";
+        for (int j = 0; j < vax_rules[i].size(); j++) {
+            cout << get<0>(vax_rules[i][j]) << ": " << get<1>(vax_rules[i][j]) << "  " ;
+        }
+
+        cout << endl;
+    }
 
     /* Tuple for keys*/ 
     typedef tuple <int,string,string> key;
@@ -247,44 +409,41 @@ void gen_pop_from_survey_csv(Data *data, igraph_t *g, int n, int pop_seed) {
      * Create a node for each within the passed graph.
      * 
      */
-    for (n; n--; ) {
+    for (int n = params->N_HH; n--; ) {
         // cout <<"Initializing new hh"<< endl;
 
         int hhead = dd(generator);
         // cout << hhead << endl;
-        int hhsize = stoi(data->BICS_data[hhead][data->BICS_colnames["hhsize"]]); 
+        int hhsize = stoi(data->BICS(hhead,"hhsize")); 
         // cout << hhsize << endl;
         string hhid = randstring(16);
 
         if (verbose) cout << "Adding respondent " << hhead << " as head of hhid "<< hhid << " of size " << hhsize << endl;
 
         add_vertex(g,
-                data->BICS_data[hhead][data->BICS_colnames["age"]],
-                data->BICS_data[hhead][data->BICS_colnames["gender"]],
-                data->BICS_data[hhead][data->BICS_colnames["ethnicity"]],
-                stoi(data->BICS_data[hhead][data->BICS_colnames["num_cc_nonhh"]]), 
-                vax_vec.next(),
+                data->BICS(hhead, "age"),
+                data->BICS(hhead, "gender"),
+                data->BICS(hhead, "ethnicity"),
+                stoi(data->BICS(hhead, "num_cc_nonhh")), 
+                vax_vec[hhead],
                 hhid);
 
         // Sample who matches that 
         for (int j = 1; j < min(5,hhsize); j++) {
 
-            string hhmember_age = recode_age(data->BICS_data[hhead][data->BICS_colnames["resp_hh_roster#1_" + to_string(j) + "_1"]]);
-            string hhmember_gender = recode_gender(data->BICS_data[hhead][data->BICS_colnames["resp_hh_roster#2_" + to_string(j)]]);
+            string hhmember_age = recode_age(data->BICS(hhead, "resp_hh_roster#1_" + to_string(j) + "_1"));
+            string hhmember_gender = recode_gender(data->BICS(hhead,"resp_hh_roster#2_" + to_string(j)));
 
             if (hhmember_age == "") {cout<<"Not enough info on household member" << endl; continue;}
 
 
             // Create  vector of weights; set weight to 0 if doesn't match
             key k = key(hhsize, hhmember_age, hhmember_gender);
-            //cout << get<0>(k) << "  " << get<1>(k) << "  " <<  get<2>(k) << endl;
-
 
             // Check if key exists in map
             if (!data->hh_distn.count(k) & fill_polymod) {
 
                 // Check if the key is in the POLYMOD distributions m.find("f") == m.end()
-
                 if (data->distributions_POLYMOD.find(k) == data->distributions_POLYMOD.end()) {
                     if (verbose) cout << "Corresponding person not found in POLYMOD" << endl;
 
@@ -292,15 +451,15 @@ void gen_pop_from_survey_csv(Data *data, igraph_t *g, int n, int pop_seed) {
 
                 }
 
-                int pmod_member = data->distributions_POLYMOD[k](generator); 
+                int pmod_member = data->distributions_POLYMOD.at(k)(generator); 
 
                 if (verbose) cout << "Adding POLYMOD respondent " << pmod_member << " to hhid "<< hhid << endl;
                 add_vertex(g,
-                        data->POLYMOD_data[pmod_member][data->POLYMOD_colnames["part_age"]],
-                        data->POLYMOD_data[pmod_member][data->POLYMOD_colnames["part_gender"]],
-                        "NA", // POLYMOD_data[i][POLYMOD_colnames["ethnicity"]],
-                        stoi(data->POLYMOD_data[pmod_member][data->POLYMOD_colnames["num_cc_nonhh"]]), 
-                        vax_vec.next(),
+                        data->POLYMOD(pmod_member, "part_age"),
+                        data->POLYMOD(pmod_member,"part_gender"),
+                        "NA", // POLYMOD lacks ethnicity data
+                        stoi(data->POLYMOD(pmod_member, "num_cc_nonhh")), 
+                        vax_vec[data -> BICS_nrow + pmod_member], // vax_vec contains BICS entries first, then polymod entries
                         hhid);
 
 
@@ -309,15 +468,15 @@ void gen_pop_from_survey_csv(Data *data, igraph_t *g, int n, int pop_seed) {
 
 
             // Sample a corresponding person
-            int hh_member = data->hh_distn[k](generator) ;
+            int hh_member = data->hh_distn.at(k)(generator) ;
             if (verbose) cout << "Adding respondent " << hh_member << " to hhid "<< hhid << endl;
 
             add_vertex(g,
-                    data->BICS_data[hh_member][data->BICS_colnames["age"]],
-                    data->BICS_data[hh_member][data->BICS_colnames["gender"]],
-                    data->BICS_data[hh_member][data->BICS_colnames["ethnicity"]],
-                    stoi(data->BICS_data[hh_member][data->BICS_colnames["num_cc_nonhh"]]), 
-                    vax_vec.next(),
+                    data->BICS(hh_member,"age"),
+                    data->BICS(hh_member, "gender"),
+                    data->BICS(hh_member,"ethnicity"),
+                    stoi(data->BICS(hh_member, "num_cc_nonhh")), 
+                    vax_vec[hh_member],
                     hhid) ;
 
         }

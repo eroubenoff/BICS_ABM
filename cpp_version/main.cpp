@@ -15,11 +15,40 @@ using namespace std;
 
 #define MAXCHAR 1000
 
+/* Global data object */ 
+// Data data(4);
+vector<Data> data = {Data(0), Data(1), Data(2), Data(3), Data(4), Data(5), Data(5)};
+
+/* Params default values */ 
+extern "C" Params init_params() {
+    Params params{
+        1000, // N_HH
+        4,    // WAVE
+        2*24, 4*24, // GAMMA_MIN, MAX
+        3*24, 7*24, // SIGMA_MIN, MAX
+        0.1, // BETA
+        {0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1}, // MU
+        5, // INDEX_CASES
+        49, 4949, // SEED, POP_SEED
+        100, // N_VAX_DAILY
+        0.75, 0.95, // VE1, 2
+
+        "age;age;age;age;hesitancy", // VAX_RULES_COLS
+        ">85;[75,85);[65,75);[55,65);0.5", // VAX_RULES_VALS
+        {1,1,1,2},  // VAX_CONDS_N
+        4 // VAX_RULES_N
+
+    }; 
+
+    return params;
+};
+
+
+
 
 int main(int argc, char **argv) {
 
     Params params = init_params();
-    Data data;
     History history;
 
     // Parse command line options into an unordered map
@@ -102,14 +131,17 @@ int main(int argc, char **argv) {
     if (args.find("-ve2") != args.end()) {
         params.VE2 = stof(args["-ve2"]);
     }
+    if (args.find("-vax_rules") != args.end()) {
+        cout << "CANNOT READ VAX RULES FROM COMMAND LINE. MUST USE PYTHON INTERFACE" << endl;
+    }
 
 
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 1; i++) {
         cout << "sim no " << i << endl;
         params.SEED = 49+i;
         params.POP_SEED = 49+i;
-        BICS_ABM(&data, &params, &history);
+        BICS_ABM(&::data[params.WAVE], &params, &history);
     }
 
 

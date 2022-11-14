@@ -7,8 +7,42 @@
 #include <map>
 using namespace std;
 
+/* 
+ * key is a tuple used to index nodes. Values correspond to:
+ *
+ * @param int hhsize
+ * @param string age
+ * @param gender
+ *
+ * */
+typedef tuple <int,string,string> key;
 
-extern "C" struct Params {
+
+/*
+ * Rule is a vector of tuples.  Each tuple is a (column, value) 
+ * condition. In order to be 
+ * eligible for vaccination, a node must meet all of
+ * the conditions.  EX:
+ *
+ * {("age", ">85"),("is_employed", "true")}
+ *
+ * Means that only employed  85+ year olds are eligible
+ * for vaccination.
+ *
+ * Note that all values must be strings.
+ * */
+typedef vector<tuple<string,string>> rule;
+
+
+/*
+ * Struct for passing parameters to the function.
+ * Is designated extern "C" so that can interface with python.
+ *
+ * NB: in python ctypes structs MUST be in the 
+ * same order as the C-implemented struct.
+ *
+ */
+extern "C" typedef struct Params {
 
     int N_HH;
     int WAVE;
@@ -25,16 +59,51 @@ extern "C" struct Params {
     float VE1;
     float VE2;
 
+    char VAX_RULES_COLS[1000];
+    char VAX_RULES_VALS[1000];
+    int VAX_CONDS_N[100];
+    int VAX_RULES_N;
 
-};
 
-extern "C" struct Params init_params(); 
+} Params;
+
+
+/*
+ * Function to initialize parameter values. 
+ * See documentation for values. 
+ *
+ * @param none
+ * @return Params object with baseline values. 
+ *
+ */
+extern "C" Params init_params(); 
 
 
 
 
 /*
- * Wrapper around Vector that will always return 
+ * CyclingVector is a template class that is essentially
+ * a wrapper around std::vector. The point of this
+ * class is to pre-generate a series of (pseudo-random) values and 
+ * to return the next one. Mainly includes a method, .next(),
+ * that does so. When all values are exausted, the vector
+ * starts over. 
+ *
+ *
+ *
+ * Sample usage: 
+ *
+ * vector<int> v{3,2,1};
+ * CyclingVector<int> cv = CyclingVector(v);
+ * 
+ * cv.next(); // Returns 3
+ * cv.next(); // Returns 2 
+ * cv.next(); // Returns 1
+ * cv.next(); // Returns 3
+ *
+ * 
+ * Constructor will also take a generator
+ *
  */
 template <class T>
 class CyclingVector {
@@ -71,8 +140,10 @@ class CyclingVector {
         }
 };
 
+
+
 /* 
- * Class to sample randomly from a distribution
+ * RandoClass to sample randomly from a distribution
  *
  * Basically a wrapper around discrete_distribtuion
  * */
@@ -80,7 +151,7 @@ class CyclingVector {
 class RandomVector{
     private:
         vector<int> ids;
-        discrete_distribution<int> dd;
+        mutable discrete_distribution<int> dd;
 
     public:
 
@@ -108,6 +179,11 @@ class RandomVector{
 
         }
 
+        int operator()(mt19937 &generator) const {
+            return ids.at(dd(generator));
+
+        }
+
 };
 
 class History {
@@ -129,20 +205,30 @@ class History {
 
 
 
-typedef tuple <int,string,string> key;
 
 class Data {
+
+    private: 
+        void load_BICS(int wave, string path="df_all_waves.csv");
+        void load_POLYMOD(string path = "./");
+        void create_sampling_distns(); 
+        unordered_map<string, int> BICS_colnames;
+        vector<vector<string>> BICS_data;
+        unordered_map<string, int> POLYMOD_colnames;
+        vector<vector<string>> POLYMOD_data;
 
     public:
 
         int BICS_nrow;
-        unordered_map<string, int> BICS_colnames;
-        vector<vector<string>> BICS_data;
         vector<float> BICS_weights;
 
+        /* Accessor functions */
+        string BICS(int i, string colname) const {return BICS_data.at(i).at(BICS_colnames.at(colname));};
+
         int POLYMOD_nrow;
-        unordered_map<string, int> POLYMOD_colnames;
-        vector<vector<string>> POLYMOD_data;
+
+        /* Accessor functions */
+        string POLYMOD(int i, string colname) const {return POLYMOD_data.at(i).at(POLYMOD_colnames.at(colname));};
 
         map<key, vector<int>> eligible_nodes;
         map<key, vector<int>> eligible_POLYMOD;
@@ -150,16 +236,19 @@ class Data {
         map<key, RandomVector> hh_distn;
 
 
-        void load_BICS(int wave=4, string path="df_all_waves.csv");
-        void load_POLYMOD(string path = "./");
-        void create_sampling_distns(); 
+
 
         // Constructor
-        Data();
+        Data(int wave);
+
+
 
 
 
 };
+
+/* Global data object */ 
+extern vector<Data> data;
 /*
  * Reads a csv and single row 
  * 
@@ -187,8 +276,10 @@ vector<string> get_csv_row(istream &fin, int expected_length = -1, char sep = ',
 
  * @return none; modifies &graph in place
  */
-void read_pop_from_csv(string path, igraph_t *graph);
-void gen_pop_from_survey_csv(Data *data, igraph_t *g, int n, int pop_seed);
+// void read_pop_from_csv(string path, igraph_t *graph);
+
+
+void gen_pop_from_survey_csv(const Data *data, igraph_t *g,const Params *params); // Defualt is no vaccine rules
 
 
 /*
@@ -261,10 +352,28 @@ vector<float> stovf(string s);
 
 
 /* Python interface */
-extern "C" void hello_world();
 
 string recode_age(string age_s) ;
 string recode_gender(string gender) ;
 
-void BICS_ABM(Data *data, Params *params, History *history);
+void BICS_ABM(const Data *data, const Params *params, History *history);
 
+/*
+ * C interface to parse vaccine rules. Arguments are:
+ *
+ * @param char Colname[] string of colnames in the data, comma-separated
+ * @param char Value[] string of values, comma-separated
+ * @param int n_conditions the number of conditions per rule
+ *
+ * So, if we wanted to vaccinate elderly women first, and then 
+ * workers, would pass:
+ *
+ * create_vax_rules(
+ *      "gender,age,occupation",
+ *      "F,>85,working",
+ *      {2, 1}
+ * );
+ *
+ *
+ */
+vector<rule> create_vax_rules(char Colname[], char Value[], int n_conditions[], int n_rules) ;
