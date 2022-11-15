@@ -137,7 +137,7 @@ void read_pop_from_csv(string path, igraph_t *g) {
  */
 string recode_age(string age_s) {
 
-    if (age_s == "NA") return 0; 
+    if (age_s == "NA") return "NA"; 
 
     int age = stoi(age_s);
 
@@ -180,12 +180,22 @@ string recode_age(string age_s) {
 string recode_gender(string gender) {
 
 
-    if (gender == "M")
+    if (gender == "NA")
+        return "NA";
+    if (gender == "Male") 
+        return "Male";
+    else if (gender == "Female") 
+        return "Female";
+    else if (gender == "M")
         return "Male"; 
     else if (gender == "F")
         return "Female";
+    else if (gender == "0")
+        return "Male";
+    else if (gender == "1")
+        return "Female";
     else 
-        return "-1";
+        throw runtime_error("Invalid gender");
 
 }
 
@@ -248,7 +258,9 @@ vector<int> vaccine_priority(
     /* Right now this is an nrow * nconditions operation: slow*/
 
     int priority;
+    vector<bool> satisfies_v;
     bool satisfies;
+    string logic;
     string colname;
     string condition;
     vector<int> priority_vec; 
@@ -259,19 +271,51 @@ vector<int> vaccine_priority(
         priority = -1;
 
         for (int j = 0; j < rules.size(); j++) {
-            satisfies = true;
+            satisfies_v.clear();
+            logic = "OR";
+
             /* Loop through each condition */
             for (int k = 0; k < rules[j].size(); k++) {
 
                 colname = get<0>(rules[j][k]);
                 condition = get<1>(rules[j][k]);
 
+                /* Three special conditions: hesitance, general, and logic */
+
                 if (colname == "hesitancy") {
-                   satisfies *= bernoulli_distribution{stof(condition)}(generator); 
-                } else if (data->BICS(i, colname) == condition) {
-                    satisfies *= true;
-                } else {
-                    satisfies *= false;
+                    /* Random draw with passed parameter */
+                    satisfies_v.push_back(bernoulli_distribution{stof(condition)}(generator));
+                } 
+                else if (colname == "general") {
+                    satisfies_v.clear();
+                    satisfies_v.push_back(true);
+                    break;
+                }  
+                else if (colname == "logic") {
+                    logic = condition;
+                }
+
+                /* Handle normal conditions */
+                else if (data->BICS(i, colname) == condition) {
+                    satisfies_v.push_back(true);
+                } 
+                else {
+                    satisfies_v.push_back(false);
+                }
+            }
+
+
+            /* Evaluate the logic */
+            if (logic == "AND") {
+                satisfies = true;
+                for (bool i: satisfies_v) {
+                    satisfies = satisfies && i;
+                }
+                
+            } else if (logic == "OR") {
+                satisfies = false;
+                for (bool i: satisfies_v) {
+                    satisfies = satisfies || i;
                 }
 
             }

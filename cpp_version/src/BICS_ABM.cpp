@@ -13,7 +13,6 @@
 #include <random>
 
 
-vector<Data> data = {Data(0), Data(1), Data(2), Data(3), Data(4), Data(5), Data(5)};
 
 /* Params default values */ 
 extern "C" Params init_params() {

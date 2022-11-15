@@ -379,7 +379,7 @@ void BICS_ABM(const Data *data, const Params *params, History *history);
  *
  *
  */
-vector<rule> create_vax_rules(char Colname[], char Value[], int n_conditions[], int n_rules) ;
+vector<rule> create_vax_rules(const char Colname[], const char Value[], const int n_conditions[], const int n_rules) ;
 
 /* Global data object */ 
 // Data data(4);

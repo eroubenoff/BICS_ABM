@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include "BICS_ABM.h"
 #include <random>
+// #include <gtest/gtest.h>
 
 using namespace std;
 
@@ -20,7 +21,6 @@ using namespace std;
 
 
 int main(int argc, char **argv) {
-
     Params params = init_params();
     History history;
 
@@ -28,6 +28,12 @@ int main(int argc, char **argv) {
     unordered_map<string, string> args;
 
     for (int i = 1; i < argc; i++) {
+        cout << argv[i] << "| " << endl;
+    }
+
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "--gtest_list_tests")) {cout << "1" << endl; continue;}
+        cout << "here" << endl;
         if ((argv[i][0] == '-') & (argv[i+1][0] != '-'))  {
             // Pull a pair like 
             args[argv[i]] = argv[i+1]; 
@@ -36,6 +42,8 @@ int main(int argc, char **argv) {
             args[argv[i]] = "true";
         }
     }
+
+    cout << "1 " << endl;
 
     for (auto i: args) {
         cout << i.first << ": " << i.second<< endl;
@@ -116,6 +124,11 @@ int main(int argc, char **argv) {
         params.POP_SEED = 49+i;
         BICS_ABM(&::data[params.WAVE], &params, &history);
     }
+
+    /*
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+    */
 
 
     return 0;
