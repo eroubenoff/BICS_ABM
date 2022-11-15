@@ -4,7 +4,7 @@ import numpy
 from numpy.ctypeslib import ndpointer
 
 path = os.getcwd()
-path = os.path.join(path, "build", "libBICS_ABM_lib.so")
+path = os.path.join(path, "build", "libBICS_ABM_lib.dylib")
 _BICS_ABM = ctypes.CDLL(path)
 
 

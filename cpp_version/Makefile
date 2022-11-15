@@ -2,7 +2,7 @@ igraph: CMakeLists.txt build/
 	clear
 	cmake . -B build/ 
 	cmake --build build/ 
-	cmake ./ -GXcode
+	# cmake ./ -GXcode
 	./build/BICS_ABM
 
 debug : igraph_test.cpp CMakeLists.txt build/

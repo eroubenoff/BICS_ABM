@@ -209,8 +209,8 @@ class History {
 class Data {
 
     private: 
-        void load_BICS(int wave, string path="df_all_waves.csv");
-        void load_POLYMOD(string path = "./");
+        void load_BICS(int wave, string path="data/df_all_waves.csv");
+        void load_POLYMOD(string path = "data/");
         void create_sampling_distns(); 
         unordered_map<string, int> BICS_colnames;
         vector<vector<string>> BICS_data;
@@ -249,6 +249,9 @@ class Data {
 
 /* Global data object */ 
 extern vector<Data> data;
+
+
+
 /*
  * Reads a csv and single row 
  * 
@@ -377,3 +380,6 @@ void BICS_ABM(const Data *data, const Params *params, History *history);
  *
  */
 vector<rule> create_vax_rules(char Colname[], char Value[], int n_conditions[], int n_rules) ;
+
+/* Global data object */ 
+// Data data(4);
