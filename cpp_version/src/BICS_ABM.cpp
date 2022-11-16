@@ -107,6 +107,9 @@ void daytime_mixing(igraph_t *g, vector<poisson_distribution<int>> &pois,  mt199
 
     igraph_vector_int_destroy(&num_cc_nonhh);
     igraph_vector_int_destroy(&edgelist);
+    DELALL(&new_graph);
+    igraph_destroy(&new_graph);
+
 
 
 }

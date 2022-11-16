@@ -12,26 +12,10 @@
 
 using namespace std;
 
-vector<Data> data = {Data(0), Data(1), Data(2), Data(3), Data(4), Data(5), Data(5)};
+// vector<Data> data = {Data(0), Data(1), Data(2), Data(3), Data(4), Data(5), Data(5)};
 
-/*
-class Database{
-    private:
-        map<int, Data> data;
-    public: 
-        *Data operator[](int i) {
-            //  Check bounds 
-            if (i < 0 || i > 6) throw runtime_error("Only valid waves are between 0 and 6");
-            //  If i is not in keys, load it 
-            if (data.find(i) == data.end()) {
-                data[i] = Data(i);
-            }
-            // either way, return a pointer to it 
-            return *data[i];
-        }
+Database database;
 
-}
-*/
 
 Data::Data(int wave) {
     load_BICS(wave);

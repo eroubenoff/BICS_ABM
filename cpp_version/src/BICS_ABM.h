@@ -240,6 +240,7 @@ class Data {
 
         // Constructor
         Data(int wave);
+        Data(){};
 
 
 
@@ -248,9 +249,34 @@ class Data {
 };
 
 /* Global data object */ 
-extern vector<Data> data;
+// extern vector<Data> data;
 
 
+/* Wrapper class for lazy loading */
+class Database{
+    private:
+        unordered_map<int, Data*> data;
+    public: 
+        Data* operator[](int i) {
+            //  Check bounds 
+            if (i < 0 || i > 6) throw runtime_error("Only valid waves are between 0 and 6");
+            //  If i is not in keys, load it 
+            if (data.find(i) == data.end()) {
+                data[i] = new Data(i);
+            }
+            // either way, return a pointer to it 
+            return data[i];
+        }
+        ~Database() {
+            for (auto i: data) {
+                cout << "Database destructor called on " << i.first << " at " << i.second << endl;
+                delete i.second;
+            }
+        }
+
+};
+
+extern Database database;
 
 /*
  * Reads a csv and single row 
@@ -371,15 +397,24 @@ void BICS_ABM(const Data *data, const Params *params, History *history);
  * So, if we wanted to vaccinate elderly women first, and then 
  * workers, would pass:
  *
- * create_vax_rules(
- *      "gender,age,occupation",
- *      "F,>85,working",
- *      {2, 1}
- * );
  *
  *
  */
-vector<rule> create_vax_rules(const char Colname[], const char Value[], const int n_conditions[], const int n_rules) ;
+vector<rule> parse_vax_rules(const char Colname[], const char Value[], const int n_conditions[], const int n_rules) ;
 
 /* Global data object */ 
 // Data data(4);
+//
+void add_vertex(igraph_t *g,
+        const string age,
+        string gender,
+        string ethnicity,
+        int num_cc_nonhh, 
+        int vaccine_priority,
+        string hhid);
+
+void set_vaccine_priority(
+        igraph_t *g, 
+        const vector<vector<tuple<string, string>>> rules,
+        mt19937 generator
+        );

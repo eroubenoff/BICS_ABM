@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
         cout << "sim no " << i << endl;
         params.SEED = 49+i;
         params.POP_SEED = 49+i;
-        BICS_ABM(&::data[params.WAVE], &params, &history);
+        BICS_ABM(::database[params.WAVE], &params, &history);
     }
 
     /*

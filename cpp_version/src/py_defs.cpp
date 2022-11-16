@@ -27,7 +27,7 @@ extern "C" struct Trajectory BICS_ABM(Params params) {
     cout << params.VAX_RULES_N << endl;
 
 
-    BICS_ABM(&::data[params.WAVE], &params, &history);
+    BICS_ABM(::database[params.WAVE], &params, &history);
 
     trajectory.counter = history.counter;
     copy(history.S.begin(), history.S.end(), trajectory.S_array);

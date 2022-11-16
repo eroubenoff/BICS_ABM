@@ -20,7 +20,7 @@ test: CMakeLists.txt build/
 	clear
 	cmake . -B build/ 
 	cmake --build build/ 
-	cd build && ctest && cd ..
+	./build/BICS_ABM_tests
 	
 
 

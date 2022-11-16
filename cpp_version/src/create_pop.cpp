@@ -22,19 +22,19 @@ using namespace std;
  * @param i index of node to add 
  */
 void add_vertex(igraph_t *g,
-        string age,
+        const string age,
         string gender,
         string ethnicity,
         int num_cc_nonhh, 
         int vaccine_priority,
         string hhid) {
 
-    if (false) {
+    if (true) {
         cout << "Age: " << age << " Gender: " << gender << " Ethnicity: " << \
-            ethnicity << " num_Cc_nonhh: " << num_cc_nonhh << " hhid: " << hhid << endl;
+            ethnicity << " num_cc_nonhh: " << num_cc_nonhh << " hhid: " << hhid << endl;
     }
     // Add vertex 
-    igraph_add_vertices(g, 1, NULL);
+    igraph_add_vertices(g, 1, 0);
 
     int i = igraph_vcount(g) - 1;
 
@@ -139,7 +139,13 @@ string recode_age(string age_s) {
 
     if (age_s == "NA") return "NA"; 
 
-    int age = stoi(age_s);
+    int age;
+    try {
+        age = stoi(age_s);
+    } 
+    catch (invalid_argument) {
+        throw invalid_argument("Invalid age passed to recode_age: " + age_s);
+    }
 
     if (age < 18)
         return "[0,18)"; 
@@ -160,7 +166,7 @@ string recode_age(string age_s) {
     else if (age >= 85)
         return ">85";
     else 
-        throw runtime_error("Invalid age");
+        throw invalid_argument("invalid age passed to recode_age: " + age_s);
 
 
 }
@@ -195,7 +201,7 @@ string recode_gender(string gender) {
     else if (gender == "1")
         return "Female";
     else 
-        throw runtime_error("Invalid gender");
+        throw invalid_argument("invalid gender passed to recode_gender: " + gender);
 
 }
 
@@ -249,30 +255,32 @@ string escape_commas(string s) {
  *
  */
 
-vector<int> vaccine_priority(
-        const Data *data, 
+void set_vaccine_priority(
+        igraph_t *g, 
         const vector<vector<tuple<string, string>>> rules,
         mt19937 generator
         ){
 
     /* Right now this is an nrow * nconditions operation: slow*/
 
-    int priority;
+    int hesitancy;
+    int general;
+    string logic;
     vector<bool> satisfies_v;
     bool satisfies;
-    string logic;
     string colname;
     string condition;
-    vector<int> priority_vec; 
 
-    /* Loop through each row */
-    for (int i = 0; i < data->BICS_nrow; i++) {
-        /* Loop through each priority level */
-        priority = -1;
+    /* Loop through each vertex */
+    for (int i = 0; i < igraph_vcount(g); i++) {
 
+        /* Loop through each rule */
         for (int j = 0; j < rules.size(); j++) {
+            /* Reset all flags */
+            hesitancy = false;
+            general = false;
             satisfies_v.clear();
-            logic = "OR";
+            logic = "AND";
 
             /* Loop through each condition */
             for (int k = 0; k < rules[j].size(); k++) {
@@ -284,19 +292,17 @@ vector<int> vaccine_priority(
 
                 if (colname == "hesitancy") {
                     /* Random draw with passed parameter */
-                    satisfies_v.push_back(bernoulli_distribution{stof(condition)}(generator));
+                    hesitancy = bernoulli_distribution{stof(condition)}(generator);
                 } 
                 else if (colname == "general") {
-                    satisfies_v.clear();
-                    satisfies_v.push_back(true);
-                    break;
+                    general = true;
                 }  
                 else if (colname == "logic") {
                     logic = condition;
                 }
 
                 /* Handle normal conditions */
-                else if (data->BICS(i, colname) == condition) {
+                else if (VAS(g, colname.c_str(), i) == condition) {
                     satisfies_v.push_back(true);
                 } 
                 else {
@@ -305,7 +311,7 @@ vector<int> vaccine_priority(
             }
 
 
-            /* Evaluate the logic */
+            /* Evaluate the logic for the attributes */
             if (logic == "AND") {
                 satisfies = true;
                 for (bool i: satisfies_v) {
@@ -317,62 +323,35 @@ vector<int> vaccine_priority(
                 for (bool i: satisfies_v) {
                     satisfies = satisfies || i;
                 }
-
             }
 
-            if (satisfies) {
-                priority = j;
+            /* Set or pass */
+            if (hesitancy) {
+                SETVAN(g, "vaccine_priority", i, 0);
                 break;
-            } 
+            } else if(general) {
+                SETVAN(g, "vaccine_priority", i, rules.size() - j);
+                break;
+            } else if (satisfies) {
+                SETVAN(g, "vaccine_priority", i, rules.size() - j);
+                break;
+            } else {
+                SETVAN(g, "vaccine_priority", i, 0);
+            }
 
         }
 
-        priority_vec.push_back(priority);
     }
-
-    /* Repeat with POLYMOD*/
-    for (int i = 0; i < data->POLYMOD_nrow; i++) {
-        /* Loop through each priority level */
-        priority = -1;
-
-        for (int j = 0; j < rules.size(); j++) {
-            satisfies = true;
-            /* Loop through each condition */
-            for (int k = 0; k < rules[j].size(); k++) {
-
-                colname = get<0>(rules[j][k]);
-                condition = get<1>(rules[j][k]);
-
-                if (colname == "hesitancy") {
-                   satisfies *= bernoulli_distribution{stof(condition)}(generator); 
-                } else if (data->POLYMOD(i, colname) == condition) {
-                    satisfies *= true;
-                } else {
-                    satisfies *= false;
-                }
-
-            }
-
-            if (satisfies) {
-                priority = j;
-                break;
-            } 
-
-        }
-
-        priority_vec.push_back(priority);
-    }
-
-    return priority_vec;
 
 }
+
 
 
 /*
  * Function to parse params into rules
  *
  */
-vector<rule> create_vax_rules(const char Colname[], const char Value[], const int n_conditions[], const int n_rules) {
+vector<rule> parse_vax_rules(const char Colname[], const char Value[], const int n_conditions[], const int n_rules) {
     vector<rule> rules;
     rule temp_rule;
 
@@ -407,6 +386,15 @@ vector<rule> create_vax_rules(const char Colname[], const char Value[], const in
         rules.push_back(temp_rule);
     }
 
+    cout << "Parsed the following vax rules: " << endl;
+    for (int i = 0; i < rules.size(); i++) {
+        cout << "Priority no. " << i << ": ";
+        for (int j = 0; j < rules[i].size(); j++) {
+            cout << get<0>(rules[i][j]) << ": " << get<1>(rules[i][j]) << "  " ;
+        }
+
+        cout << endl;
+    }
 
     return rules;
 }
@@ -428,18 +416,7 @@ void gen_pop_from_survey_csv(
     RandomVector dd(data->BICS_weights);
  
     mt19937 generator(params->POP_SEED);
-    vector<rule> vax_rules = create_vax_rules(params->VAX_RULES_COLS, params->VAX_RULES_VALS, params->VAX_CONDS_N, params->VAX_RULES_N);
-    vector<int> vax_vec = vaccine_priority(data, vax_rules, generator);
 
-    cout << "Parsed the following vax rules: " << endl;
-    for (int i = 0; i < vax_rules.size(); i++) {
-        cout << "Priority no. " << i << ": ";
-        for (int j = 0; j < vax_rules[i].size(); j++) {
-            cout << get<0>(vax_rules[i][j]) << ": " << get<1>(vax_rules[i][j]) << "  " ;
-        }
-
-        cout << endl;
-    }
 
     /* Tuple for keys*/ 
     typedef tuple <int,string,string> key;
@@ -469,7 +446,7 @@ void gen_pop_from_survey_csv(
                 data->BICS(hhead, "gender"),
                 data->BICS(hhead, "ethnicity"),
                 stoi(data->BICS(hhead, "num_cc_nonhh")), 
-                vax_vec[hhead],
+                -1,
                 hhid);
 
         // Sample who matches that 
@@ -503,7 +480,7 @@ void gen_pop_from_survey_csv(
                         data->POLYMOD(pmod_member,"part_gender"),
                         "NA", // POLYMOD lacks ethnicity data
                         stoi(data->POLYMOD(pmod_member, "num_cc_nonhh")), 
-                        vax_vec[data -> BICS_nrow + pmod_member], // vax_vec contains BICS entries first, then polymod entries
+                        -1, // vax_vec contains BICS entries first, then polymod entries
                         hhid);
 
 
@@ -520,7 +497,7 @@ void gen_pop_from_survey_csv(
                     data->BICS(hh_member, "gender"),
                     data->BICS(hh_member,"ethnicity"),
                     stoi(data->BICS(hh_member, "num_cc_nonhh")), 
-                    vax_vec[hh_member],
+                    -1,
                     hhid) ;
 
         }
@@ -528,6 +505,9 @@ void gen_pop_from_survey_csv(
     }
 
 
+    /* Set vaccine priority */
+    vector<rule> vax_rules = parse_vax_rules(params->VAX_RULES_COLS, params->VAX_RULES_VALS, params->VAX_CONDS_N, params->VAX_RULES_N);
+    set_vaccine_priority(g, vax_rules, generator);
 }
 
 
