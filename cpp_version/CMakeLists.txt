@@ -39,12 +39,12 @@ add_library(BICS_ABM_lib SHARED # MODULE
     src/data.cpp
     )
 add_executable(BICS_ABM 
-    # src/BICS_ABM.h 
     src/main.cpp 
     )
 add_executable(BICS_ABM_tests
     src/tests/pop_tests.cpp
-    src/tests/tests_main.cpp)
+    src/tests/tests_main.cpp
+    src/tests/data_tests.cpp)
 
 file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -56,6 +56,7 @@ include(GoogleTest)
 # gtest_discover_tests(BICS_ABM DISCOVERY_TIMEOUT 6000)
 # add_test(src/tests/test.cpp BICS_ABM)
 add_test(Vax_tests BICS_ABM)
+add_test(DataTests BICS_ABM)
 
 # Install headers
 

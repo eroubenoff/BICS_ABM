@@ -161,7 +161,7 @@ void Data::load_BICS(int wave, string path) {
         BICS_nrow++;
     }
 
-    cout << BICS_nrow << " rows read" << endl;
+    cout << BICS_nrow << " BICS respondents read" << endl;
 
     /* Create vector of weights */
     // vector<float> BICS_weights(BICS_nrow);
@@ -209,6 +209,7 @@ void Data::load_POLYMOD(string path) {
 
     int n_polymod = 0;
     polymod_f.open(path + "2008_Mossong_POLYMOD_participant_common.csv");
+    // cout << "participant_common opened successfully? " << polymod_f.is_open() << endl;
 
     /* 
      * Get header from polymod_participants and loop through to 
@@ -262,6 +263,7 @@ void Data::load_POLYMOD(string path) {
 
     polymod_f.close();
 
+    cout << "size of polymod participants" << polymod_participants.size() << endl;
 
 
 
@@ -415,5 +417,6 @@ void Data::load_POLYMOD(string path) {
     POLYMOD_data = polymod_participants;
     POLYMOD_nrow = polymod_participants.size();
 
+    cout << POLYMOD_nrow << " POLYMOD respondents read" << endl;
 
 }

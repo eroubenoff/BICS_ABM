@@ -210,25 +210,102 @@ class Data {
 
     private: 
         void load_BICS(int wave, string path="data/df_all_waves.csv");
-        void load_POLYMOD(string path = "data/");
+        void load_POLYMOD(string path = "data/POLYMOD/");
         void create_sampling_distns(); 
-        unordered_map<string, int> BICS_colnames;
         vector<vector<string>> BICS_data;
-        unordered_map<string, int> POLYMOD_colnames;
         vector<vector<string>> POLYMOD_data;
 
     public:
 
         int BICS_nrow;
         vector<float> BICS_weights;
+        unordered_map<string, int> BICS_colnames;
 
-        /* Accessor functions */
-        string BICS(int i, string colname) const {return BICS_data.at(i).at(BICS_colnames.at(colname));};
+        /* 
+         * Accessor functions 
+         *
+         * @param int i: index of the row (repondent)
+         * @param string colname to retrieve. 
+         *
+         * @return the value as a string
+         * */
+        string BICS(int i, string colname) const {
+            try {
+                BICS_data.at(i);
+            } 
+            catch (out_of_range) {
+                throw invalid_argument("Vertex " + to_string(i) + " not present in BICS data. Highest value is " + to_string(BICS_nrow-1));
+            }
+            try {
+                BICS_data.at(i).at(BICS_colnames.at(colname));
+            } 
+            catch (out_of_range) {
+                throw invalid_argument("Columnn " + colname + " not present in BICS data");
+            }
+
+            return BICS_data.at(i).at(BICS_colnames.at(colname));
+        };
+
+        /* 
+         * Accessor functions 
+         *
+         * @param int i: index of the row (repondent)
+         * 
+         * @return the whole row as an unorderd_map of strings.
+         * */
+        vector<string> BICS(int i) const {
+            try {
+                BICS_data.at(i);
+            } 
+            catch (out_of_range) {
+                throw invalid_argument("Vertex " + to_string(i) + " not present in BICS data. Highest value is " + to_string(BICS_nrow-1));
+            }
+
+            return BICS_data.at(i);
+        };
 
         int POLYMOD_nrow;
+        unordered_map<string, int> POLYMOD_colnames;
 
-        /* Accessor functions */
-        string POLYMOD(int i, string colname) const {return POLYMOD_data.at(i).at(POLYMOD_colnames.at(colname));};
+        /* 
+         * Accessor functions 
+         *
+         * @param int i: index of the row (repondent)
+         * @param string colname to retrieve. 
+         *
+         * @return the value as a string
+         * */
+        string POLYMOD(int i, string colname) const {
+            try {
+                POLYMOD_data.at(i);
+            } 
+            catch (out_of_range) {
+                throw invalid_argument("Vertex " + to_string(i) + " not present in POLYMOD data. Highest value is " + to_string(POLYMOD_nrow-1));
+            }
+            try {
+                POLYMOD_data.at(i).at(POLYMOD_colnames.at(colname));
+            } 
+            catch (out_of_range) {
+                throw invalid_argument("Columnn " + colname + " not present in POLYMOD data");
+            }
+            return POLYMOD_data.at(i).at(POLYMOD_colnames.at(colname));
+        };
+        /* 
+         * Accessor functions 
+         *
+         * @param int i: index of the row (repondent)
+         * 
+         * @return the whole row as a vector of strings.
+         * */
+        vector<string> POLYMOD(int i) const {
+            try {
+                POLYMOD_data.at(i);
+            } 
+            catch (out_of_range) {
+                throw invalid_argument("Vertex " + to_string(i) + " not present in POLYMOD data. Highest value is " + to_string(POLYMOD_nrow-1));
+            }
+            return POLYMOD_data.at(i);
+        };
 
         map<key, vector<int>> eligible_nodes;
         map<key, vector<int>> eligible_POLYMOD;

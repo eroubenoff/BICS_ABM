@@ -29,7 +29,7 @@ void add_vertex(igraph_t *g,
         int vaccine_priority,
         string hhid) {
 
-    if (true) {
+    if (false) {
         cout << "Age: " << age << " Gender: " << gender << " Ethnicity: " << \
             ethnicity << " num_cc_nonhh: " << num_cc_nonhh << " hhid: " << hhid << endl;
     }
@@ -68,6 +68,45 @@ void add_vertex(igraph_t *g,
 
 
 
+void add_vertex(igraph_t *g,
+        unordered_map<string, int> colnames,
+        vector<string> row,
+        string hhid) {
+
+    // Add vertex 
+    igraph_add_vertices(g, 1, 0);
+
+    int i = igraph_vcount(g) - 1;
+
+
+    for (auto s: colnames) {
+        try {
+            if (s.first == "num_cc_nonhh") {
+                SETVAN(g, "num_cc_nonhh", i, stoi(row[s.second]));
+            } else if (s.first == "lefthome_num") {
+                SETVAN(g, "lefthome_num", i, stoi(row[s.second]));
+            } else {
+                SETVAS(g, s.first.c_str(), i, row[s.second].c_str());
+            }
+        } catch(out_of_range) {
+            cout << "Out of range exception at " << s.first << ": " << s.second << endl;
+        }
+    }
+
+    // Hhid
+    SETVAS(g, "hhid", i, hhid.c_str());
+
+    // Fixed characteristics
+    SETVAS(g, "disease_status", i, "S");
+    SETVAN(g, "remaining_days_exposed", i, -1);
+    SETVAN(g, "remaining_days_sick", i, -1);
+    SETVAN(g, "vaccine_status", i, 0);
+    SETVAN(g, "vaccine_priority", i, -1);
+    SETVAN(g, "time_until_v2", i, -1);
+
+
+
+}
 
 
 
@@ -410,8 +449,8 @@ void gen_pop_from_survey_csv(
         igraph_t *g, 
         const Params *params) {
 
-    bool verbose = false;
-    bool fill_polymod = true;
+    bool verbose = true;
+    bool fill_polymod = false;
 
     RandomVector dd(data->BICS_weights);
  
@@ -434,19 +473,14 @@ void gen_pop_from_survey_csv(
         // cout <<"Initializing new hh"<< endl;
 
         int hhead = dd(generator);
-        // cout << hhead << endl;
         int hhsize = stoi(data->BICS(hhead,"hhsize")); 
-        // cout << hhsize << endl;
         string hhid = randstring(16);
 
         if (verbose) cout << "Adding respondent " << hhead << " as head of hhid "<< hhid << " of size " << hhsize << endl;
 
         add_vertex(g,
-                data->BICS(hhead, "age"),
-                data->BICS(hhead, "gender"),
-                data->BICS(hhead, "ethnicity"),
-                stoi(data->BICS(hhead, "num_cc_nonhh")), 
-                -1,
+                data->BICS_colnames,
+                data->BICS(hhead),
                 hhid);
 
         // Sample who matches that 
@@ -455,6 +489,8 @@ void gen_pop_from_survey_csv(
             string hhmember_age = recode_age(data->BICS(hhead, "resp_hh_roster#1_" + to_string(j) + "_1"));
             string hhmember_gender = recode_gender(data->BICS(hhead,"resp_hh_roster#2_" + to_string(j)));
 
+            cout << hhmember_age << hhmember_gender << endl;
+
             if (hhmember_age == "") {cout<<"Not enough info on household member" << endl; continue;}
 
 
@@ -462,47 +498,73 @@ void gen_pop_from_survey_csv(
             key k = key(hhsize, hhmember_age, hhmember_gender);
 
             // Check if key exists in map
-            if (!data->hh_distn.count(k) & fill_polymod) {
+            bool BICS_hh_exists = data->hh_distn.count(k) >  0;
+            // Sample a corresponding person
+            int hh_member;
+
+            /* 
+             * If there is a BICS respondent that matches the key 
+             * */
+            if (BICS_hh_exists) {
+
+                try {
+                    hh_member = data->hh_distn.at(k)(generator) ;
+                } catch(out_of_range) {
+                    cout << "No appropriate hhmember found" << endl;
+                    continue;
+                }
+
+                if (verbose) cout << "Adding respondent " << hh_member << " to hhid "<< hhid << endl;
+
+                add_vertex(g,
+                        data->BICS_colnames,
+                        data->BICS(hh_member),
+                        hhid) ;
+
+                continue;
+            }
+
+            /*
+             * If there is not a corresponding BICS respondent, but
+             * fill_polymod = TRUE
+             *
+             */
+            else if (fill_polymod) {
 
                 // Check if the key is in the POLYMOD distributions m.find("f") == m.end()
                 if (data->distributions_POLYMOD.find(k) == data->distributions_POLYMOD.end()) {
+
                     if (verbose) cout << "Corresponding person not found in POLYMOD" << endl;
 
+                } else {
+
+                    int pmod_member = data->distributions_POLYMOD.at(k)(generator); 
+                    if (verbose) cout << "Adding POLYMOD respondent " << pmod_member << " to hhid "<< hhid << endl;
+                    add_vertex(g,
+                            data->POLYMOD_colnames,
+                            data->POLYMOD(pmod_member),
+                            hhid);
                     continue;
-
                 }
-
-                int pmod_member = data->distributions_POLYMOD.at(k)(generator); 
-
-                if (verbose) cout << "Adding POLYMOD respondent " << pmod_member << " to hhid "<< hhid << endl;
-                add_vertex(g,
-                        data->POLYMOD(pmod_member, "part_age"),
-                        data->POLYMOD(pmod_member,"part_gender"),
-                        "NA", // POLYMOD lacks ethnicity data
-                        stoi(data->POLYMOD(pmod_member, "num_cc_nonhh")), 
-                        -1, // vax_vec contains BICS entries first, then polymod entries
-                        hhid);
-
-
-                continue;
             } 
 
+            /* 
+             * If fill_polymod = false or there's no corresponding member,
+             * pick a BICS respondent at random
+             *
+             */
+            else {
+                hh_member = dd(generator);
 
-            // Sample a corresponding person
-            int hh_member = data->hh_distn.at(k)(generator) ;
-            if (verbose) cout << "Adding respondent " << hh_member << " to hhid "<< hhid << endl;
+                add_vertex(g,
+                        data->BICS_colnames,
+                        data->BICS(hh_member),
+                        hhid);
 
-            add_vertex(g,
-                    data->BICS(hh_member,"age"),
-                    data->BICS(hh_member, "gender"),
-                    data->BICS(hh_member,"ethnicity"),
-                    stoi(data->BICS(hh_member, "num_cc_nonhh")), 
-                    -1,
-                    hhid) ;
-
+                continue;
+            }
         }
-
-    }
+     }
 
 
     /* Set vaccine priority */

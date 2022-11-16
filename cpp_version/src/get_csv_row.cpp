@@ -71,7 +71,7 @@ vector<string> get_csv_row(istream &fin, int expected_length = -1, char sep = ',
     }
 
     if ((expected_length != -1 ) & (row.size() != expected_length)) {
-        row.resize(expected_length, "-1");
+        row.resize(expected_length, "NA");
     }
 
     return row;
