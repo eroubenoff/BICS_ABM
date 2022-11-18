@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include "BICS_ABM.h"
 #include <random>
+#include <set>
 
 
 
@@ -54,34 +55,44 @@ void delete_all_edges(igraph_t *g) {
 
 void random_contacts(igraph_t *g, 
         igraph_vector_int_t *regular_contacts_el,
+        igraph_strvector_t *regular_contacts_type,
         mt19937 &generator) {
 
     /* New graph to work on temporary edges */
     igraph_t new_graph;
+    igraph_empty(&new_graph, 0, IGRAPH_UNDIRECTED);
 
     /* Pull attributes from the original graph */
     int vcount = igraph_vcount(g);
 
-    /* ZIP parameters */ 
-    bernoulli_distribution ber; int p_ber;
-    poisson_distribution pois; int p_pois;
-    igraph_vector_int_t stubs_count;
-    igraph_vector_int_init(&stubs_count, igraph_vcount(g));
+
+
 
 
     /* 
      * First remove the previous step's random contacts
      * and re-connect them with their household contacts 
-     *
      */ 
 
     igraph_delete_edges(g, igraph_ess_all(IGRAPH_EDGEORDER_ID));
     igraph_add_edges(g, regular_contacts_el, NULL);
 
     /* 
+     * Add type 
+     * */
+    igraph_cattribute_EAS_setv(g, "type", regular_contacts_type);
+
+    /* 
+     * ZIP parameters 
+     * */ 
+    bernoulli_distribution ber; int p_ber;
+    poisson_distribution pois; int p_pois;
+    igraph_vector_int_t stubs_count;
+    igraph_vector_int_init(&stubs_count, igraph_vcount(g));
+
+    /* 
      * Random draw of stubs for each vertex 
      */
-
     for (int i = vcount; i--; ) {
 
         /* Draw probability of an excursion */ 
@@ -106,7 +117,6 @@ void random_contacts(igraph_t *g,
      * Make sure sum is an even number; otherwise decrease a random stub until it is 
      *
      * */
-
     int sum = igraph_vector_int_sum(&stubs_count);
     if (sum % 2 == 1) { 
         // Pick a random index
@@ -192,11 +202,21 @@ void random_contacts(igraph_t *g,
     igraph_vector_int_destroy(&edges_to_remove_2);
     igraph_es_destroy(&es_to_remove);
 
+    /* Get the type of the reduced edges */
+    igraph_strvector_t edges_type;
+    igraph_strvector_init(&edges_type, igraph_ecount(g));
+    EASV(g, "type", &edges_type);
 
     /*
      * Add random contacts to the main graph
      */
     igraph_add_edges(g, &random_edgelist, NULL);
+
+    /* Set any additional contacts to type "random" */
+    for (int i = 0; i < igraph_vector_int_size(&random_edgelist); i+=2) igraph_strvector_push_back(&edges_type, "random");
+
+    /* Set edge types to graph */
+    igraph_cattribute_EAS_setv(g, "type", &edges_type);
 
     /* 
      * Call destructors 
@@ -205,12 +225,133 @@ void random_contacts(igraph_t *g,
     igraph_destroy(&new_graph);
     igraph_vector_int_destroy(&stubs_count);
     igraph_vector_int_destroy(&random_edgelist);
-
+    igraph_strvector_destroy(&edges_type);
 
 }
 
 
+/* 
+ * Generate household edges
+ * First create an unordered_map of hhids 
+ *
+ * hhids is a hash on the household id and each
+ * value is an igraph vector of the vertices in that 
+ * household
+ * */
+void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges){
+    unordered_map<string, vector<int> > hhids;
+    for (int i = 0; i < igraph_vcount(graph); i++) {
+        hhids[VAS(graph, "hhid", i)].push_back(i);
+    }
 
+    // Create a household edge list
+    igraph_vector_int_init(hhedges, 0);
+    for (auto h : hhids) {
+
+        // Create all combinations within the hh by nested loop
+        for (int k=0; k < h.second.size(); k++) {
+            for (int l=k+1; l < h.second.size(); l++) {
+                if (k == l) {
+                    continue;
+                }
+                else{
+                    igraph_vector_int_push_back(hhedges, h.second[k]);
+                    igraph_vector_int_push_back(hhedges, h.second[l]);
+                }
+            }
+        }
+    }
+}
+
+
+/*
+ * Generate a random graph of work edges from deg dist 
+ *
+ */
+void gen_daytime_edges(const igraph_t *graph, 
+        const igraph_vector_int_t *hh_edges, 
+        igraph_vector_int_t *daytime_edges,
+        igraph_strvector_t *daytime_edges_type
+    ){
+
+    /* 
+     * Get work contacts deg dist 
+     *
+     * */
+    igraph_vector_int_t degdist;
+    igraph_vector_int_t work_edges;
+    igraph_vector_int_init(&degdist, igraph_vcount(graph));
+
+    string tmp;
+    for (int i = igraph_vcount(graph); i--; ){
+        tmp = VAS(graph, "num_cc_work", i);
+
+        if (tmp == "NA") VECTOR(degdist)[i] = 0;
+        else {
+            try {
+                VECTOR(degdist)[i] = stoi(tmp);
+            }
+            catch(...) {
+                cout << "Error! " << endl;
+            }
+        }
+    }
+
+    /* 
+     * Generate random network and turn into edgelist
+     */
+    igraph_t new_graph;
+    igraph_empty(&new_graph, 0, IGRAPH_UNDIRECTED);
+    igraph_degree_sequence_game(&new_graph, &degdist, NULL, IGRAPH_DEGSEQ_CONFIGURATION ); // IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE); //IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE ); // IGRAPH_DEGSEQ_CONFIGURATION);
+    igraph_vector_int_init(&work_edges, igraph_vcount(&new_graph));
+    igraph_get_edgelist(&new_graph, &work_edges, false);
+
+
+    /* 
+     * work_edges now contains the random draw of work contacts
+     *
+     * Need to create daytime_edges, which consists of
+     * work contacts + hh contacts(for any vertex without
+     * work contacts)
+     *
+     */
+
+    /* First duplicate hh_edges into daytime_edges */
+    igraph_vector_int_init_copy(daytime_edges, hh_edges);
+
+    /* Then get unique values in work_edges as a set*/ 
+    set<int> work_vertices;
+    for (int i = 0; i < igraph_vector_int_size(&work_edges); i++){
+        work_vertices.insert(VECTOR(work_edges)[i]);
+    }
+
+    /* Traverse daytime_edges in pairs and remove */
+    for (int i = 0; i < igraph_vector_int_size(daytime_edges); i+= 2) {
+        if ((work_vertices.count(igraph_vector_int_get(daytime_edges, i)) > 0 ) || 
+            (work_vertices.count(igraph_vector_int_get(daytime_edges, i+1)) > 0 ))
+        {
+            igraph_vector_int_remove_section(daytime_edges, i, i+2);
+        }
+    }
+
+    /* Fill the daytime type vector, 1 per edge (every 2) */
+    int n_daytime_edges = igraph_vector_int_size(daytime_edges);
+    int n_work_edges = igraph_vector_int_size(&work_edges);
+    igraph_strvector_init(daytime_edges_type, 0);
+    for (int i = 0; i < n_daytime_edges/2; i++) igraph_strvector_push_back(daytime_edges_type, "household");
+    for (int i = 0; i < n_work_edges/2; i++) igraph_strvector_push_back(daytime_edges_type,  "work");
+
+
+    /* Concat work edges to daytime edges */
+    igraph_vector_int_append(daytime_edges, &work_edges);
+
+
+    /* Destructors */
+    igraph_vector_int_destroy(&degdist);
+    igraph_vector_int_destroy(&work_edges);
+    igraph_destroy(&new_graph);
+
+}
 
 void print_params(const Params *params) {
     cout << "----------------------------------------"<< endl;
@@ -277,7 +418,7 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
     mu[">85"]     = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[8]))(generator);});
     
 
-    // Create the empty graph
+    /* Create the empty graph */
     igraph_t graph;
 
     /* Turn on attribute handling. */
@@ -291,50 +432,25 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
 
     cout << "N vertices: " << igraph_vcount(&graph) << endl;
 
-    /* 
-     * Create an unordered_map of hhids 
-     *
-     * hhids is a hash on the household id and each
-     * value is an igraph vector of the vertices in that 
-     * household
-     * */
 
-    unordered_map<string, vector<int> > hhids;
-    for (int i = 0; i < igraph_vcount(&graph); i++) {
-        hhids[VAS(&graph, "hhid", i)].push_back(i);
-    }
-
-    // Create a household edge list
+    /* Generate household edges and add to g */
     igraph_vector_int_t hhedges;
-    igraph_vector_int_init(&hhedges, 0);
-    for (auto h : hhids) {
-
-        // Create all combinations within the hh by nested loop
-        for (int k=0; k < h.second.size(); k++) {
-            for (int l=k+1; l < h.second.size(); l++) {
-                if (k == l) {
-                    continue;
-                }
-                else{
-                    igraph_vector_int_push_back(&hhedges, h.second[k]);
-                    igraph_vector_int_push_back(&hhedges, h.second[l]);
-                }
-            }
-        }
-    }
-
-    // Add hh edges
+    gen_hh_edges(&graph, &hhedges);
     igraph_add_edges(&graph, &hhedges, NULL);
 
+    /* 
+     * Vector containing the type of edges (all are household) 
+     * Set type attribute 
+     * */
+    igraph_strvector_t hhedges_type;
+    igraph_strvector_init(&hhedges_type, igraph_vector_int_size(&hhedges)/2);
+    for (int i = 0; i < igraph_vector_int_size(&hhedges)/2; i+=2 ){igraph_strvector_set(&hhedges_type, i, "household");}
+    igraph_cattribute_EAS_setv(&graph, "type", &hhedges_type);
 
-    /* Get the adjacency list */
-    igraph_adjlist_t hh_adjlist;
-    igraph_adjlist_init(&graph, &hh_adjlist, IGRAPH_ALL, IGRAPH_LOOPS_TWICE, IGRAPH_MULTIPLE);
-
-
-
-    /* Print the final result. */
-    // print_attributes(&graph, true);
+    /* Generate daytime edges that include work contacts*/ 
+    igraph_vector_int_t daytime_edges;
+    igraph_strvector_t daytime_edges_type;
+    gen_daytime_edges(&graph, &hhedges, &daytime_edges, &daytime_edges_type);
 
 
     // Pick nodes at random to be infected
@@ -347,6 +463,9 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
     }
 
     cout << endl;
+
+
+
 
 
     int day = 0;
@@ -363,7 +482,6 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
     }
     */ 
 
-    // igraph_add_edges(&graph, &hhedges, NULL);
     
 
     igraph_integer_t n_edges;
@@ -372,7 +490,7 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
         // Hours 0-8
         for (hr = 0; hr < 8; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            random_contacts(&graph, &hhedges, generator);
+            random_contacts(&graph, &hhedges, &hhedges_type, generator);
             transmit(&graph, beta, gamma_vec, sigma_vec, mu);
             decrement(&graph, history);
 
@@ -393,7 +511,7 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
              * similar.
              */
 
-            random_contacts(&graph, &hhedges, generator);
+            random_contacts(&graph, &daytime_edges, &daytime_edges_type, generator);
             transmit(&graph, beta, gamma_vec, sigma_vec, mu);
             decrement(&graph, history);
 
@@ -405,7 +523,7 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
         igraph_add_edges(&graph, &hhedges, NULL);
         for (hr = 16; hr < 24; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            random_contacts(&graph, &hhedges, generator);
+            random_contacts(&graph, &hhedges, &hhedges_type, generator);
             transmit(&graph, beta, gamma_vec, sigma_vec, mu);
             decrement(&graph, history);
 
@@ -427,7 +545,9 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
 
     // Destroy vector/
     igraph_vector_int_destroy(&hhedges);
-    igraph_adjlist_destroy(&hh_adjlist);
+    igraph_strvector_destroy(&hhedges_type);
+    igraph_vector_int_destroy(&daytime_edges);
+    igraph_strvector_destroy(&daytime_edges_type);
 
     delete beta[0];
     delete beta[1];

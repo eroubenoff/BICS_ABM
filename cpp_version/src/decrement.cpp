@@ -114,6 +114,17 @@ void decrement(igraph_t *g, History *h) {
     }
 
 
+    /* Tally edge counts */
+    unordered_map<string, int> etypes;
+    etypes["household"] = 0;
+    etypes["work"] = 0;
+    etypes["random"] = 0;
+    for (int i = igraph_ecount(g); i--; ) {
+        etypes[EAS(g, "type", i)] += 1;
+    }
+
+
+
     SETGAN(g, "S_count", S_count);
     SETGAN(g, "E_count", E_count);
     SETGAN(g, "I_count", I_count);
@@ -131,6 +142,7 @@ void decrement(igraph_t *g, History *h) {
     cout << "D: " << std::setw(5) << D_count << " | ";
     cout << "V1: " << std::setw(5) << V1_count << " | ";
     cout << "V2: " << std::setw(5) << V2_count << " | ";
+    cout << "Edge counts: " << "Household: " <<  setw(5) << etypes["household"] << " Work " << setw(5) << etypes["work"] << " Random  " << setw(5) <<  etypes["random"];
     cout << flush;
 
 }

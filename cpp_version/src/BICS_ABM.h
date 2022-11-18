@@ -363,7 +363,6 @@ class Database{
         }
         ~Database() {
             for (auto i: data) {
-                cout << "Database destructor called on " << i.first << " at " << i.second << endl;
                 delete i.second;
             }
         }
