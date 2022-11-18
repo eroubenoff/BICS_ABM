@@ -159,6 +159,14 @@ class RandomVector{
 
         RandomVector(vector<int> _ids, vector<float> probs) {
 
+            /* Filter out the zero probs */
+            for (int i = probs.size(); i--; ) {
+                if (probs[i] == 0) {
+                    probs.erase(probs.begin() + i - 1);
+                    _ids.erase(_ids.begin() + i - 1);
+                }
+            }
+
             ids = _ids;
             dd = discrete_distribution<int>(probs.begin(), probs.end());
 
@@ -169,6 +177,15 @@ class RandomVector{
             for (int i = 0; i < probs.size(); i++) {
                 ids.push_back(i);
             };
+
+            /* Filter out the zero probs */
+            for (int i = probs.size(); i--; ) {
+                if (probs[i] == 0) {
+                    probs.erase(probs.begin() + i - 1);
+                    ids.erase(ids.begin() + i - 1);
+                }
+            }
+
             dd = discrete_distribution<int>(probs.begin(), probs.end());
 
         }

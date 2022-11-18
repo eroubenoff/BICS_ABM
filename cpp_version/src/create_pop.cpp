@@ -90,6 +90,8 @@ void add_vertex(igraph_t *g,
             }
         } catch(out_of_range) {
             cout << "Out of range exception at " << s.first << ": " << s.second << endl;
+        } catch(invalid_argument) {
+            cout << "Invalid argument to " << s.first << ": " << row[s.second] << endl ; 
         }
     }
 
@@ -449,7 +451,7 @@ void gen_pop_from_survey_csv(
         igraph_t *g, 
         const Params *params) {
 
-    bool verbose = true;
+    bool verbose = false;
     bool fill_polymod = false;
 
     RandomVector dd(data->BICS_weights);
@@ -488,8 +490,6 @@ void gen_pop_from_survey_csv(
 
             string hhmember_age = recode_age(data->BICS(hhead, "resp_hh_roster#1_" + to_string(j) + "_1"));
             string hhmember_gender = recode_gender(data->BICS(hhead,"resp_hh_roster#2_" + to_string(j)));
-
-            cout << hhmember_age << hhmember_gender << endl;
 
             if (hhmember_age == "") {cout<<"Not enough info on household member" << endl; continue;}
 

@@ -153,6 +153,9 @@ void Data::load_BICS(int wave, string path) {
         /* Recode age to string */ 
         row[BICS_colnames["age"]] = recode_age(row[BICS_colnames["age"]]);
 
+        /* Recode lefthome_num */
+        row[BICS_colnames["lefthome_num"]] = row[BICS_colnames["lefthome_num"]] == "Morethan5" ? "6" : row[BICS_colnames["lefthome_num"]];
+
         /* Filter by wave */ 
         if (stoi(row[BICS_colnames["wave"]] ) != wave)  continue;
 
