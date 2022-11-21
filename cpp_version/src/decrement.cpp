@@ -124,13 +124,16 @@ void decrement(igraph_t *g, History *h) {
     igraph_vector_destroy(&tv2_vec);
 
     /* Tally edge counts */
-    unordered_map<string, int> etypes;
-    etypes["household"] = 0;
-    etypes["work"] = 0;
-    etypes["random"] = 0;
+    int hh_count = 0; 
+    int random_count = 0;
+    igraph_strvector_t etypes;
+    igraph_strvector_init(&etypes, 0);
+    EASV(g, "type", &etypes);
     for (int i = igraph_ecount(g); i--; ) {
-        etypes[EAS(g, "type", i)] += 1;
+        if (!strcmp(VECTOR(etypes)[i], "household") ) hh_count++;
+        if (!strcmp(VECTOR(etypes)[i], "random") ) random_count++;
     }
+    igraph_strvector_destroy(&etypes);
 
 
 
@@ -151,7 +154,7 @@ void decrement(igraph_t *g, History *h) {
     cout << "D: " << std::setw(5) << D_count << " | ";
     cout << "V1: " << std::setw(5) << V1_count << " | ";
     cout << "V2: " << std::setw(5) << V2_count << " | ";
-    cout << "Edge counts: " << "Household: " <<  setw(5) << etypes["household"] << " Work " << setw(5) << etypes["work"] << " Random  " << setw(5) <<  etypes["random"];
+    cout << "Edge counts: " << "Household: " <<  setw(5) << hh_count << " Work " << setw(5) << " Random  " << setw(5) <<  random_count;
     cout << flush;
 
 

@@ -199,8 +199,8 @@ void random_contacts(igraph_t *g,
     
     igraph_es_t temp_es; // Temporary edge selector
     igraph_eit_t temp_eit; // Temporary edge iterator
-    vector<igraph_integer_t> edges_to_remove; // Regular vector of edges to remove
     int random_edgelist_size = igraph_vector_int_size(&random_edgelist); // Number of nodes having random contacts
+    vector<igraph_integer_t> edges_to_remove(random_edgelist_size); // Regular vector of edges to remove
 
     for (int i = 0; i < random_edgelist_size; i++) {
 
@@ -209,12 +209,14 @@ void random_contacts(igraph_t *g,
         igraph_eit_create(g, temp_es, &temp_eit);
 
         // Iterate over them, adding s
+        int e = 0;
         while(!IGRAPH_EIT_END(temp_eit)) {
             // cout << "Edge" << IGRAPH_EIT_GET(temp_eit) << " connectes vertices  " << IGRAPH_FROM(g, IGRAPH_EIT_GET(temp_eit)) << " and " << IGRAPH_TO(g, IGRAPH_EIT_GET(temp_eit)) << endl;
 
-            edges_to_remove.push_back(IGRAPH_EIT_GET(temp_eit));
+            edges_to_remove[e] = IGRAPH_EIT_GET(temp_eit);
 
             IGRAPH_EIT_NEXT(temp_eit);
+            e++;
 
         }
         
@@ -257,7 +259,11 @@ void random_contacts(igraph_t *g,
     igraph_add_edges(g, &random_edgelist, NULL);
 
     /* Set any additional contacts to type "random" */
-    for (int i = 0; i < igraph_vector_int_size(&random_edgelist); i+=2) igraph_strvector_push_back(&edges_type, "random");
+    int n_regular = igraph_strvector_size(&edges_type);
+    igraph_strvector_resize(&edges_type, n_regular + igraph_vector_int_size(&random_edgelist)/2);
+    for (int i = n_regular; i < igraph_strvector_size(&edges_type); i++) {
+        igraph_strvector_set(&edges_type, i, "random");
+    }
 
     /* Set edge types to graph */
     igraph_cattribute_EAS_setv(g, "type", &edges_type);
