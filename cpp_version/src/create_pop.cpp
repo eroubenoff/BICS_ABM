@@ -54,7 +54,7 @@ void add_vertex(igraph_t *g,
     SETVAS(g, "hhid", i, hhid.c_str());
 
     // Fixed characteristics
-    SETVAS(g, "disease_status", i, "S");
+    SETVAN(g, "disease_status", i, ::S);
     SETVAN(g, "remaining_days_exposed", i, -1);
     SETVAN(g, "remaining_days_sick", i, -1);
     SETVAN(g, "vaccine_status", i, 0);
@@ -99,7 +99,7 @@ void add_vertex(igraph_t *g,
     SETVAS(g, "hhid", i, hhid.c_str());
 
     // Fixed characteristics
-    SETVAS(g, "disease_status", i, "S");
+    SETVAN(g, "disease_status", i, ::S);
     SETVAN(g, "remaining_days_exposed", i, -1);
     SETVAN(g, "remaining_days_sick", i, -1);
     SETVAN(g, "vaccine_status", i, 0);

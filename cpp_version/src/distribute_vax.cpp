@@ -19,7 +19,7 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2) {
 
     for (int i = igraph_vcount(g); i--; ) {
         priorities_v1[VAN(g, "vaccine_priority", i)].push_back(i);
-        if ((VAN(g, "vaccine_status", i) == 1) & (VAN(g, "time_until_v2", i) == 0))
+        if ((VAN(g, "vaccine_status", i) == ::V0) & (VAN(g, "time_until_v2", i) == 0))
             priorities_v2.push_back(i);
     }
 
@@ -49,7 +49,7 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2) {
         priorities_v1[max_prior].pop_back();
         
         SETVAN(g, "vaccine_priority", node_to_vax, -1);
-        SETVAN(g, "vaccine_status", node_to_vax, 1);
+        SETVAN(g, "vaccine_status", node_to_vax, ::V1);
         SETVAN(g, "time_until_v2", node_to_vax, time_until_v2);
 
         n_remaining_v1--;
@@ -65,7 +65,7 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2) {
         node_to_vax = priorities_v2.size() - 1;
         priorities_v2.pop_back();
 
-        SETVAN(g, "vaccine_status", node_to_vax, 2);
+        SETVAN(g, "vaccine_status", node_to_vax, ::V2);
         SETVAN(g, "time_until_v2", node_to_vax, -1);
 
         n_remaining_v2--;

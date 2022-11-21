@@ -512,3 +512,20 @@ void set_vaccine_priority(
         const vector<vector<tuple<string, string>>> rules,
         mt19937 generator
         );
+
+/* 
+ * Disease and vaccine status as globals 
+ *
+ * This is done so that they can be internally
+ * represented as ints, which is much faster than
+ * strings with the igraph api. They are globals for consistency. 
+ * */
+
+extern int S;
+extern int E;
+extern int I;
+extern int R;
+extern int D;
+extern int V0;
+extern int V1;
+extern int V2;

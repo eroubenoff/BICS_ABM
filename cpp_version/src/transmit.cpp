@@ -12,16 +12,14 @@ void transmit(igraph_t *g,
         CyclingVector<int> &sigma_vec, 
         unordered_map<string, CyclingVector<int> > &mu ){
 
-    int n_nodes = igraph_vcount(g);
+    int vcount= igraph_vcount(g);
     igraph_vector_int_t neighbors;
     igraph_vector_int_init(&neighbors, 0);
 
     // Faster to compare int than char, avoids call to strcmp 
-    short int ds; // Disease status of infectious node
-    short int dsn; // Disease status of neighbor node
-    short int S = 'S'; // Constant int for S
-    short int I = 'I'; // Constant int for i 
-    int n_neighbors, n2; // Number of neighbors and index of neighbor node
+    int ds; // Disease status of infectious node
+    int dsn; // Disease status of neighbor node
+    int n2; // Number of neighbors and index of neighbor node
 
     short int vs;
     bool vs_next;
@@ -31,32 +29,36 @@ void transmit(igraph_t *g,
     CyclingVector<int>* beta1 = beta_vec[1];
     CyclingVector<int>* beta2 = beta_vec[2];
 
-    for (int i = n_nodes; i--; ) {
-        ds = VAS(g, "disease_status", i)[0];
+    /* Pull attributes from g */
+    igraph_vector_t ds_vec;
+    igraph_vector_init(&ds_vec, vcount);
+    VANV(g, "disease_status", &ds_vec);
+    igraph_vector_t vs_vec;
+    igraph_vector_init(&vs_vec, vcount);
+    VANV(g, "vaccine_status", &vs_vec);
+    igraph_vector_t rde_vec;
+    igraph_vector_init(&rde_vec, vcount);
 
-        if (ds == I) {
+    for (int i = vcount; i--; ) {
+        ds = VECTOR(ds_vec)[i]; 
+
+        if (ds == ::I) {
             igraph_neighbors(g, &neighbors, i, IGRAPH_ALL); 
-            n_neighbors = igraph_vector_int_size(&neighbors);
-            for (n_neighbors; n_neighbors--; ) {
+            for (int n_neighbors = igraph_vector_int_size(&neighbors) ; n_neighbors--; ) {
                 n2 = VECTOR(neighbors)[n_neighbors];
-                dsn = VAS(g, "disease_status", n2)[0];
-                if (dsn != S) continue; 
+                dsn = VECTOR(ds_vec)[n2];  
+                if (dsn != ::S) continue; 
 
-                vs = VAN(g, "vaccine_status", n2);
-                switch (vs){
-                    case 0:
+                vs = VECTOR(vs_vec)[i]; 
+                if (vs == ::V0){
                         vs_next = beta0 -> next();
-                        break;
-                    case 1:
+                } else if (vs == ::V1){
                         vs_next = beta1 -> next();
-                        break;
-                    case 2:
+                } else if (vs == ::V2) {
                         vs_next = beta2 -> next();
-                        break;
-                    default:
+                } else {
                         cout << "Error in switch " << endl;
                         vs_next = beta0 -> next();
-                        break;
                 }
                 // vs_next = beta_vec[vs] -> next();
                 if (vs_next) {
@@ -67,6 +69,8 @@ void transmit(igraph_t *g,
         else continue;
     }
 
+    igraph_vector_destroy(&ds_vec);
+    igraph_vector_destroy(&vs_vec);
     igraph_vector_int_destroy(&neighbors);
 
 

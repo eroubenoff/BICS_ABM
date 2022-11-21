@@ -14,6 +14,23 @@
 #include <set>
 
 
+/* 
+ * Disease and vaccine status as globals 
+ *
+ * This is done so that they can be internally
+ * represented as ints, which is much faster than
+ * strings with the igraph api. They are globals for consistency. 
+ * */
+
+int S = 1;
+int E = 2;
+int I = 3;
+int R = 4;
+int D = 5;
+int V0 = 0;
+int V1 = 1;
+int V2 = 2;
+
 
 /* Params default values */ 
 extern "C" Params init_params() {
@@ -39,6 +56,7 @@ extern "C" Params init_params() {
 
     return params;
 };
+
 void delete_all_edges(igraph_t *g) {
     igraph_es_t es;
     igraph_es_all(&es, IGRAPH_EDGEORDER_ID);
@@ -82,38 +100,51 @@ void random_contacts(igraph_t *g,
 
     /* 
      * ZIP parameters 
+     * Random draw of stubs for each vertex 
+     *
+     * First get attributes
      * */ 
     bernoulli_distribution ber; int p_ber;
     poisson_distribution pois; int p_pois;
-    igraph_vector_int_t stubs_count;
-    igraph_vector_int_init(&stubs_count, igraph_vcount(g));
 
-    /* 
-     * Random draw of stubs for each vertex 
-     */
+    igraph_vector_int_t stubs_count;
+    igraph_vector_int_init(&stubs_count, vcount);
+
+    igraph_vector_t ds_vec;
+    igraph_vector_init(&ds_vec, vcount);
+    VANV(g, "disease_status", &ds_vec);
+
+    igraph_vector_t lh_vec;
+    igraph_vector_init(&lh_vec, vcount);
+    VANV(g, "lefthome_num", &lh_vec);
+
+    igraph_vector_t cc_vec;
+    igraph_vector_init(&cc_vec, vcount);
+    VANV(g, "num_cc_nonhh", &cc_vec);
+
     bool isolation = false;
     for (int i = vcount; i--; ) {
         /* See if node is in isolation */
-        if (!strcmp(VAS(g, "disease_status", i), "I") ) {
+        if (VECTOR(ds_vec)[i] == ::I){ 
             isolation = true;
         } else {
             isolation = false;
         }
 
         /* Draw probability of an excursion */ 
-        if (VAN(g, "lefthome_num", i) > 0) {
-            ber = bernoulli_distribution(VAN(g, "lefthome_num", i) / 10.0);
+        if (VECTOR(lh_vec)[i] > 0){ 
+            ber = bernoulli_distribution(VECTOR(lh_vec)[i]); 
             p_ber = ber(generator);
 
             /* Draw lambda */
-            pois = poisson_distribution(VAN(g, "num_cc_nonhh", i) / VAN(g, "lefthome_num", i));
+            pois = poisson_distribution(VECTOR(cc_vec)[i]/VECTOR(lh_vec)[i]); 
             p_pois = pois(generator);
 
             /* Draw stubs */
             if (!isolation) {
                 VECTOR(stubs_count)[i] = p_ber * p_pois;
             } else {
-                VECTOR(stubs_count)[i] = (int) floor(isolation_multiplier * p_ber * p_pois);
+                VECTOR(stubs_count)[i] = round(isolation_multiplier * p_ber * p_pois);
             }
         }
         else {
@@ -121,6 +152,10 @@ void random_contacts(igraph_t *g,
         }
 
     }
+
+    igraph_vector_destroy(&ds_vec);
+    igraph_vector_destroy(&lh_vec);
+    igraph_vector_destroy(&cc_vec);
 
     /* 
      * Make sure sum is an even number; otherwise decrease a random stub until it is 

@@ -16,7 +16,8 @@ using namespace std;
 void decrement(igraph_t *g, History *h) {
     igraph_real_t rds, rde, tv2;
 
-    short int ds;
+    // short int ds;
+    int ds;
     igraph_real_t vs;
 
     int S_count = 0;
@@ -27,85 +28,82 @@ void decrement(igraph_t *g, History *h) {
     int V1_count = 0;
     int V2_count = 0;
 
-    const char S = 'S';
-    const char E = 'E';
-    const char I = 'I';
-    const char R = 'R';
-    const char D = 'D';
-
     int vcount = igraph_vcount(g);
     int mu;
 
+
+    /* Get attributes as vectors */
+    igraph_vector_t ds_vec;
+    igraph_vector_init(&ds_vec, vcount);
+    VANV(g, "disease_status", &ds_vec);
+    igraph_vector_t vs_vec;
+    igraph_vector_init(&vs_vec, vcount);
+    VANV(g, "vaccine_status", &vs_vec);
+    igraph_vector_t rde_vec;
+    igraph_vector_init(&rde_vec, vcount);
+    VANV(g, "remaining_days_exposed", &rde_vec);
+    igraph_vector_t rds_vec;
+    igraph_vector_init(&rds_vec, vcount);
+    VANV(g, "remaining_days_sick", &rds_vec);
+    igraph_vector_t mu_vec;
+    igraph_vector_init(&mu_vec, vcount);
+    VANV(g, "mu", &mu_vec);
+    igraph_vector_t tv2_vec;
+    igraph_vector_init(&tv2_vec, vcount);
+    VANV(g, "time_until_v2", &tv2_vec);
+
     for (int i = vcount; i--; ) {
-        ds = VAS(g, "disease_status", i)[0];
-        vs = VAN(g, "vaccine_status", i);
+        ds = VECTOR(ds_vec)[i]; 
+        vs = VECTOR(vs_vec)[i];
 
-        switch(ds) {
-            case S: 
+        if (ds == ::S){
                 ++S_count;
-                break;
+        }
 
-            case E:
-                rde = VAN(g, "remaining_days_exposed", i);
+        else if (ds == ::E) {
+                rde = VECTOR(rde_vec)[i]; 
                 if (rde == 0.0) {
-                    SETVAS(g, "disease_status", i, "I");
+                    VECTOR(ds_vec)[i] = ::I;
                     ++I_count;
                 } else {
-                    SETVAN(g, "remaining_days_exposed", i, rde - 1.0);
+                    VECTOR(rde_vec)[i] -= 1;
                     ++E_count;
                 }
-                break;
+        }
 
-            case I:
-                rds = VAN(g, "remaining_days_sick", i);
-                mu = VAN(g, "mu", i);
+        else if (ds == ::I) {  
+                rds = VECTOR(rds_vec)[i]; 
+                mu = VECTOR(mu_vec)[i]; 
                 if ((rds == 0.0) & (mu == 0.0)) {
-                    SETVAS(g, "disease_status", i, "R");
+                    VECTOR(ds_vec)[i] = ::R;
                     ++R_count;
 
                 } else if ((rds == 0.0 ) & (mu == 1.0) ) {
-                    SETVAS(g, "disease_status", i, "D");
+                    VECTOR(ds_vec)[i] = ::D;
                     ++D_count;
 
                 } else {
-                    SETVAN(g, "remaining_days_sick", i, rds - 1.0);
+                    VECTOR(rds_vec)[i] -= 1;
                     ++I_count;
                 }
-                break;
+        }
 
-            case R:
+        else if (ds == ::R) {
+
                 ++R_count;
-                break;
 
-            case D:
+        }
+
+        else if (ds == ::D) {
+
                 ++D_count;
-                break;
-
         }
 
-        /*
-        switch(vs) {
-            case -1: 
-                break;
-            case 0: 
-                break;
-            case 1: 
-                V1_count++;
-                tv2 = VAN(g, "time_until_v2", i);
-                if (tv2 > 0) SETVAN(g, "time_until_v2", i,  tv2 - 1);
-                break;
-            case 2:
-                V2_count++;
-                break;
-
-        }
-        */
-
-        if (vs == 1.0) {
+        if (vs == ::V1) {
             ++V1_count;
-            tv2 = VAN(g, "time_until_v2", i);
-            if (tv2 > 0.0) SETVAN(g, "time_until_v2", i,  tv2 - 1.0);
-        } else if (vs == 2.0) {
+            tv2 = VECTOR(tv2_vec)[i];
+            if (tv2 > 0.0) VECTOR(tv2_vec)[i] -= 1;
+        } else if (vs == ::V2) {
             ++V2_count;
         } else {
             continue;
@@ -113,6 +111,17 @@ void decrement(igraph_t *g, History *h) {
 
     }
 
+    SETVANV(g, "disease_status", &ds_vec);
+    SETVANV(g, "vaccine_status", &vs_vec);
+    SETVANV(g, "remaining_days_exposed", &rde_vec);
+    SETVANV(g, "remaining_days_sick", &rds_vec);
+    SETVANV(g, "time_until_v2", &tv2_vec);
+    igraph_vector_destroy(&ds_vec);
+    igraph_vector_destroy(&vs_vec);
+    igraph_vector_destroy(&rde_vec);
+    igraph_vector_destroy(&rds_vec);
+    igraph_vector_destroy(&mu_vec);
+    igraph_vector_destroy(&tv2_vec);
 
     /* Tally edge counts */
     unordered_map<string, int> etypes;
@@ -144,5 +153,6 @@ void decrement(igraph_t *g, History *h) {
     cout << "V2: " << std::setw(5) << V2_count << " | ";
     cout << "Edge counts: " << "Household: " <<  setw(5) << etypes["household"] << " Work " << setw(5) << etypes["work"] << " Random  " << setw(5) <<  etypes["random"];
     cout << flush;
+
 
 }

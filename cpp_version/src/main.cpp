@@ -112,6 +112,9 @@ int main(int argc, char **argv) {
     if (args.find("-ve2") != args.end()) {
         params.VE2 = stof(args["-ve2"]);
     }
+    if (args.find("-isolation_multiplier") != args.end()) {
+        params.ISOLATION_MULTIPLIER = stof(args["-isolation_multiplier"]);
+    }
     if (args.find("-vax_rules") != args.end()) {
         cout << "CANNOT READ VAX RULES FROM COMMAND LINE. MUST USE PYTHON INTERFACE" << endl;
     }
