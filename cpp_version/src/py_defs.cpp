@@ -22,10 +22,6 @@ extern "C" struct Trajectory BICS_ABM(Params params) {
     Trajectory trajectory; 
     History history;
 
-    cout << params.VAX_RULES_COLS << endl;
-    cout << params.VAX_RULES_VALS << endl;
-    cout << params.VAX_RULES_N << endl;
-
 
     BICS_ABM(::database[params.WAVE], &params, &history);
 

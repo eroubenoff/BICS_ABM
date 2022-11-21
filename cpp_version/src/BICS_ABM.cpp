@@ -28,6 +28,7 @@ extern "C" Params init_params() {
         49, 4949, // SEED, POP_SEED
         100, // N_VAX_DAILY
         0.75, 0.95, // VE1, 2
+        0.90,  // isolation_multiplier
 
         "age;age;age;age;hesitancy", // VAX_RULES_COLS
         ">85;[75,85);[65,75);[55,65);0.5", // VAX_RULES_VALS
@@ -56,6 +57,7 @@ void delete_all_edges(igraph_t *g) {
 void random_contacts(igraph_t *g, 
         igraph_vector_int_t *regular_contacts_el,
         igraph_strvector_t *regular_contacts_type,
+        float isolation_multiplier,
         mt19937 &generator) {
 
     /* New graph to work on temporary edges */
@@ -64,10 +66,6 @@ void random_contacts(igraph_t *g,
 
     /* Pull attributes from the original graph */
     int vcount = igraph_vcount(g);
-
-
-
-
 
     /* 
      * First remove the previous step's random contacts
@@ -93,11 +91,18 @@ void random_contacts(igraph_t *g,
     /* 
      * Random draw of stubs for each vertex 
      */
+    bool isolation = false;
     for (int i = vcount; i--; ) {
+        /* See if node is in isolation */
+        if (!strcmp(VAS(g, "disease_status", i), "I") ) {
+            isolation = true;
+        } else {
+            isolation = false;
+        }
 
         /* Draw probability of an excursion */ 
         if (VAN(g, "lefthome_num", i) > 0) {
-            ber = bernoulli_distribution(VAN(g, "lefthome_num", i) / 24.0);
+            ber = bernoulli_distribution(VAN(g, "lefthome_num", i) / 10.0);
             p_ber = ber(generator);
 
             /* Draw lambda */
@@ -105,7 +110,11 @@ void random_contacts(igraph_t *g,
             p_pois = pois(generator);
 
             /* Draw stubs */
-            VECTOR(stubs_count)[i] = p_ber * p_pois;
+            if (!isolation) {
+                VECTOR(stubs_count)[i] = p_ber * p_pois;
+            } else {
+                VECTOR(stubs_count)[i] = (int) floor(isolation_multiplier * p_ber * p_pois);
+            }
         }
         else {
             VECTOR(stubs_count)[i] = 0;
@@ -371,6 +380,7 @@ void print_params(const Params *params) {
     cout << "POP_SEED:        " << params->POP_SEED<< endl;
     cout << "N_VAX_DAILY:     " << params->N_VAX_DAILY<< endl;
     cout << "VE1, VE2:        " << params->VE1 << ", " << params->VE2 << endl;
+    cout << "ISOLATION_MULT.: " << params->ISOLATION_MULTIPLIER<< endl;
     cout << "VAX_RULES_COLS:  " << params->VAX_RULES_COLS << endl;
     cout << "VAX_RULES_VALS:  " << params->VAX_RULES_VALS << endl;
     cout << "VAX_CONDS_N:     " << params->VAX_CONDS_N << endl;
@@ -448,9 +458,11 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
     igraph_cattribute_EAS_setv(&graph, "type", &hhedges_type);
 
     /* Generate daytime edges that include work contacts*/ 
+    /*
     igraph_vector_int_t daytime_edges;
     igraph_strvector_t daytime_edges_type;
     gen_daytime_edges(&graph, &hhedges, &daytime_edges, &daytime_edges_type);
+    */
 
 
     // Pick nodes at random to be infected
@@ -465,7 +477,7 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
     cout << endl;
 
 
-
+    int isolation_multiplier = params->ISOLATION_MULTIPLIER;
 
 
     int day = 0;
@@ -474,23 +486,12 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
 
 
     
-    /* For daytime, need to create poisson generators for contact */
-    /* vector<poisson_distribution<int>> num_cc_nonhh;
-
-    for (int i = 0; i < igraph_vcount(&graph); i++) {
-        num_cc_nonhh.push_back(poisson_distribution<int>(VAN(&graph, "num_cc_nonhh", i)/float(10)));
-    }
-    */ 
-
-    
-
     igraph_integer_t n_edges;
     while (GAN(&graph, "I_count") + GAN(&graph, "E_count") > 0){
 
         // Hours 0-8
         for (hr = 0; hr < 8; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            random_contacts(&graph, &hhedges, &hhedges_type, generator);
             transmit(&graph, beta, gamma_vec, sigma_vec, mu);
             decrement(&graph, history);
 
@@ -511,7 +512,8 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
              * similar.
              */
 
-            random_contacts(&graph, &daytime_edges, &daytime_edges_type, generator);
+            // random_contacts(&graph, &daytime_edges, &daytime_edges_type, generator);
+            random_contacts(&graph, &hhedges, &hhedges_type, isolation_multiplier, generator);
             transmit(&graph, beta, gamma_vec, sigma_vec, mu);
             decrement(&graph, history);
 
@@ -523,7 +525,6 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
         igraph_add_edges(&graph, &hhedges, NULL);
         for (hr = 16; hr < 24; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            random_contacts(&graph, &hhedges, &hhedges_type, generator);
             transmit(&graph, beta, gamma_vec, sigma_vec, mu);
             decrement(&graph, history);
 
@@ -546,8 +547,10 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
     // Destroy vector/
     igraph_vector_int_destroy(&hhedges);
     igraph_strvector_destroy(&hhedges_type);
+    /*
     igraph_vector_int_destroy(&daytime_edges);
     igraph_strvector_destroy(&daytime_edges_type);
+    */
 
     delete beta[0];
     delete beta[1];

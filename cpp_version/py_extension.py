@@ -37,6 +37,7 @@ class Params(ctypes.Structure):
             ('N_VAX_DAILY', ctypes.c_int),
             ('VE1', ctypes.c_float),
             ('VE2', ctypes.c_float),
+            ('ISOLATION_MULTIPLIER', ctypes.c_float),
             ('VAX_RULES_COLS', ctypes.c_char*1000),
             ('VAX_RULES_VALS', ctypes.c_char*1000),
             ('VAX_CONDS_N', ctypes.c_int*100),
@@ -128,7 +129,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random 
 
-beta_range = np.arange(0, .5, 0.01)
+beta_range = np.arange(0, .5, 0.05)
 deaths = list() 
 
 for beta in beta_range:

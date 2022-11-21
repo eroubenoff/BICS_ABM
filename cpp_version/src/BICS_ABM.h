@@ -58,6 +58,7 @@ extern "C" typedef struct Params {
     int N_VAX_DAILY;
     float VE1;
     float VE2;
+    float ISOLATION_MULTIPLIER;
 
     char VAX_RULES_COLS[1000];
     char VAX_RULES_VALS[1000];
