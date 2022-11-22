@@ -44,7 +44,9 @@ add_executable(BICS_ABM
 add_executable(BICS_ABM_tests
     src/tests/pop_tests.cpp
     src/tests/tests_main.cpp
-    src/tests/data_tests.cpp)
+    src/tests/data_tests.cpp
+    src/tests/decrement_tests.cpp
+    )
 
 file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -57,6 +59,7 @@ include(GoogleTest)
 # add_test(src/tests/test.cpp BICS_ABM)
 add_test(Vax_tests BICS_ABM)
 add_test(DataTests BICS_ABM)
+add_test(DecrementTests BICS_ABM)
 
 # Install headers
 
