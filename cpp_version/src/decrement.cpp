@@ -61,6 +61,11 @@ void decrement(igraph_t *g, History *h) {
     igraph_vector_init(&tvboost_vec, vcount);
     VANV(g, "time_until_vboost", &tvboost_vec);
 
+
+    igraph_vector_t tsus_vec;
+    igraph_vector_init(&tsus_vec, vcount);
+    VANV(g, "time_until_susceptible", &tsus_vec);
+
     /* 
      * Loop through each vertex
      */ 
@@ -114,6 +119,12 @@ void decrement(igraph_t *g, History *h) {
          */
         else if (ds == ::R) {
             ++R_count;
+            if (VECTOR(tsus_vec)[i] == 0 ) {
+                VECTOR(ds_vec)[i] = ::S;
+            }
+            else {
+                VECTOR(tsus_vec)[i] -=1; 
+            }
 
         }
 

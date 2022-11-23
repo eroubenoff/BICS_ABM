@@ -17,4 +17,5 @@ void set_sick(igraph_t *g, int n, int rde, int rds, bool mu) {
   SETVAN(g, "remaining_days_exposed", n, rde);
   SETVAN(g, "remaining_days_sick", n, rds);
   SETVAN(g, "mu", n, mu);
+  SETVAN(g, "time_since_infection", n, 50*24);
 }

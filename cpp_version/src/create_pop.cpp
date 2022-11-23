@@ -107,6 +107,7 @@ void add_vertex(igraph_t *g,
     SETVAN(g, "time_until_v2", i, -1);
     SETVAN(g, "time_until_vw", i, -1);
     SETVAN(g, "time_until_vboost", i, -1);
+    SETVAN(g, "time_until_susceptible", i, -1);
 
 
 
