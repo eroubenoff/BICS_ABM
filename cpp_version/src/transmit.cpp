@@ -35,7 +35,7 @@ void transmit(igraph_t *g,
     for (int i = vcount; i--; ) {
         ds = VECTOR(ds_vec)[i]; 
 
-        if (ds == ::I) {
+        if ((ds == ::I) || (ds == ::E)) {
             igraph_neighbors(g, &neighbors, i, IGRAPH_ALL); 
             for (int n_neighbors = igraph_vector_int_size(&neighbors) ; n_neighbors--; ) {
                 n2 = VECTOR(neighbors)[n_neighbors];
