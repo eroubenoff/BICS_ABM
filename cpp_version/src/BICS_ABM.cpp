@@ -120,23 +120,36 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
     */
 
 
+
+
+
+    int day; 
+    int hr;
+    decrement(&graph, history);
+
     // Pick nodes at random to be infected
+    for (day = 0; day < params->T0; day++){
+        for (hr = 0; hr < 8; hr++) {
+            cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
+            decrement(&graph, history);
+        }
+        distribute_vax(&graph, params->N_VAX_DAILY, 25*24, 30*24, 30*24);
+        for (hr = 8; hr < 24; hr++) {
+            cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
+            decrement(&graph, history);
+        }
+
+    }
     uniform_int_distribution<int> distribution(0,igraph_vcount(&graph) - 1);
-    cout << "Index cases: ";
+    cout << endl;
+    cout << "Index cases: " ;
     for (int i = 0; i < params->INDEX_CASES; i++) {
         int index_case = distribution(generator);
         cout << index_case << "  " ;
         set_sick(&graph, index_case, 3*24, 5*24, false, params->T_REINFECTION);
     }
 
-    cout << endl;
-
-
-
-    int day = 0;
-    int hr = 0;
     decrement(&graph, history);
-
 
     
     igraph_integer_t n_edges;
@@ -189,8 +202,6 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
 
     }
 
-    // history.save();
-    // history.plot_trajectory();
 
     /* Delete all remaining attributes. */
     DELALL(&graph);

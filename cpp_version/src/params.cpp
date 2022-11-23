@@ -20,6 +20,7 @@ extern "C" Params init_params(mt19937 generator) {
         0.25, 0.95, // VEW, Boost 
         1,  // isolation_multiplier
         90*24, // t_reinfectoin
+        0, // t0
 
         "age;age;age;age;hesitancy", // VAX_RULES_COLS
         ">85;[75,85);[65,75);[55,65);0.5", // VAX_RULES_VALS

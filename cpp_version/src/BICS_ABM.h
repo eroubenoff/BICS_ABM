@@ -81,6 +81,7 @@ extern "C" typedef struct Params {
     float VEBOOST;
     float ISOLATION_MULTIPLIER;
     int T_REINFECTION;
+    int T0;
 
     char VAX_RULES_COLS[1000];
     char VAX_RULES_VALS[1000];
