@@ -30,6 +30,8 @@ int D = 5;
 int V0 = 0;
 int V1 = 1;
 int V2 = 2;
+int VW = 3;
+int VBoost = 4;
 
 
 /* Params default values */ 
@@ -161,6 +163,7 @@ void random_contacts(igraph_t *g,
      * Make sure sum is an even number; otherwise decrease a random stub until it is 
      *
      * */
+
     int sum = igraph_vector_int_sum(&stubs_count);
     if (sum % 2 == 1) { 
         // Pick a random index
@@ -176,6 +179,28 @@ void random_contacts(igraph_t *g,
             tries++;
         }
     }
+    
+    /* 
+     * For any vertex with stubs_count>0, remove any existing edges 
+     * */
+
+    // igraph_es_t temp_es; // Temporary edge selector
+    igraph_vector_int_t elist_to_remove;
+    igraph_vector_int_init(&elist_to_remove, 0);
+    igraph_vector_int_t temp_elist;
+    igraph_vector_int_init(&temp_elist, 0);
+
+    for (int i = 0; i < igraph_vcount(g); i++) {
+        if (VECTOR(stubs_count)[i] > 0) {
+            igraph_incident(g, &temp_elist, i, IGRAPH_ALL);
+            igraph_vector_int_append(&elist_to_remove, &temp_elist);
+        }
+    }
+
+    igraph_delete_edges(g, igraph_ess_vector(&elist_to_remove));
+
+    igraph_vector_int_destroy(&temp_elist);
+    igraph_vector_int_destroy(&elist_to_remove);
 
     /* 
      * Create a new graph with this random draw and
@@ -189,84 +214,38 @@ void random_contacts(igraph_t *g,
     igraph_get_edgelist(&new_graph, &random_edgelist, false);
 
 
-
     /* 
-     * Remove any regular edges in g from vertices found in random_edgelist
-     * Do this by creating a regular int vector with the 
-     * edge-ids to remove, then passing that to 
-     * igraph_delete_edges
-     */
-    
-    igraph_es_t temp_es; // Temporary edge selector
-    igraph_eit_t temp_eit; // Temporary edge iterator
-    int random_edgelist_size = igraph_vector_int_size(&random_edgelist); // Number of nodes having random contacts
-    vector<igraph_integer_t> edges_to_remove(random_edgelist_size); // Regular vector of edges to remove
-
-    for (int i = 0; i < random_edgelist_size; i++) {
-
-        // Get edges for each vertex in random_edgelist
-        igraph_es_incident(&temp_es, VECTOR(random_edgelist)[i], IGRAPH_ALL);
-        igraph_eit_create(g, temp_es, &temp_eit);
-
-        // Iterate over them, adding s
-        int e = 0;
-        while(!IGRAPH_EIT_END(temp_eit)) {
-            // cout << "Edge" << IGRAPH_EIT_GET(temp_eit) << " connectes vertices  " << IGRAPH_FROM(g, IGRAPH_EIT_GET(temp_eit)) << " and " << IGRAPH_TO(g, IGRAPH_EIT_GET(temp_eit)) << endl;
-
-            edges_to_remove[e] = IGRAPH_EIT_GET(temp_eit);
-
-            IGRAPH_EIT_NEXT(temp_eit);
-            e++;
-
-        }
-        
-    }
-
-    igraph_es_destroy(&temp_es);
-    igraph_eit_destroy(&temp_eit);
-
-    // There may be duplicate edges here if both endpoints
-    // have a random contact
-    sort(edges_to_remove.begin(), edges_to_remove.end());
-    int current_val;
-    for (int i = 0; i < edges_to_remove.size(); i++){
-        current_val = edges_to_remove[i];
-        if (current_val == edges_to_remove[i+1]){
-            // cout << "Removing duplicate value at location " << i << endl;
-            edges_to_remove.erase(edges_to_remove.begin() + i);
-        }
-    }
-
-    igraph_vector_int_t edges_to_remove_2;
-    igraph_vector_int_init_array(&edges_to_remove_2, &edges_to_remove.data()[0], edges_to_remove.size());
-
-    igraph_es_t es_to_remove;
-    igraph_es_vector(&es_to_remove, &edges_to_remove_2);
-
-    igraph_delete_edges(g, es_to_remove);
-
-    igraph_vector_int_destroy(&edges_to_remove_2);
-    igraph_es_destroy(&es_to_remove);
-
-    /* Get the type of the reduced edges */
+     * Set edge types 
+     * First get the type of the reduced edges 
+     * */
     igraph_strvector_t edges_type;
     igraph_strvector_init(&edges_type, igraph_ecount(g));
     EASV(g, "type", &edges_type);
 
+
+    /* 
+     * Set any additional contacts to type "random" 
+     * */
+    int n_regular = igraph_strvector_size(&edges_type);
+    igraph_strvector_resize(&edges_type, n_regular + igraph_ecount(&new_graph));
+    for (int i = n_regular; i < igraph_strvector_size(&edges_type); i++) {
+        igraph_strvector_set(&edges_type, i, "random");
+    }
+
+    cout << endl;
+    cout << "Regular edges: " << igraph_ecount(g) << " New edges " << igraph_vector_int_size(&random_edgelist) / 2 << endl;
     /*
      * Add random contacts to the main graph
      */
     igraph_add_edges(g, &random_edgelist, NULL);
 
-    /* Set any additional contacts to type "random" */
-    int n_regular = igraph_strvector_size(&edges_type);
-    igraph_strvector_resize(&edges_type, n_regular + igraph_vector_int_size(&random_edgelist)/2);
-    for (int i = n_regular; i < igraph_strvector_size(&edges_type); i++) {
-        igraph_strvector_set(&edges_type, i, "random");
-    }
-
-    /* Set edge types to graph */
+    /* 
+     * Set edge types to graph 
+     * */
     igraph_cattribute_EAS_setv(g, "type", &edges_type);
+
+    // print_attributes(g);
+    cout << igraph_ecount(g) << endl;
 
     /* 
      * Call destructors 
@@ -539,7 +518,7 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
         }
 
 
-        distribute_vax(&graph, params->N_VAX_DAILY, 25*24);
+        distribute_vax(&graph, params->N_VAX_DAILY, 25*24, 30*24, 30*24);
 
         // Hours 8-16
         for (hr = 8; hr < 16; hr++){

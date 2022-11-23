@@ -105,6 +105,8 @@ void add_vertex(igraph_t *g,
     SETVAN(g, "vaccine_status", i, 0);
     SETVAN(g, "vaccine_priority", i, -1);
     SETVAN(g, "time_until_v2", i, -1);
+    SETVAN(g, "time_until_vw", i, -1);
+    SETVAN(g, "time_until_vboost", i, -1);
 
 
 

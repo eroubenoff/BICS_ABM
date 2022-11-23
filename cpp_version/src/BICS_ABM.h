@@ -8,6 +8,25 @@
 using namespace std;
 
 /* 
+ * Disease and vaccine status as globals 
+ *
+ * This is done so that they can be internally
+ * represented as ints, which is much faster than
+ * strings with the igraph api. They are globals for consistency. 
+ * */
+
+extern int S;
+extern int E;
+extern int I;
+extern int R;
+extern int D;
+extern int V0;
+extern int V1;
+extern int V2;
+extern int VW;
+extern int VBoost;
+
+/* 
  * key is a tuple used to index nodes. Values correspond to:
  *
  * @param int hhsize
@@ -466,7 +485,7 @@ string randstring(int length);
 
 
 
-void distribute_vax(igraph_t *g, int n_daily, int time_until_v2);
+void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_vw, int time_until_vboost) ;
 
 vector<float> stovf(string s);
 
@@ -513,19 +532,3 @@ void set_vaccine_priority(
         mt19937 generator
         );
 
-/* 
- * Disease and vaccine status as globals 
- *
- * This is done so that they can be internally
- * represented as ints, which is much faster than
- * strings with the igraph api. They are globals for consistency. 
- * */
-
-extern int S;
-extern int E;
-extern int I;
-extern int R;
-extern int D;
-extern int V0;
-extern int V1;
-extern int V2;

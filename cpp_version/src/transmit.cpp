@@ -36,8 +36,6 @@ void transmit(igraph_t *g,
     igraph_vector_t vs_vec;
     igraph_vector_init(&vs_vec, vcount);
     VANV(g, "vaccine_status", &vs_vec);
-    igraph_vector_t rde_vec;
-    igraph_vector_init(&rde_vec, vcount);
 
     for (int i = vcount; i--; ) {
         ds = VECTOR(ds_vec)[i]; 
