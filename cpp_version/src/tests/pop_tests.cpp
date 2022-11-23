@@ -127,6 +127,13 @@ TEST(PopTests, Vax_rules) {
     DELALL(&new_graph);
     igraph_destroy(&new_graph);
 
+    // Just testing some adding and multiplication
+    //
+
+    EXPECT_EQ(5*.5, 2.5);
+    EXPECT_EQ(round(5*.5), 3);
+    EXPECT_EQ(4*.5, 2);
+    EXPECT_EQ(round(10* 0.1), 1);
 
 }
 

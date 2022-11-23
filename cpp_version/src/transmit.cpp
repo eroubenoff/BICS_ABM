@@ -7,7 +7,7 @@
 using namespace std;
 
 void transmit(igraph_t *g, 
-        unordered_map<int, CyclingVector<int>* > &beta_vec,
+        unordered_map<int, CyclingVector<int>> &beta_vec,
         CyclingVector<int> &gamma_vec, 
         CyclingVector<int> &sigma_vec, 
         unordered_map<string, CyclingVector<int> > &mu ){
@@ -18,16 +18,11 @@ void transmit(igraph_t *g,
 
     // Faster to compare int than char, avoids call to strcmp 
     int ds; // Disease status of infectious node
-    int dsn; // Disease status of neighbor node
+    int ds2; // Disease status of neighbor node
     int n2; // Number of neighbors and index of neighbor node
+    int vs2;         // 
 
-    short int vs;
     bool vs_next;
-
-    /* Slight optimization to unwrap the unordered_maps */
-    CyclingVector<int>* beta0 = beta_vec[0];
-    CyclingVector<int>* beta1 = beta_vec[1];
-    CyclingVector<int>* beta2 = beta_vec[2];
 
     /* Pull attributes from g */
     igraph_vector_t ds_vec;
@@ -44,21 +39,24 @@ void transmit(igraph_t *g,
             igraph_neighbors(g, &neighbors, i, IGRAPH_ALL); 
             for (int n_neighbors = igraph_vector_int_size(&neighbors) ; n_neighbors--; ) {
                 n2 = VECTOR(neighbors)[n_neighbors];
-                dsn = VECTOR(ds_vec)[n2];  
-                if (dsn != ::S) continue; 
+                ds2 = VECTOR(ds_vec)[n2];  
+                vs2 = VECTOR(vs_vec)[n2]; 
+                if (ds2 != ::S) continue; 
 
-                vs = VECTOR(vs_vec)[i]; 
-                if (vs == ::V0){
-                        vs_next = beta0 -> next();
-                } else if (vs == ::V1){
-                        vs_next = beta1 -> next();
-                } else if (vs == ::V2) {
-                        vs_next = beta2 -> next();
+                if (vs2 == ::V0){
+                        vs_next = beta_vec[::V0].next();
+                } else if (vs2 == ::V1){
+                        vs_next = beta_vec[::V1].next();
+                } else if (vs2 == ::V2) {
+                        vs_next = beta_vec[::V2].next();
+                } else if (vs2 == ::VW) {
+                        vs_next = beta_vec[::VW].next();
+                } else if (vs2 == ::VBoost) {
+                        vs_next = beta_vec[::VBoost].next();
                 } else {
                         cout << "Error in switch " << endl;
-                        vs_next = beta0 -> next();
+                        vs_next = beta_vec[::V0].next();
                 }
-                // vs_next = beta_vec[vs] -> next();
                 if (vs_next) {
                     set_sick(g, n2, gamma_vec.next(), sigma_vec.next(), mu[VAS(g, "age", n2)].next());
                 }

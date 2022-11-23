@@ -80,13 +80,12 @@ void decrement(igraph_t *g, History *h) {
          * otherwise decrement RDE
          */
         else if (ds == ::E) {
+            ++E_count;
             rde = VECTOR(rde_vec)[i]; 
             if (rde == 0.0) {
                 VECTOR(ds_vec)[i] = ::I;
-                ++I_count;
             } else {
                 VECTOR(rde_vec)[i] -= 1;
-                ++E_count;
             }
         }
 
@@ -96,19 +95,17 @@ void decrement(igraph_t *g, History *h) {
          * Otherwise decrement RDS
          */
         else if (ds == ::I) {  
+            ++I_count;
             rds = VECTOR(rds_vec)[i]; 
             mu = VECTOR(mu_vec)[i]; 
             if ((rds == 0.0) & (mu == 0.0)) {
                 VECTOR(ds_vec)[i] = ::R;
-                ++R_count;
 
             } else if ((rds == 0.0 ) & (mu == 1.0) ) {
                 VECTOR(ds_vec)[i] = ::D;
-                ++D_count;
 
             } else {
                 VECTOR(rds_vec)[i] -= 1;
-                ++I_count;
             }
         }
 
@@ -225,6 +222,7 @@ void decrement(igraph_t *g, History *h) {
     cout << "VBoost: " << std::setw(5) << VBoost_count << " | ";
     cout << "Edge counts: " << "Household: " <<  setw(5) << hh_count << " Work " << setw(5) << " Random  " << setw(5) <<  random_count;
     cout << flush;
+//     cout << endl;
 
 
 }

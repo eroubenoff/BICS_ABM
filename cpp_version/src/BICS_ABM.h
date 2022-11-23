@@ -77,6 +77,8 @@ extern "C" typedef struct Params {
     int N_VAX_DAILY;
     float VE1;
     float VE2;
+    float VEW;
+    float VEBOOST;
     float ISOLATION_MULTIPLIER;
 
     char VAX_RULES_COLS[1000];
@@ -445,7 +447,7 @@ void print_attributes(const igraph_t *g, bool nodes_only = false);
    */
 
 void transmit(igraph_t *g, 
-        unordered_map<int, CyclingVector<int>* > &beta_vec, 
+        unordered_map<int, CyclingVector<int>> &beta_vec, 
         CyclingVector<int> &gamma_vec, 
         CyclingVector<int> &sigma_vec, 
         unordered_map<string, CyclingVector<int> > &mu) ;

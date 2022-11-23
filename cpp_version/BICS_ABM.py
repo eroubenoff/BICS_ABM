@@ -37,6 +37,8 @@ class Params(ctypes.Structure):
             ('N_VAX_DAILY', ctypes.c_int),
             ('VE1', ctypes.c_float),
             ('VE2', ctypes.c_float),
+            ('VEW', ctypes.c_float),
+            ('VEBOOST', ctypes.c_float),
             ('ISOLATION_MULTIPLIER', ctypes.c_float),
             ('VAX_RULES_COLS', ctypes.c_char*1000),
             ('VAX_RULES_VALS', ctypes.c_char*1000),
