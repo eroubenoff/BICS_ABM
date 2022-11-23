@@ -80,11 +80,14 @@ extern "C" typedef struct Params {
     float VEW;
     float VEBOOST;
     float ISOLATION_MULTIPLIER;
+    int T_REINFECTION;
 
     char VAX_RULES_COLS[1000];
     char VAX_RULES_VALS[1000];
     int VAX_CONDS_N[100];
     int VAX_RULES_N;
+
+
 
 
 } Params;
@@ -98,7 +101,9 @@ extern "C" typedef struct Params {
  * @return Params object with baseline values. 
  *
  */
-extern "C" Params init_params(); 
+extern "C" Params init_params(mt19937 generator); 
+void print_params(const Params *params); 
+extern "C" Params destroy_params(); 
 
 
 
@@ -450,7 +455,8 @@ void transmit(igraph_t *g,
         unordered_map<int, CyclingVector<int>> &beta_vec, 
         CyclingVector<int> &gamma_vec, 
         CyclingVector<int> &sigma_vec, 
-        unordered_map<string, CyclingVector<int> > &mu) ;
+        unordered_map<string, CyclingVector<int> > &mu,
+        int t_reinfection) ;
 
 
 /*
@@ -463,7 +469,7 @@ void transmit(igraph_t *g,
    @param bool mu: if, at the end of rds, the node will die
    @return none 
    */
-void set_sick(igraph_t *g, int n, int rde, int rds, bool mu);
+void set_sick(igraph_t *g, int n, int rde, int rds, bool mu, int t_reinfection);
 
 
 /* 
@@ -534,3 +540,15 @@ void set_vaccine_priority(
         mt19937 generator
         );
 
+
+void random_contacts(igraph_t *g, 
+        igraph_vector_int_t *regular_contacts_el,
+        igraph_strvector_t *regular_contacts_type,
+        float isolation_multiplier,
+        mt19937 &generator) ;
+void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges);
+void gen_daytime_edges(const igraph_t *graph, 
+        const igraph_vector_int_t *hh_edges, 
+        igraph_vector_int_t *daytime_edges,
+        igraph_strvector_t *daytime_edges_type
+    );

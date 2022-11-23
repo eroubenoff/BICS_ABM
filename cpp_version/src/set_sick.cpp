@@ -12,10 +12,10 @@
 #include <random>
 using namespace std;
 
-void set_sick(igraph_t *g, int n, int rde, int rds, bool mu) {
+void set_sick(igraph_t *g, int n, int rde, int rds, bool mu, int t_reinfection) {
   SETVAN(g, "disease_status", n, ::E);
   SETVAN(g, "remaining_days_exposed", n, rde);
   SETVAN(g, "remaining_days_sick", n, rds);
   SETVAN(g, "mu", n, mu);
-  SETVAN(g, "time_since_infection", n, 50*24);
+  SETVAN(g, "t_until_susceptible", n, t_reinfection);
 }

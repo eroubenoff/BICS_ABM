@@ -21,7 +21,8 @@ using namespace std;
 
 
 int main(int argc, char **argv) {
-    Params params = init_params();
+    mt19937 generator;
+    Params params = init_params(generator);
     History history;
 
     // Parse command line options into an unordered map

@@ -37,6 +37,8 @@ add_library(BICS_ABM_lib SHARED # MODULE
     src/stovf.cpp
     src/py_defs.cpp
     src/data.cpp
+    src/params.cpp
+    src/mixing.cpp
     )
 add_executable(BICS_ABM 
     src/main.cpp 

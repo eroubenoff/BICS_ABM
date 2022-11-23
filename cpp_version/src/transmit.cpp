@@ -6,11 +6,12 @@
 #include <random>
 using namespace std;
 
-void transmit(igraph_t *g, 
+void transmit(igraph_t *g,
         unordered_map<int, CyclingVector<int>> &beta_vec,
         CyclingVector<int> &gamma_vec, 
         CyclingVector<int> &sigma_vec, 
-        unordered_map<string, CyclingVector<int> > &mu ){
+        unordered_map<string, CyclingVector<int> > &mu,
+        int t_reinfection){
 
     int vcount= igraph_vcount(g);
     igraph_vector_int_t neighbors;
@@ -58,7 +59,7 @@ void transmit(igraph_t *g,
                         vs_next = beta_vec[::V0].next();
                 }
                 if (vs_next) {
-                    set_sick(g, n2, gamma_vec.next(), sigma_vec.next(), mu[VAS(g, "age", n2)].next());
+                    set_sick(g, n2, gamma_vec.next(), sigma_vec.next(), mu[VAS(g, "age", n2)].next(), t_reinfection);
                 }
             }
         }
