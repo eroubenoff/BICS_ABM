@@ -13,3 +13,5 @@ cpp_version/build/*
 *.swo
 *.csv
 */boost_*/
+*/__pycache__/*
+*.pyc
