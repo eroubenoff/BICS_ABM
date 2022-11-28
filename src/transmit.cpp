@@ -7,11 +7,11 @@
 using namespace std;
 
 void transmit(igraph_t *g,
-        unordered_map<int, CyclingVector<int>> &beta_vec,
-        CyclingVector<int> &gamma_vec, 
-        CyclingVector<int> &sigma_vec, 
-        unordered_map<string, CyclingVector<int> > &mu,
-        int t_reinfection){
+        const Params *params,
+        mt19937 &generator){
+
+    bernoulli_distribution dist;
+    uniform_int_distribution uint_dist;
 
     int vcount= igraph_vcount(g);
     igraph_vector_int_t neighbors;
@@ -24,6 +24,21 @@ void transmit(igraph_t *g,
     int vs2;         // 
 
     bool vs_next;
+    int gamma;
+    int sigma;
+    int mu; 
+    int rho; 
+
+    unordered_map<string, int> mu_lookup;
+    mu_lookup["[0,18)"]  = 0;
+    mu_lookup["[18,25)"] = 1;
+    mu_lookup["[25,35)"] = 2;
+    mu_lookup["[35,45)"] = 3;
+    mu_lookup["[45,55)"] = 4;
+    mu_lookup["[55,65)"] = 5;
+    mu_lookup["[65,75)"] = 6;
+    mu_lookup["[75,85)"] = 7;
+    mu_lookup[">85"]     = 8;  
 
     /* Pull attributes from g */
     igraph_vector_t ds_vec;
@@ -45,21 +60,37 @@ void transmit(igraph_t *g,
                 if (ds2 != ::S) continue; 
 
                 if (vs2 == ::V0){
-                        vs_next = beta_vec[::V0].next();
+                    dist = bernoulli_distribution(params->BETA);
+                    vs_next = dist(generator);
                 } else if (vs2 == ::V1){
-                        vs_next = beta_vec[::V1].next();
+                    dist = bernoulli_distribution(params->BETA * params->VE1);
+                    vs_next = dist(generator);
                 } else if (vs2 == ::V2) {
-                        vs_next = beta_vec[::V2].next();
+                    dist = bernoulli_distribution(params->BETA * params->VE2);
+                    vs_next = dist(generator);
                 } else if (vs2 == ::VW) {
-                        vs_next = beta_vec[::VW].next();
+                    dist = bernoulli_distribution(params->BETA * params->VEW);
+                    vs_next = dist(generator);
                 } else if (vs2 == ::VBoost) {
-                        vs_next = beta_vec[::VBoost].next();
+                    dist = bernoulli_distribution(params->BETA * params->VEBOOST);
+                    vs_next = dist(generator);
                 } else {
-                        cout << "Error in switch " << endl;
-                        vs_next = beta_vec[::V0].next();
+                    cout << "Error in switch " << endl;
+                    dist = bernoulli_distribution(params->BETA);
+                    vs_next = dist(generator);
                 }
                 if (vs_next) {
-                    set_sick(g, n2, gamma_vec.next(), sigma_vec.next(), mu[VAS(g, "age", n2)].next(), t_reinfection, ::Ic);
+                    uint_dist = uniform_int_distribution(params->GAMMA_MIN, params->GAMMA_MAX);
+                    gamma = uint_dist(generator);
+                    uint_dist = uniform_int_distribution(params->SIGMA_MIN, params->SIGMA_MAX);
+                    sigma = uint_dist(generator);
+                    dist = bernoulli_distribution(params->MU_VEC[mu_lookup[VAS(g, "age", n2)]]); 
+                    mu = dist(generator);
+                    dist = bernoulli_distribution(params->RHO); 
+                    rho = dist(generator);
+
+
+                    set_sick(g, n2, gamma, sigma, mu, params->T_REINFECTION, rho ? ::Ic : ::Isc);
                 }
             }
         }

@@ -456,12 +456,9 @@ void print_attributes(const igraph_t *g, bool nodes_only = false);
    @return none
    */
 
-void transmit(igraph_t *g, 
-        unordered_map<int, CyclingVector<int>> &beta_vec, 
-        CyclingVector<int> &gamma_vec, 
-        CyclingVector<int> &sigma_vec, 
-        unordered_map<string, CyclingVector<int> > &mu,
-        int t_reinfection) ;
+void transmit(igraph_t *g,
+        const Params *params,
+        mt19937 &generator);
 
 
 /*

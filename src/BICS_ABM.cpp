@@ -53,35 +53,6 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
     const bool cached = false;
     mt19937 generator(params->SEED);
 
-    /* 
-     * Pre-generate all distributions as cycling vectors
-     *
-     * */ 
-
-    CyclingVector<int> gamma_vec(1000, [&generator, &params](){return (uniform_int_distribution<int>(params->GAMMA_MIN, params->GAMMA_MAX))(generator);});
-    CyclingVector<int> sigma_vec(1000, [&generator, &params](){return (uniform_int_distribution<int>(params->SIGMA_MIN, params->SIGMA_MAX))(generator);});
-    // CyclingVector<int> beta_vec(1000, [&generator, BETA](){return (bernoulli_distribution(BETA))(generator);});
-
-    // Transmission probability 
-    unordered_map<int, CyclingVector<int>> beta;
-    beta[::V0] = CyclingVector<int>(1000, [&generator, &params](){return(bernoulli_distribution(params->BETA)(generator));});
-    beta[::V1] = CyclingVector<int>(1000, [&generator, &params](){return(bernoulli_distribution(params->BETA*(1-params->VE1))(generator));});
-    beta[::V2] = CyclingVector<int>(1000, [&generator, &params](){return(bernoulli_distribution(params->BETA*(1-params->VE2))(generator));});
-    beta[::VW] = CyclingVector<int>(1000, [&generator, &params](){return(bernoulli_distribution(params->BETA*(1-params->VE2))(generator));});
-    beta[::VBoost] = CyclingVector<int>(1000, [&generator, &params](){return(bernoulli_distribution(params->BETA*(1-params->VE2))(generator));});
-
-
-    // Create mortality
-    unordered_map<string, CyclingVector<int> >mu;
-    mu["[0,18)"]  = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[0]))(generator);});
-    mu["[18,25)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[1]))(generator);});
-    mu["[25,35)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[2]))(generator);});
-    mu["[35,45)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[3]))(generator);});
-    mu["[45,55)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[4]))(generator);});
-    mu["[55,65)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[5]))(generator);});
-    mu["[65,75)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[6]))(generator);});
-    mu["[75,85)"] = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[7]))(generator);});
-    mu[">85"]     = CyclingVector<int>(1000, [&generator, &params](){return (bernoulli_distribution(params->MU_VEC[8]))(generator);});
     
 
     /* Create the empty graph */
@@ -159,7 +130,7 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
         // Hours 0-8
         for (hr = 0; hr < 8; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            transmit(&graph, beta, gamma_vec, sigma_vec, mu, params->T_REINFECTION);
+            transmit(&graph, params, generator);
             decrement(&graph, history);
 
         }
@@ -181,7 +152,7 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
 
             // random_contacts(&graph, &daytime_edges, &daytime_edges_type, generator);
             random_contacts(&graph, &hhedges, &hhedges_type, params -> ISOLATION_MULTIPLIER, generator);
-            transmit(&graph, beta, gamma_vec, sigma_vec, mu, params->T_REINFECTION);
+            transmit(&graph, params, generator);
             decrement(&graph, history);
 
         }
@@ -193,7 +164,7 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
         igraph_cattribute_EAS_setv(&graph, "type", &hhedges_type);
         for (hr = 16; hr < 24; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            transmit(&graph, beta, gamma_vec, sigma_vec, mu, params->T_REINFECTION);
+            transmit(&graph, params, generator);
             decrement(&graph, history);
 
         }
