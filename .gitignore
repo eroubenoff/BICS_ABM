@@ -9,4 +9,4 @@ unused/.Rhistory
 *.swo
 *.csv
 *.pyc
-*/.DS_Store
+.DS_Store
