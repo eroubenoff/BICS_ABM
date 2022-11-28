@@ -21,6 +21,8 @@ extern "C" Params init_params(mt19937 generator) {
         1,  // isolation_multiplier
         90*24, // t_reinfectoin
         0, // t0
+        0.5, // alpha
+        0.5,   // rho
 
         "age;age;age;age;hesitancy", // VAX_RULES_COLS
         ">85;[75,85);[65,75);[55,65);0.5", // VAX_RULES_VALS
@@ -84,6 +86,8 @@ void print_params(const Params *params) {
     cout << "N_VAX_DAILY:     " << params->N_VAX_DAILY<< endl;
     cout << "VE1, VE2:        " << params->VE1 << ", " << params->VE2 << endl;
     cout << "VEW, VEBoost:    " << params->VEW << ", " << params->VEBOOST << endl;
+    cout << "ALPHA:           " << params->ALPHA << endl;
+    cout << "RHO:             " << params->RHO << endl;
     cout << "ISOLATION_MULT.: " << params->ISOLATION_MULTIPLIER<< endl;
     cout << "VAX_RULES_COLS:  " << params->VAX_RULES_COLS << endl;
     cout << "VAX_RULES_VALS:  " << params->VAX_RULES_VALS << endl;

@@ -17,7 +17,8 @@ using namespace std;
 
 extern int S;
 extern int E;
-extern int I;
+extern int Ic;
+extern int Isc;
 extern int R;
 extern int D;
 extern int V0;
@@ -82,6 +83,8 @@ extern "C" typedef struct Params {
     float ISOLATION_MULTIPLIER;
     int T_REINFECTION;
     int T0;
+    float ALPHA; 
+    float RHO;
 
     char VAX_RULES_COLS[1000];
     char VAX_RULES_VALS[1000];
@@ -235,7 +238,8 @@ class History {
     public: 
         vector<int> S;
         vector<int> E;
-        vector<int> I;
+        vector<int> Ic;
+        vector<int> Isc;
         vector<int> R;
         vector<int> D;
         vector<int> V1;
@@ -243,7 +247,7 @@ class History {
         int counter;
         int length;
         History(int initial_length = 2000);
-        void add_history(int _S, int _E, int _I, int _R, int _D, int _V1, int _V2);
+        void add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int _V1, int _V2);
         void save(string path = "history.csv");
         void plot_trajectory(string path = "plot.png") ;
 };
@@ -470,7 +474,7 @@ void transmit(igraph_t *g,
    @param bool mu: if, at the end of rds, the node will die
    @return none 
    */
-void set_sick(igraph_t *g, int n, int rde, int rds, bool mu, int t_reinfection);
+void set_sick(igraph_t *g, int n, int rde, int rds, bool mu, int t_reinfection, int is_symptomatic);
 
 
 /* 

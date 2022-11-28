@@ -74,7 +74,7 @@ void random_contacts(igraph_t *g,
     float temp;
     for (int i = vcount; i--; ) {
         /* See if node is in isolation */
-        if (VECTOR(ds_vec)[i] == ::I){ 
+        if (VECTOR(ds_vec)[i] == ::Ic){ 
             isolation = true;
         } else {
             isolation = false;

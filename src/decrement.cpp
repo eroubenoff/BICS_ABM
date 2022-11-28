@@ -22,7 +22,8 @@ void decrement(igraph_t *g, History *h) {
 
     int S_count = 0;
     int E_count = 0;
-    int I_count = 0;
+    int Ic_count = 0;
+    int Isc_count = 0;
     int R_count = 0;
     int D_count = 0;
     int V1_count = 0;
@@ -88,7 +89,12 @@ void decrement(igraph_t *g, History *h) {
             ++E_count;
             rde = VECTOR(rde_vec)[i]; 
             if (rde == 0.0) {
-                VECTOR(ds_vec)[i] = ::I;
+                if (VAN(g, "symptomatic", i) == ::Ic) {
+                    VECTOR(ds_vec)[i] = ::Ic;
+                } 
+                else if (VAN(g, "symptomatic", i) == ::Isc) {
+                    VECTOR(ds_vec)[i] = ::Isc;
+                }
             } else {
                 VECTOR(rde_vec)[i] -= 1;
             }
@@ -99,8 +105,23 @@ void decrement(igraph_t *g, History *h) {
          * depending on mu
          * Otherwise decrement RDS
          */
-        else if (ds == ::I) {  
-            ++I_count;
+        else if (ds == ::Ic) {  
+            ++Ic_count;
+            rds = VECTOR(rds_vec)[i]; 
+            mu = VECTOR(mu_vec)[i]; 
+            if ((rds == 0.0) & (mu == 0.0)) {
+                VECTOR(ds_vec)[i] = ::R;
+
+            } else if ((rds == 0.0 ) & (mu == 1.0) ) {
+                VECTOR(ds_vec)[i] = ::D;
+
+            } else {
+                VECTOR(rds_vec)[i] -= 1;
+            }
+        }
+
+        else if (ds == ::Isc) {  
+            ++Isc_count;
             rds = VECTOR(rds_vec)[i]; 
             mu = VECTOR(mu_vec)[i]; 
             if ((rds == 0.0) & (mu == 0.0)) {
@@ -212,7 +233,8 @@ void decrement(igraph_t *g, History *h) {
 
     SETGAN(g, "S_count", S_count);
     SETGAN(g, "E_count", E_count);
-    SETGAN(g, "I_count", I_count);
+    SETGAN(g, "Ic_count", Ic_count);
+    SETGAN(g, "Isc_count", Isc_count);
     SETGAN(g, "R_count", R_count);
     SETGAN(g, "D_count", D_count);
     SETGAN(g, "V1_count", V1_count);
@@ -220,11 +242,12 @@ void decrement(igraph_t *g, History *h) {
     SETGAN(g, "VW_count", VW_count);
     SETGAN(g, "VBoost_count", VBoost_count);
 
-    h->add_history(S_count, E_count, I_count, R_count, D_count, V1_count, V2_count);
+    h->add_history(S_count, E_count, Ic_count, Isc_count, R_count, D_count, V1_count, V2_count);
 
     cout << "S: " << std::setw(5) << S_count << " | ";
     cout << "E: " << std::setw(5) << E_count << " | ";
-    cout << "I: " << std::setw(5) << I_count << " | ";
+    cout << "Ic: " << std::setw(5) << Ic_count << " | ";
+    cout << "Isc: " << std::setw(5) << Isc_count << " | ";
     cout << "R: " << std::setw(5) << R_count << " | ";
     cout << "D: " << std::setw(5) << D_count << " | ";
     cout << "V1: " << std::setw(5) << V1_count << " | ";

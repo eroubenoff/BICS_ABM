@@ -14,7 +14,7 @@ TEST(DecrementTests, GeneralTest) {
     igraph_add_vertices(&new_graph, 7, 0);
     igraph_vector_t tempvec;
     vector<igraph_real_t> temparr;
-    temparr = {(double) ::S, (double) ::E, (double) ::E, (double) ::I, (double) ::I , (double) ::R, (double) ::D};
+    temparr = {(double) ::S, (double) ::E, (double) ::E, (double) ::Ic, (double) ::Ic , (double) ::R, (double) ::D};
     igraph_vector_init_array(&tempvec, temparr.data(), 7);
     SETVANV(&new_graph, "disease_status", &tempvec);
 
@@ -50,8 +50,8 @@ TEST(DecrementTests, GeneralTest) {
 
     EXPECT_EQ(VAN(&new_graph, "disease_status", 0), ::S);
     EXPECT_EQ(VAN(&new_graph, "disease_status", 1), ::E);
-    EXPECT_EQ(VAN(&new_graph, "disease_status", 2), ::I);
-    EXPECT_EQ(VAN(&new_graph, "disease_status", 3), ::I);
+    EXPECT_EQ(VAN(&new_graph, "disease_status", 2), ::Ic);
+    EXPECT_EQ(VAN(&new_graph, "disease_status", 3), ::Ic);
     EXPECT_EQ(VAN(&new_graph, "disease_status", 4), ::D);
     EXPECT_EQ(VAN(&new_graph, "disease_status", 5), ::R);
     EXPECT_EQ(VAN(&new_graph, "disease_status", 6), ::D);

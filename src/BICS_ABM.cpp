@@ -23,9 +23,10 @@
 
 int S = 1;
 int E = 2;
-int I = 3;
-int R = 4;
-int D = 5;
+int Ic = 3;
+int Isc = 4;
+int R = 5;
+int D = 6;
 int V0 = 0;
 int V1 = 1;
 int V2 = 2;
@@ -141,19 +142,19 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
 
     }
     uniform_int_distribution<int> distribution(0,igraph_vcount(&graph) - 1);
-    cout << endl;
+    cout << "\r";
     cout << "Index cases: " ;
     for (int i = 0; i < params->INDEX_CASES; i++) {
         int index_case = distribution(generator);
         cout << index_case << "  " ;
-        set_sick(&graph, index_case, 3*24, 5*24, false, params->T_REINFECTION);
+        set_sick(&graph, index_case, 3*24, 5*24, false, params->T_REINFECTION, ::Ic);
     }
 
     decrement(&graph, history);
 
     
     igraph_integer_t n_edges;
-    while (GAN(&graph, "I_count") + GAN(&graph, "E_count") > 0){
+    while (GAN(&graph, "Ic_count") + GAN(&graph, "E_count") + GAN(&graph, "Isc_count") > 0){
 
         // Hours 0-8
         for (hr = 0; hr < 8; hr++ ) {
