@@ -29,12 +29,7 @@ int main(int argc, char **argv) {
     unordered_map<string, string> args;
 
     for (int i = 1; i < argc; i++) {
-        cout << argv[i] << "| " << endl;
-    }
-
-    for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--gtest_list_tests")) {cout << "1" << endl; continue;}
-        cout << "here" << endl;
         if ((argv[i][0] == '-') & (argv[i+1][0] != '-'))  {
             // Pull a pair like 
             args[argv[i]] = argv[i+1]; 
@@ -97,7 +92,7 @@ int main(int argc, char **argv) {
 
     // Passed to generator
     if (args.find("-seed") != args.end()) {
-        params.POP_SEED = stoi(args["-seed"]);
+        params.SEED = stoi(args["-seed"]);
     }
     if (args.find("-pop_seed") != args.end()) {
         params.POP_SEED = stoi(args["-pop_seed"]);
@@ -125,18 +120,7 @@ int main(int argc, char **argv) {
 
 
 
-    for (int i = 0; i < 1; i++) {
-        cout << "sim no " << i << endl;
-        params.SEED = 49+i;
-        params.POP_SEED = 49+i;
-        BICS_ABM(::database[params.WAVE], &params, &history);
-    }
-
-    /*
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-    */
-
+    BICS_ABM(::database[params.WAVE], &params, &history);
 
     return 0;
 }

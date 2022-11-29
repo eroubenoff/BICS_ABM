@@ -164,6 +164,8 @@ void random_contacts(igraph_t *g,
      * */
     igraph_vector_int_t random_edgelist;
     igraph_degree_sequence_game(&new_graph, &stubs_count, NULL, IGRAPH_DEGSEQ_CONFIGURATION ); // IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE); //IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE ); // IGRAPH_DEGSEQ_CONFIGURATION);
+    /* Simplify graph */
+    igraph_simplify(&new_graph, true, true, NULL);
     igraph_vector_int_init(&random_edgelist, igraph_vcount(&new_graph));
     igraph_get_edgelist(&new_graph, &random_edgelist, false);
 
@@ -198,6 +200,8 @@ void random_contacts(igraph_t *g,
 
     // print_attributes(g);
     //cout << igraph_ecount(g) << endl;
+
+
 
     /* 
      * Call destructors 

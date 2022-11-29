@@ -53,24 +53,27 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
     const bool cached = false;
     mt19937 generator(params->SEED);
 
-    
+    /* 
+     * Create the empty graph 
+     * Turn on attribute handling. 
+     * Create a directed graph with no vertices or edges. 
+     * */
 
-    /* Create the empty graph */
     igraph_t graph;
-
-    /* Turn on attribute handling. */
     igraph_set_attribute_table(&igraph_cattribute_table);
-
-    /* Create a directed graph with no vertices or edges. */
     igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
 
-    /* Generate population*/
-    gen_pop_from_survey_csv(data, &graph, params);
 
+    /* 
+     * Generate population
+     * */
+    gen_pop_from_survey_csv(data, &graph, params);
     cout << "N vertices: " << igraph_vcount(&graph) << endl;
 
 
-    /* Generate household edges and add to g */
+    /* 
+     * Generate household edges and add to g 
+     * */
     igraph_vector_int_t hhedges;
     gen_hh_edges(&graph, &hhedges);
     igraph_add_edges(&graph, &hhedges, NULL);
@@ -81,7 +84,9 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
      * */
     igraph_strvector_t hhedges_type;
     igraph_strvector_init(&hhedges_type, igraph_ecount(&graph));
-    for (int i = 0; i < igraph_strvector_size(&hhedges_type);i++){igraph_strvector_set(&hhedges_type, i, "household");}
+    for (int i = 0; i < igraph_strvector_size(&hhedges_type);i++){
+        igraph_strvector_set(&hhedges_type, i, "household");
+    }
     igraph_cattribute_EAS_setv(&graph, "type", &hhedges_type);
 
     /* Generate daytime edges that include work contacts*/ 
@@ -93,13 +98,13 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
 
 
 
-
-
     int day; 
     int hr;
     decrement(&graph, history);
 
-    // Pick nodes at random to be infected
+    /* 
+     * Distribute vaccines before T0 
+     * */
     for (day = 0; day < params->T0; day++){
         for (hr = 0; hr < 8; hr++) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
@@ -110,8 +115,11 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             decrement(&graph, history);
         }
-
     }
+
+    /* 
+     * Randomly choose index cases 
+     * */
     uniform_int_distribution<int> distribution(0,igraph_vcount(&graph) - 1);
     cout << "\r";
     cout << "Index cases: " ;
@@ -124,7 +132,9 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
     decrement(&graph, history);
 
     
-    igraph_integer_t n_edges;
+    /* 
+     * Run main sim 
+     * */
     while (GAN(&graph, "Ic_count") + GAN(&graph, "E_count") + GAN(&graph, "Isc_count") > 0){
 
         // Hours 0-8
@@ -150,7 +160,6 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
              * similar.
              */
 
-            // random_contacts(&graph, &daytime_edges, &daytime_edges_type, generator);
             random_contacts(&graph, &hhedges, &hhedges_type, params -> ISOLATION_MULTIPLIER, generator);
             transmit(&graph, params, generator);
             decrement(&graph, history);
@@ -184,6 +193,7 @@ void BICS_ABM(const Data *data, const Params *params, History *history) {
     // Destroy vector/
     igraph_vector_int_destroy(&hhedges);
     igraph_strvector_destroy(&hhedges_type);
+
     /*
     igraph_vector_int_destroy(&daytime_edges);
     igraph_strvector_destroy(&daytime_edges_type);
