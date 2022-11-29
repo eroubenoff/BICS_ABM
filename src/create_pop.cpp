@@ -480,7 +480,7 @@ void gen_pop_from_survey_csv(
 
         int hhead = dd(generator);
         int hhsize = stoi(data->BICS(hhead,"hhsize")); 
-        string hhid = randstring(16);
+        string hhid = to_string(n); // randstring(16);
 
         if (verbose) cout << "Adding respondent " << hhead << " as head of hhid "<< hhid << " of size " << hhsize << endl;
 

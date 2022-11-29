@@ -19,16 +19,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random 
 
-beta_range = np.arange(0, .5, 0.01)
+beta_range = np.arange(0, .25, 0.01)
 deaths = list() 
 
 for beta in beta_range:
     tmp_list = list()
-    for j in range(10):
+    for j in range(5):
         print(j + 49, j + 4949)
         ABM = BICS_ABM(
             INDEX_CASES = 1,
-            N_HH = 100, 
+            N_HH = 1000, 
             BETA=beta,
             SEED = 49+j,
             POP_SEED = 4949 + j

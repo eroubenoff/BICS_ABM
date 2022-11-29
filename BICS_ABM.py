@@ -13,7 +13,8 @@ class Trajectory (ctypes.Structure):
     _fields_ = [
         ('S_array', ctypes.c_int*5000),
         ('E_array', ctypes.c_int*5000),
-        ('I_array', ctypes.c_int*5000),
+        ('Ic_array', ctypes.c_int*5000),
+        ('Isc_array', ctypes.c_int*5000),
         ('R_array', ctypes.c_int*5000),
         ('D_array', ctypes.c_int*5000),
         ('V1_array', ctypes.c_int*5000),
@@ -39,8 +40,11 @@ class Params(ctypes.Structure):
             ('VE2', ctypes.c_float),
             ('VEW', ctypes.c_float),
             ('VEBOOST', ctypes.c_float),
-            ('T_REINFECTION', ctypes.c_int),
             ('ISOLATION_MULTIPLIER', ctypes.c_float),
+            ('T_REINFECTION', ctypes.c_int),
+            ('T0', ctypes.c_int),
+            ('ALPHA', ctypes.c_float),
+            ('RHO', ctypes.c_float),
             ('VAX_RULES_COLS', ctypes.c_char*1000),
             ('VAX_RULES_VALS', ctypes.c_char*1000),
             ('VAX_CONDS_N', ctypes.c_int*100),
@@ -61,10 +65,9 @@ class BICS_ABM:
     def __init__(self, vax_rules = None, **kwargs):
         self._params = _BICS_ABM.init_params()
         for k, v in kwargs.items():
-            if k not in ['N_HH','WAVE', 'GAMMA_MIN', 'GAMMA_MAX', 'SIGMA_MIN', 'SIGMA_MAX', \
-                    'BETA', 'MU_VEC', 'INDEX_CASES', 'SEED', 'POP_SEED', 'N_VAX_DAILY',\
-                    'ISOLATION_MULTIPLIER', 'VE1', 'VE2']:
-                raise ValueError("Invalid parameter passed to BICS_ABM")
+            if k not in self._params.__dir__():
+
+                raise ValueError("Invalid parameter " + k + " passed to BICS_ABM")
 
             else:
                 setattr(self._params, k, v)
@@ -106,7 +109,8 @@ class BICS_ABM:
         counter = self._instance.counter
         self.S = self._instance.S_array[:counter]
         self.E = self._instance.E_array[:counter]
-        self.I = self._instance.I_array[:counter]
+        self.I = self._instance.Ic_array[:counter]
+        self.I = self._instance.Isc_array[:counter]
         self.R = self._instance.R_array[:counter]
         self.D = self._instance.D_array[:counter]
         self.V1 = self._instance.V1_array[:counter]
