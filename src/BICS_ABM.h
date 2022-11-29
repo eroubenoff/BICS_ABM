@@ -487,12 +487,6 @@ void disease_status(igraph_t *g);
    */
 void decrement(igraph_t *g, History *h);
 
-/*
- * Generate a random string (for hash)
- */
-string randstring(int length);
-
-
 
 
 void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_vw, int time_until_vboost) ;

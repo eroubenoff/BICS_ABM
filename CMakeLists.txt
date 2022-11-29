@@ -30,7 +30,6 @@ add_library(BICS_ABM_lib SHARED # MODULE
     src/set_sick.cpp
     src/transmit.cpp
     src/create_pop.cpp
-    src/randstring.cpp
     src/distribute_vax.cpp
     src/history.cpp
     src/BICS_ABM.cpp 
