@@ -224,9 +224,9 @@ void random_contacts(igraph_t *g,
  * household
  * */
 void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges){
-    unordered_map<string, vector<int> > hhids;
+    unordered_map<int, vector<int> > hhids;
     for (int i = 0; i < igraph_vcount(graph); i++) {
-        hhids[VAS(graph, "hhid", i)].push_back(i);
+        hhids[VAN(graph, "hhid", i)].push_back(i);
     }
 
     // Create a household edge list

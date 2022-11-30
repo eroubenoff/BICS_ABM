@@ -1,7 +1,9 @@
 import os
 import ctypes
-import numpy
+import numpy as np
 from numpy.ctypeslib import ndpointer
+from create_pop import create_pop
+
 
 path = os.getcwd()
 path = os.path.join(path, "build", "libBICS_ABM_lib.dylib")
@@ -74,7 +76,7 @@ class Trajectory (ctypes.Structure):
         ('counter', ctypes.c_int)
     ]
 
-_BICS_ABM.BICS_ABM.argtypes = [Params]
+_BICS_ABM.BICS_ABM.argtypes = [ND_POINTER_2, ctypes.c_size_t, ctypes.c_size_t, Params]
 _BICS_ABM.BICS_ABM.restype = Trajectory
 
 _BICS_ABM.init_params.argtypes = () 
@@ -84,7 +86,7 @@ _BICS_ABM.init_params.restype = Params
 
 class BICS_ABM:
 
-    def __init__(self, vax_rules = None, **kwargs):
+    def __init__(self, n_hh = 1000, wave = 6, vax_rules = None, **kwargs):
         self._params = _BICS_ABM.init_params()
         for k, v in kwargs.items():
             if k not in self._params.__dir__():
@@ -126,7 +128,8 @@ class BICS_ABM:
                 self._params.VAX_CONDS_N[i] = ctypes.c_int(vax_conds_n[i])
 
 
-        self._instance = _BICS_ABM.BICS_ABM(self._params)
+        self._pop = create_pop(n_hh = self._params.N_HH, wave = self._params.WAVE)
+        self._instance = _BICS_ABM.BICS_ABM(self._pop, *self._pop.shape, self._params)
 
         counter = self._instance.counter
         self.S = self._instance.S_array[:counter]
@@ -138,3 +141,7 @@ class BICS_ABM:
         self.V1 = self._instance.V1_array[:counter]
         self.V2 = self._instance.V2_array[:counter]
 
+
+
+if __name__ == "__main__" :
+    b = BICS_ABM()

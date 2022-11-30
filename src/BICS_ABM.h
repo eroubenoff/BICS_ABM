@@ -502,7 +502,7 @@ vector<float> stovf(string s);
 string recode_age(string age_s) ;
 string recode_gender(string gender) ;
 
-void BICS_ABM(const Data *data, const Params *params, History *history);
+void BICS_ABM(igraph_t *graph, const Params *params, History *history);
 
 /*
  * C interface to parse vaccine rules. Arguments are:

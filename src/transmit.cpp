@@ -30,17 +30,6 @@ void transmit(igraph_t *g,
     int rho; 
     bool symptomatic;
 
-    unordered_map<string, int> mu_lookup;
-    mu_lookup["[0,18)"]  = 0;
-    mu_lookup["[18,25)"] = 1;
-    mu_lookup["[25,35)"] = 2;
-    mu_lookup["[35,45)"] = 3;
-    mu_lookup["[45,55)"] = 4;
-    mu_lookup["[55,65)"] = 5;
-    mu_lookup["[65,75)"] = 6;
-    mu_lookup["[75,85)"] = 7;
-    mu_lookup[">85"]     = 8;  
-
     /* Pull attributes from g */
     igraph_vector_t ds_vec;
     igraph_vector_init(&ds_vec, vcount);
@@ -87,7 +76,7 @@ void transmit(igraph_t *g,
                     gamma = uint_dist(generator);
                     uint_dist = uniform_int_distribution(params->SIGMA_MIN, params->SIGMA_MAX);
                     sigma = uint_dist(generator);
-                    dist = bernoulli_distribution(params->MU_VEC[mu_lookup[VAS(g, "age", n2)]]); 
+                    dist = bernoulli_distribution(params->MU_VEC[(int)VAN(g, "age", n2)]); 
                     mu = dist(generator);
                     dist = bernoulli_distribution(params->RHO); 
                     rho = dist(generator);

@@ -119,8 +119,37 @@ int main(int argc, char **argv) {
     }
 
 
+    /* 
+     * Create the empty graph 
+     * Turn on attribute handling. 
+     * Create a directed graph with no vertices or edges. 
+     * */
 
-    BICS_ABM(::database[params.WAVE], &params, &history);
+    igraph_t graph;
+    igraph_set_attribute_table(&igraph_cattribute_table);
+    igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
+
+
+    /* 
+     * Generate population
+     * */
+    gen_pop_from_survey_csv(::database[params.WAVE], &graph, &params);
+
+    /*
+     * Run sim
+     */
+
+    BICS_ABM(&graph, &params, &history);
+
+    /* 
+     * Delete all remaining attributes. 
+     * */
+    DELALL(&graph);
+
+    /* 
+     * Destroy the graph. 
+     * */
+    igraph_destroy(&graph);
 
     return 0;
 }

@@ -201,6 +201,7 @@ void decrement(igraph_t *g, History *h) {
         
     }
 
+
     SETVANV(g, "disease_status", &ds_vec);
     SETVANV(g, "vaccine_status", &vs_vec);
     SETVANV(g, "remaining_days_exposed", &rde_vec);
