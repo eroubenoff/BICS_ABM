@@ -39,9 +39,9 @@ add_library(BICS_ABM_lib SHARED # MODULE
     src/params.cpp
     src/mixing.cpp
     )
-add_executable(BICS_ABM 
-    src/main.cpp 
-    )
+# add_executable(BICS_ABM 
+#     src/main.cpp 
+#     )
 add_executable(BICS_ABM_tests
     src/tests/pop_tests.cpp
     src/tests/tests_main.cpp
@@ -52,7 +52,7 @@ add_executable(BICS_ABM_tests
 file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(BICS_ABM_lib PUBLIC igraph::igraph)
-target_link_libraries(BICS_ABM PUBLIC BICS_ABM_lib)
+# target_link_libraries(BICS_ABM PUBLIC BICS_ABM_lib)
 target_link_libraries(BICS_ABM_tests PUBLIC BICS_ABM_lib PRIVATE GTest::gtest GTest::gtest_main )
 
 include(GoogleTest)
