@@ -479,7 +479,7 @@ void set_sick(igraph_t *g, int n, int rde, int rds, bool mu, int t_reinfection, 
 
    Tallies up the disease status of all nodes and sets it them to graph attributes
    */
-void disease_status(igraph_t *g);
+// void disease_status(igraph_t *g);
 
 
 /* 
