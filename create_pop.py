@@ -118,6 +118,40 @@ def create_pop(n_hh = 1000, wave = 6):
 
     pop = pd.concat(pop)
 
+
+    return pop
+
+
+def create_vax_priority(pop, vax_rules = None ): 
+    """
+    Assume that vax_rules is in the form of:
+    [
+        [("age", ">85")],
+        [("age", "[75,85)")],
+        [("age", "[65,75)"), ("hesitancy", "0.4")]
+    ]
+
+    """
+
+    pop["vaccine_priority"] = 0
+
+    if vax_rules is None: 
+        return pop
+
+    # Parse rules into a more ordered format 
+    for i, v in enumerate(vax_rules):
+        pop.loc[pop.eval(v), "vaccine_priority"] = i
+
+    return pop 
+
+
+    
+
+
+
+
+def pop_to_np(pop: pd.DataFrame):
+
     # Pull out the columns relevant and put everybody in a COLUMN-MAJOR (fortran-style) matrix! 
     # All data types are numeric
 

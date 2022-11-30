@@ -2,7 +2,7 @@ import os
 import ctypes
 import numpy as np
 from numpy.ctypeslib import ndpointer
-from create_pop import create_pop
+from create_pop import  *
 
 
 path = os.getcwd()
@@ -38,11 +38,7 @@ class Params(ctypes.Structure):
             ('T_REINFECTION', ctypes.c_int),
             ('T0', ctypes.c_int),
             ('ALPHA', ctypes.c_float),
-            ('RHO', ctypes.c_float),
-            ('VAX_RULES_COLS', ctypes.c_char*1000),
-            ('VAX_RULES_VALS', ctypes.c_char*1000),
-            ('VAX_CONDS_N', ctypes.c_int*100),
-            ('VAX_RULES_N', ctypes.c_int)
+            ('RHO', ctypes.c_float)
             
     ]
 
@@ -96,39 +92,9 @@ class BICS_ABM:
             else:
                 setattr(self._params, k, v)
 
-        """
-        Assume that vax_rules is in the form of:
-        [
-            [("age", ">85")],
-            [("age", "[75,85)")],
-            [("age", "[65,75)"), ("hesitancy", "0.4")]
-        ]
-
-        """
-        vax_rules_cols = ""
-        vax_rules_vals = ""
-        vax_rules_n = 0      # Number of rules
-        vax_conds_n = [0] * 100 # Number of conditions per rule
-        if vax_rules is not None:
-            for rule in vax_rules:
-                vax_rules_n += 1
-                for criteria in rule:
-                    vax_conds_n[vax_rules_n - 1] += 1
-                    vax_rules_cols += criteria[0] 
-                    vax_rules_cols += ";"
-                    vax_rules_vals += criteria[1]
-                    vax_rules_vals += ";"
-
-            print(vax_rules_n, vax_conds_n)
-
-            self._params.VAX_RULES_COLS = vax_rules_cols.encode("utf-8")
-            self._params.VAX_RULES_VALS = vax_rules_vals.encode("utf-8")
-            self._params.VAX_RULES_N = ctypes.c_int(vax_rules_n)
-            for i in range(100):
-                self._params.VAX_CONDS_N[i] = ctypes.c_int(vax_conds_n[i])
-
-
         self._pop = create_pop(n_hh = self._params.N_HH, wave = self._params.WAVE)
+        self._pop = create_vax_priority(self._pop, vax_rules)
+        self._pop = pop_to_np(self._pop)
         self._instance = _BICS_ABM.BICS_ABM(self._pop, *self._pop.shape, self._params)
 
         counter = self._instance.counter

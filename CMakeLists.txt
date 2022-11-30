@@ -29,13 +29,13 @@ add_library(BICS_ABM_lib SHARED # MODULE
     src/decrement.cpp
     src/set_sick.cpp
     src/transmit.cpp
-    src/create_pop.cpp
+    # src/create_pop.cpp
     src/distribute_vax.cpp
     src/history.cpp
     src/BICS_ABM.cpp 
     src/stovf.cpp
     src/py_defs.cpp
-    src/data.cpp
+    # src/data.cpp
     src/params.cpp
     src/mixing.cpp
     )
@@ -43,9 +43,9 @@ add_library(BICS_ABM_lib SHARED # MODULE
 #     src/main.cpp 
 #     )
 add_executable(BICS_ABM_tests
-    src/tests/pop_tests.cpp
+    # src/tests/pop_tests.cpp
     src/tests/tests_main.cpp
-    src/tests/data_tests.cpp
+    # src/tests/data_tests.cpp
     src/tests/decrement_tests.cpp
     )
 

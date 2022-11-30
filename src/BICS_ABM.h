@@ -86,14 +86,6 @@ extern "C" typedef struct Params {
     float ALPHA; 
     float RHO;
 
-    char VAX_RULES_COLS[1000];
-    char VAX_RULES_VALS[1000];
-    int VAX_CONDS_N[100];
-    int VAX_RULES_N;
-
-
-
-
 } Params;
 
 
