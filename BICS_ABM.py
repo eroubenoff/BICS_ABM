@@ -8,19 +8,11 @@ path = os.path.join(path, "build", "libBICS_ABM_lib.dylib")
 _BICS_ABM = ctypes.CDLL(path)
 
 
-# Return object
-class Trajectory (ctypes.Structure):
-    _fields_ = [
-        ('S_array', ctypes.c_int*5000),
-        ('E_array', ctypes.c_int*5000),
-        ('Ic_array', ctypes.c_int*5000),
-        ('Isc_array', ctypes.c_int*5000),
-        ('R_array', ctypes.c_int*5000),
-        ('D_array', ctypes.c_int*5000),
-        ('V1_array', ctypes.c_int*5000),
-        ('V2_array', ctypes.c_int*5000),
-        ('counter', ctypes.c_int)
-    ]
+"""
+Parameters object. Note that all of the arguments
+here ABSOLUTELY must match the order in 
+BICS_ABM.h! 
+"""
 
 class Params(ctypes.Structure):
     _fields_ = [
@@ -50,6 +42,36 @@ class Params(ctypes.Structure):
             ('VAX_CONDS_N', ctypes.c_int*100),
             ('VAX_RULES_N', ctypes.c_int)
             
+    ]
+
+""" 
+Passing population array to ABM
+C-type corresponding to numpy 2-dimensional array (matrix)
+https://asiffer.github.io/posts/numpy/
+
+IMPORTANT: note that this is COLUMN-MAJOR order, Fortran style,
+which saves us a loop on the c++ side when adding to igraph
+
+""" 
+ND_POINTER_2 = np.ctypeslib.ndpointer(dtype=np.float64,
+                                      ndim=2,
+                                      flags="F")
+
+
+"""
+Return object
+"""
+class Trajectory (ctypes.Structure):
+    _fields_ = [
+        ('S_array', ctypes.c_int*5000),
+        ('E_array', ctypes.c_int*5000),
+        ('Ic_array', ctypes.c_int*5000),
+        ('Isc_array', ctypes.c_int*5000),
+        ('R_array', ctypes.c_int*5000),
+        ('D_array', ctypes.c_int*5000),
+        ('V1_array', ctypes.c_int*5000),
+        ('V2_array', ctypes.c_int*5000),
+        ('counter', ctypes.c_int)
     ]
 
 _BICS_ABM.BICS_ABM.argtypes = [Params]
