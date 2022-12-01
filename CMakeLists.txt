@@ -24,7 +24,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_library(BICS_ABM_lib SHARED # MODULE 
     src/BICS_ABM.h 
-    src/get_csv_row.cpp
+    # src/get_csv_row.cpp
     src/print_attributes.cpp
     src/decrement.cpp
     src/set_sick.cpp
@@ -33,7 +33,7 @@ add_library(BICS_ABM_lib SHARED # MODULE
     src/distribute_vax.cpp
     src/history.cpp
     src/BICS_ABM.cpp 
-    src/stovf.cpp
+    # src/stovf.cpp
     src/py_defs.cpp
     # src/data.cpp
     src/params.cpp

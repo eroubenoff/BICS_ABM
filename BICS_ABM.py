@@ -165,7 +165,7 @@ class VaccineRule:
     def __init__(self, query = "index >= 0", hesitancy = None, general = None):
         if hesitancy is not None: 
             try:
-                if hesitancy < 0 or  hesitancy > 1:
+                if hesitancy < 0 or hesitancy > 1:
                     self.hesitancy = hesitancy
                 else:
                     raise ValueError("Hesitancy must be between 0 and 1, not " + str(hesitancy))
