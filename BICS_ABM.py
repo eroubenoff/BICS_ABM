@@ -109,7 +109,6 @@ def load_data():
 # Create these as globals
 BICS_global, BICS_idx_global = load_data()
 
-@profile
 def create_pop(n_hh = 1000, wave = 6):
 
     BICS = deepcopy(BICS_global)
@@ -166,7 +165,7 @@ class VaccineRule:
     def __init__(self, query = "index >= 0", hesitancy = None, general = None):
         if hesitancy is not None: 
             try:
-                if hesitancy >= 0 & hesitancy <= 1:
+                if hesitancy < 0 or  hesitancy > 1:
                     self.hesitancy = hesitancy
                 else:
                     raise ValueError("Hesitancy must be between 0 and 1, not " + str(hesitancy))
@@ -211,17 +210,17 @@ def create_vax_priority(pop, vax_rules = None):
 
     # Parse rules into a more ordered format 
     for i, v in enumerate(vax_rules):
-        if general is True and hesitancy is not None:
-            pop.loc[pop.sample(frac = hesitancy), "vaccine_priority"] = i + 1
+        if v.general is True and v.hesitancy is not None:
+            pop.loc[pop.sample(frac = v.hesitancy), "vaccine_priority"] = i + 1
 
-        elif general is True:
+        elif v.general is True:
             pop["vaccine_priority"] = i + 1
         
-        elif hesitancy is not None:
-            pop.loc[pop.eval(v).sample(frac = hesitancy), "vaccine_priority"] = i+1
+        elif v.hesitancy is not None:
+            pop.loc[pop.eval(v.query).sample(frac = v.hesitancy), "vaccine_priority"] = i+1
 
         else: 
-            pop.loc[pop.eval(v), "vaccine_priority"] = i + 1
+            pop.loc[pop.eval(v.query), "vaccine_priority"] = i + 1
 
     return pop 
 

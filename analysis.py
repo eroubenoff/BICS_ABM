@@ -1,4 +1,4 @@
-from BICS_ABM import BICS_ABM
+from BICS_ABM import BICS_ABM, VaccineRule
 
 result = BICS_ABM()
 
@@ -7,7 +7,13 @@ result = BICS_ABM(
         SEED = 1231, 
         POP_SEED = 100,
         vax_rules = [
-            "age > "
+            VaccineRule("age > 8"),
+            VaccineRule("age > 7"),
+            VaccineRule("age > 6"),
+            VaccineRule("age > 5"),
+            VaccineRule("age > 4", hesitancy = 0.5),
+            VaccineRule("age > 3", hesitancy = 0.5),
+            VaccineRule(general = True, hesitancy = 0.5),
         ])
 
 
