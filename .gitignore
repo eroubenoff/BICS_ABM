@@ -10,3 +10,5 @@ unused/.Rhistory
 *.csv
 *.pyc
 .DS_Store
+*.lprof
+*.profile

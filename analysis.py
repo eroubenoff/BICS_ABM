@@ -7,10 +7,7 @@ result = BICS_ABM(
         SEED = 1231, 
         POP_SEED = 100,
         vax_rules = [
-            [("age", ">85")],
-            [("age", "[75,85)")],
-            [("age", "[65,75)")],
-            [("age", "[55,65)"), ("hesitancy", "0.5")]
+            "age > "
         ])
 
 
