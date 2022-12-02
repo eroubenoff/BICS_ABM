@@ -83,7 +83,7 @@ void BICS_ABM(igraph_t *graph, const Params *params, History *history) {
 
     int day; 
     int hr;
-    decrement(graph, history);
+    decrement(graph, history, false);
 
     /* 
      * Distribute vaccines before T0 
@@ -91,12 +91,12 @@ void BICS_ABM(igraph_t *graph, const Params *params, History *history) {
     for (day = 0; day < params->T0; day++){
         for (hr = 0; hr < 8; hr++) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            decrement(graph, history);
+            decrement(graph, history, false);
         }
         distribute_vax(graph, params->N_VAX_DAILY, 25*24, 30*24, 30*24);
         for (hr = 8; hr < 24; hr++) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            decrement(graph, history);
+            decrement(graph, history, false);
         }
     }
 
@@ -111,6 +111,8 @@ void BICS_ABM(igraph_t *graph, const Params *params, History *history) {
         cout << index_case << "  " ;
         set_sick(graph, index_case, 3*24, 5*24, false, params->T_REINFECTION, ::Ic);
     }
+
+    cout << endl;
 
     decrement(graph, history);
 
@@ -165,6 +167,8 @@ void BICS_ABM(igraph_t *graph, const Params *params, History *history) {
 
 
     }
+
+    cout << endl;
 
 
     // Destroy vector/

@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from numpy.ctypeslib import ndpointer
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
 
 path = os.getcwd()
@@ -77,7 +78,7 @@ def load_data():
     BICS = pd.read_csv("data/df_all_waves.csv")
 
     # Need to recode all age and gender columns
-    BICS["age"] = BICS["age"].apply(recode_age)
+    BICS["agecat"] = BICS["age"].apply(recode_age)
     # BICS["resp_hh_roster#1_0_1"] = BICS["resp_hh_roster#1_0_1"].apply(recode_age)
     BICS["resp_hh_roster#1_1_1"] = BICS["resp_hh_roster#1_1_1"].apply(recode_age)
     BICS["resp_hh_roster#1_2_1"] = BICS["resp_hh_roster#1_2_1"].apply(recode_age)
@@ -97,7 +98,7 @@ def load_data():
 
 
     # Set index for efficient querying
-    BICS = BICS.set_index(['wave', 'age', 'gender'], drop=False).sort_index()
+    BICS = BICS.set_index(['wave', 'agecat', 'gender'], drop=False).sort_index()
     
     # Pre-generate index combinations
     BICS_idx = dict()
@@ -109,6 +110,7 @@ def load_data():
 # Create these as globals
 BICS_global, BICS_idx_global = load_data()
 
+@profile
 def create_pop(n_hh = 1000, wave = 6):
 
     BICS = deepcopy(BICS_global)
@@ -150,27 +152,25 @@ def create_pop(n_hh = 1000, wave = 6):
                     if hhmember.shape[0] == 0:
                         hhmember = BICS
                 hhmember = hhmember.sample(1)
-                hhmember['hhid'] = hhid
+                # hhmember['hhid'] = hhid
                 hhmember = hhmember.iloc[0,:] 
+                hhmember['hhid'] = hhid
                 pop.append(hhmember)
 
 
     # ret = pd.DataFrame(pop)
     ret = pd.DataFrame(pop)
-    print(ret)
 
     return ret 
 
 class VaccineRule:
-    def __init__(self, query = "index >= 0", hesitancy = None, general = None):
+    def __init__(self, query = "index == index or index != index", hesitancy = None, general = None):
         if hesitancy is not None: 
-            try:
-                if hesitancy < 0 or hesitancy > 1:
-                    self.hesitancy = hesitancy
-                else:
-                    raise ValueError("Hesitancy must be between 0 and 1, not " + str(hesitancy))
-            except:
+            if hesitancy < 0 or hesitancy > 1:
                 raise ValueError("Hesitancy must be between 0 and 1, not " + str(hesitancy))
+            else:
+                self.hesitancy = hesitancy
+
         else:
             self.hesitancy = None
 
@@ -201,26 +201,35 @@ def create_vax_priority(pop, vax_rules = None):
     """
     # TODO: Need to add hesitancy and general distribution
 
-    pop["vaccine_priority"] = 0
+    pop["vaccine_priority"] = -1
 
     if vax_rules is None: 
         return pop
 
     vax_rules.reverse()
 
+    vaccine_priority = pop.columns.get_loc("vaccine_priority")
+
     # Parse rules into a more ordered format 
     for i, v in enumerate(vax_rules):
+        mask = pop.eval(v.query)
+        idx = mask * range(pop.shape[0])
+        idx = idx[idx != 0]
+
         if v.general is True and v.hesitancy is not None:
-            pop.loc[pop.sample(frac = v.hesitancy), "vaccine_priority"] = i + 1
+            # pop.iloc[np.random.choice(pop.shape[0], frac = v.hesitancy), vaccine_priority] = i + 1
+            idx = idx.sample(frac = v.hesitancy).tolist()
+            pop.iloc[idx, vaccine_priority] = i+1
 
         elif v.general is True:
-            pop["vaccine_priority"] = i + 1
+            pop.iloc[vaccine_priority] = i + 1
         
         elif v.hesitancy is not None:
-            pop.loc[pop.eval(v.query).sample(frac = v.hesitancy), "vaccine_priority"] = i+1
+            idx = idx.sample(frac = v.hesitancy).tolist()
+            pop.iloc[idx, vaccine_priority] = i+1
 
         else: 
-            pop.loc[pop.eval(v.query), "vaccine_priority"] = i + 1
+            pop.iloc[idx, vaccine_priority] = i+1
 
     return pop 
 
@@ -231,13 +240,14 @@ def pop_to_np(pop: pd.DataFrame):
     # Pull out the columns relevant and put everybody in a COLUMN-MAJOR (fortran-style) matrix! 
     # All data types are numeric
 
-    pop_np = np.zeros((pop.shape[0], 5), dtype = float, order = 'F')
+    pop_np = np.zeros((pop.shape[0], 6), dtype = float, order = 'F')
 
     pop_np[:,0] = pop.hhid
     pop_np[:,1] = pop.age
     pop_np[:,2] = pop.gender
     pop_np[:,3] = pop.num_cc_nonhh
     pop_np[:,4] = pop.lefthome_num
+    pop_np[:,5] = pop.vaccine_priority
 
     return pop_np
 
@@ -302,10 +312,12 @@ class Trajectory (ctypes.Structure):
         ('D_array', ctypes.c_int*5000),
         ('V1_array', ctypes.c_int*5000),
         ('V2_array', ctypes.c_int*5000),
+        ('VW_array', ctypes.c_int*5000),
+        ('VBoost_array', ctypes.c_int*5000),
         ('counter', ctypes.c_int)
     ]
 
-_BICS_ABM.BICS_ABM.argtypes = [ND_POINTER_2, ctypes.c_size_t, ctypes.c_size_t, Params]
+_BICS_ABM.BICS_ABM.argtypes = [ND_POINTER_2, ctypes.c_size_t, ctypes.c_size_t, Params, ctypes.c_bool]
 _BICS_ABM.BICS_ABM.restype = Trajectory
 
 _BICS_ABM.init_params.argtypes = () 
@@ -315,7 +327,7 @@ _BICS_ABM.init_params.restype = Params
 
 class BICS_ABM:
 
-    def __init__(self, n_hh = 1000, wave = 6, vax_rules = None, **kwargs):
+    def __init__(self, n_hh = 1000, wave = 6, vax_rules = [VaccineRule(general=True, hesitancy = 0.5)], silent = False, **kwargs):
         self._params = _BICS_ABM.init_params()
         for k, v in kwargs.items():
             if k not in self._params.__dir__():
@@ -328,17 +340,44 @@ class BICS_ABM:
         self._pop = create_pop(n_hh = self._params.N_HH, wave = self._params.WAVE)
         self._pop = create_vax_priority(self._pop, vax_rules)
         self._pop = pop_to_np(self._pop)
-        self._instance = _BICS_ABM.BICS_ABM(self._pop, *self._pop.shape, self._params)
+        self._instance = _BICS_ABM.BICS_ABM(self._pop, *self._pop.shape, self._params, silent)
 
-        counter = self._instance.counter
-        self.S = self._instance.S_array[:counter]
-        self.E = self._instance.E_array[:counter]
-        self.I = self._instance.Ic_array[:counter]
-        self.I = self._instance.Isc_array[:counter]
-        self.R = self._instance.R_array[:counter]
-        self.D = self._instance.D_array[:counter]
-        self.V1 = self._instance.V1_array[:counter]
-        self.V2 = self._instance.V2_array[:counter]
+        self.counter = self._instance.counter
+        self.S = self._instance.S_array[:self.counter]
+        self.E = self._instance.E_array[:self.counter]
+        self.Ic = self._instance.Ic_array[:self.counter]
+        self.Isc = self._instance.Isc_array[:self.counter]
+        self.R = self._instance.R_array[:self.counter]
+        self.D = self._instance.D_array[:self.counter]
+        self.V1 = self._instance.V1_array[:self.counter]
+        self.V2 = self._instance.V2_array[:self.counter]
+        self.VW = self._instance.VW_array[:self.counter]
+        self.VBoost = self._instance.VBoost_array[:self.counter]
+
+    def plot_trajectory(self):
+
+        xaxis =  [x / 24 for x in range(self.counter)]
+
+        fig, ax = plt.subplots(2)
+
+        ax[0].plot(xaxis, self.S, label = "S")
+        ax[0].plot(xaxis, self.E, label = "E")
+        ax[0].plot(xaxis, self.Ic, label = "Ic")
+        ax[0].plot(xaxis, self.Isc, label = "Isc")
+        ax[0].plot(xaxis, self.R, label = "R")
+        ax[0].plot(xaxis, self.D, label = "D")
+        ax[0].legend()
+        ax[0].set_title("Disease States")
+
+        ax[1].plot(xaxis, self.V1, label = "V1")
+        ax[1].plot(xaxis, self.V2, label = "V2")
+        ax[1].plot(xaxis, self.VW, label = "VW")
+        ax[1].plot(xaxis, self.VBoost, label = "VBoost")
+        ax[1].legend()
+        ax[1].set_title("Vaccination Rates")
+
+        plt.show()
+
 
 
 

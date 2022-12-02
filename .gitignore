@@ -12,3 +12,6 @@ unused/.Rhistory
 .DS_Store
 *.lprof
 *.profile
+*.ipynb_checkpoints/
+*.prof
+cache/

@@ -87,10 +87,12 @@ class History {
         vector<int> D;
         vector<int> V1;
         vector<int> V2;
+        vector<int> VW;
+        vector<int> VBoost;
         int counter;
         int length;
         History(int initial_length = 2000);
-        void add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int _V1, int _V2);
+        void add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int _V1, int _V2, int _VW, int _VBoost);
         void save(string path = "history.csv");
         void plot_trajectory(string path = "plot.png") ;
 };
@@ -140,7 +142,7 @@ void set_sick(igraph_t *g, int n, int rde, int rds, bool mu, int t_reinfection, 
 /* 
    Decrements each node's progression through disease time
    */
-void decrement(igraph_t *g, History *h);
+void decrement(igraph_t *g, History *h, bool print = true);
 
 
 

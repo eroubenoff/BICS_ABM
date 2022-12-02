@@ -11,6 +11,8 @@ struct Trajectory {
     int D_array[5000];
     int V1_array[5000];
     int V2_array[5000];
+    int VW_array[5000];
+    int VBoost_array[5000];
     int counter;
 
 };
@@ -23,7 +25,7 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
     igraph_add_vertices(g, pop_size, 0);
 
     igraph_vector_t col;
-    vector<string> colnames = {"hhid", "age", "gender", "num_cc_nonhh", "lefthome_num"};
+    vector<string> colnames = {"hhid", "age", "gender", "num_cc_nonhh", "lefthome_num", "vaccine_priority"};
 
     for (int c = 0; c < n_cols; c++){
         igraph_vector_init_array(&col, &pop[c * pop_size], pop_size); // Might have to check the pointer arithmetic
@@ -39,7 +41,7 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
     igraph_vector_fill(&col, -1);
     SETVANV(g, "remaining_days_exposed", &col);
     SETVANV(g, "remaining_days_sick", &col);
-    SETVANV(g, "vaccine_priority", &col);
+    // SETVANV(g, "vaccine_priority", &col);
     SETVANV(g, "time_until_v2", &col);
     SETVANV(g, "time_until_vw", &col);
     SETVANV(g, "time_until_vboost", &col);
@@ -55,7 +57,17 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
 
 
 /* Treat data as a gloabl */
-extern "C" struct Trajectory BICS_ABM(double *pop, size_t pop_size, size_t n_cols, Params params) {
+// https://stackoverflow.com/questions/30184998/how-to-disable-cout-output-in-the-runtime
+extern "C" struct Trajectory BICS_ABM(double *pop, size_t pop_size, size_t n_cols, Params params, bool silent = false) {
+
+    // get underlying buffer
+    streambuf* orig_buf = cout.rdbuf();
+
+    if (silent) {
+        // set null
+        cout.rdbuf(NULL);
+    }
+
     Trajectory trajectory; 
     History history;
 
@@ -102,7 +114,13 @@ extern "C" struct Trajectory BICS_ABM(double *pop, size_t pop_size, size_t n_col
     copy(history.D.begin(), history.D.end(), trajectory.D_array);
     copy(history.V1.begin(), history.V1.end(), trajectory.V1_array);
     copy(history.V2.begin(), history.V2.end(), trajectory.V2_array);
-
+    copy(history.VW.begin(), history.VW.end(), trajectory.VW_array);
+    copy(history.VBoost.begin(), history.VBoost.end(), trajectory.VBoost_array);
+ 
+    if (silent) {
+        // restore buffer
+        cout.rdbuf(orig_buf); 
+    }
 
     return trajectory;
 

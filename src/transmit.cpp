@@ -29,6 +29,7 @@ void transmit(igraph_t *g,
     int mu; 
     int rho; 
     bool symptomatic;
+    double prob;
 
     /* Pull attributes from g */
     igraph_vector_t ds_vec;
@@ -52,23 +53,29 @@ void transmit(igraph_t *g,
                 if (ds2 != ::S) continue; 
 
                 if (vs2 == ::V0){
-                    dist = bernoulli_distribution(params->BETA * (symptomatic ? 1 : params->ALPHA));
+                    prob = params->BETA * (symptomatic ? 1 : params->ALPHA);
+                    dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::V1){
-                    dist = bernoulli_distribution(params->BETA * params->VE1 * (symptomatic ? 1 : params->ALPHA));
+                    prob = params->BETA * params->VE1 * (symptomatic ? 1 : params->ALPHA);
+                    dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::V2) {
-                    dist = bernoulli_distribution(params->BETA * params->VE2 * (symptomatic ? 1 : params->ALPHA));
+                    prob = params->BETA * params->VE2 * (symptomatic ? 1 : params->ALPHA);
+                    dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::VW) {
-                    dist = bernoulli_distribution(params->BETA * params->VEW * (symptomatic ? 1 : params->ALPHA));
+                    prob = params->BETA * params->VEW * (symptomatic ? 1 : params->ALPHA);
+                    dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::VBoost) {
-                    dist = bernoulli_distribution(params->BETA * params->VEBOOST * (symptomatic ? 1 : params->ALPHA));
+                    prob = params->BETA * params->VEBOOST * (symptomatic ? 1 : params->ALPHA);
+                    dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else {
                     cout << "Error in switch " << endl;
-                    dist = bernoulli_distribution(params->BETA* (symptomatic ? 1 : params->ALPHA));
+                    prob = params->BETA * (symptomatic ? 1 : params->ALPHA);
+                    dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 }
                 if (vs_next) {

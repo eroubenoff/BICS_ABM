@@ -20,10 +20,12 @@ History::History(int initial_length) {
     D.resize(length, -1);
     V1.resize(length, -1);
     V2.resize(length, -1);
+    VW.resize(length, -1);
+    VBoost.resize(length, -1);
 }
 
 
-void History::add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int _V1, int _V2) {
+void History::add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int _V1, int _V2, int _VW, int _VBoost) {
     if (counter == length-1) {
         length += 500;
         S.resize(length, -1);
@@ -34,6 +36,8 @@ void History::add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int
         D.resize(length, -1);
         V1.resize(length, -1);
         V2.resize(length, -1);
+        VW.resize(length, -1);
+        VBoost.resize(length, -1);
     }
 
 
@@ -45,6 +49,8 @@ void History::add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int
     D[counter] = _D;
     V1[counter] = _V1;
     V2[counter] = _V2;
+    VW[counter] = _VW;
+    VBoost[counter] = _VBoost;
 
     counter++; 
 }

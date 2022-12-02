@@ -13,7 +13,7 @@
 using namespace std;
 
 
-void decrement(igraph_t *g, History *h) {
+void decrement(igraph_t *g, History *h, bool print) {
     igraph_real_t rds, rde, tv2, tvw, tvboost;
 
     // short int ds;
@@ -243,20 +243,22 @@ void decrement(igraph_t *g, History *h) {
     SETGAN(g, "VW_count", VW_count);
     SETGAN(g, "VBoost_count", VBoost_count);
 
-    h->add_history(S_count, E_count, Ic_count, Isc_count, R_count, D_count, V1_count, V2_count);
+    h->add_history(S_count, E_count, Ic_count, Isc_count, R_count, D_count, V1_count, V2_count, VW_count, VBoost_count);
 
-    cout << "S: " << std::setw(5) << S_count << " | ";
-    cout << "E: " << std::setw(5) << E_count << " | ";
-    cout << "Ic: " << std::setw(5) << Ic_count << " | ";
-    cout << "Isc: " << std::setw(5) << Isc_count << " | ";
-    cout << "R: " << std::setw(5) << R_count << " | ";
-    cout << "D: " << std::setw(5) << D_count << " | ";
-    cout << "V1: " << std::setw(5) << V1_count << " | ";
-    cout << "V2: " << std::setw(5) << V2_count << " | ";
-    cout << "VW: " << std::setw(5) << VW_count << " | ";
-    cout << "VBoost: " << std::setw(5) << VBoost_count << " | ";
-    cout << "Edge counts: " << "Household: " <<  setw(5) << hh_count << " Work " << setw(5) << " Random  " << setw(5) <<  random_count;
-    cout << flush;
+    if (print) {
+        cout << "S: " << std::setw(5) << S_count << " | ";
+        cout << "E: " << std::setw(5) << E_count << " | ";
+        cout << "Ic: " << std::setw(5) << Ic_count << " | ";
+        cout << "Isc: " << std::setw(5) << Isc_count << " | ";
+        cout << "R: " << std::setw(5) << R_count << " | ";
+        cout << "D: " << std::setw(5) << D_count << " | ";
+        cout << "V1: " << std::setw(5) << V1_count << " | ";
+        cout << "V2: " << std::setw(5) << V2_count << " | ";
+        cout << "VW: " << std::setw(5) << VW_count << " | ";
+        cout << "VBoost: " << std::setw(5) << VBoost_count << " | ";
+        cout << "Edge counts: " << "Household: " <<  setw(5) << hh_count << " Work " << setw(5) << " Random  " << setw(5) <<  random_count;
+        cout << flush;
+    }
 //     cout << endl;
 
 

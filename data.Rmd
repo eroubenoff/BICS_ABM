@@ -1,0 +1,95 @@
+---
+title: "Data description for BICS_ABM"
+author: "Ethan Roubenoff"
+date: "11/21/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(srvyr)
+library(cowplot)
+theme_set(theme_cowplot())
+```
+
+
+```{r}
+df_all_waves <- read_csv("cpp_version/data/df_all_waves.csv")
+survey_df <- as_survey_design(df_all_waves, probs = weight_pooled, strata = wave)
+```
+
+# Wave 6: vaccine behavior
+```{r}
+survey_df %>% filter(wave == 6) %>% 
+  drop_na(covid19_vax) %>%
+  group_by(covid19_vax) %>% 
+  summarize(n = survey_prop(vartype = "ci"))
+```
+By age: 
+```{r}
+survey_df %>% filter(wave == 6) %>% 
+  drop_na(covid19_vax) %>%
+  group_by(agecat, covid19_vax) %>% 
+  summarize(n = survey_prop(vartype = "ci")) %>% 
+  ggplot(aes(x = agecat, y = n, color = covid19_vax)) + 
+  geom_errorbar(aes(ymin = n_low, ymax = n_upp)) +
+  theme(legend.position = "bottom", legend.title = element_blank()) + 
+  labs(title = "BICS Wave 6: % Who have received the vaccine, by age",
+        caption = "n = 2722. Weighted estimates. Question wording: Have you received a vaccine to prevent\ncoronavirus/COVID-19?",
+       x = "Age", y = "%") 
+```
+```{r}
+df_all_waves %>% filter(wave == 6) %>% 
+  drop_na(covid19_vax) %>%
+  group_by(agecat) %>% 
+  ggplot(aes(x = covid19_vax, y = num_cc_nonhh, weight)) + 
+  geom_boxplot() +
+  theme(legend.position = "bottom") + 
+  ylim(0, 10) +
+  facet_grid(.~agecat)
+```
+
+
+```{r}
+survey_df %>% filter(wave == 6) %>% 
+  drop_na(covid19_whynot_vax) %>%
+  group_by(covid19_whynot_vax) %>% 
+  summarize(n = survey_prop(vartype = "ci"))
+```
+
+
+```{r}
+survey_df %>% filter(wave == 6) %>% 
+  drop_na(covid19_vax) %>%
+  group_by(covid19_vax) %>% 
+  summarize(n = survey_mean(num_cc_nonhh, vartype = "ci")) %>% 
+  ggplot() + 
+  geom_errorbar(aes(x = covid19_vax, ymin = n_low, ymax = n_upp)) + 
+  ylim(0, 7)
+```
+
+```{r}
+df_all_waves %>% filter(wave == 6) %>% 
+  drop_na(covid19_vax) %>%
+  ggplot() + 
+  geom_boxplot(aes(x = covid19_vax, y=num_cc_nonhh, weight=weight_pooled)) + 
+  ylim(0, 7)
+```
+
+```{r}
+df_all_waves %>% filter(wave == 6) %>% 
+  drop_na(covid19_vax) %>%
+  ggplot() + 
+  geom_boxplot(aes(x = covid19_vax, y=num_cc_nonhh, weight=weight_pooled)) + 
+  ylim(0, 10)
+```
+
+
+```{r}
+df_all_waves %>% filter(wave == 6) %>% 
+  drop_na(covid19_vax) %>%
+  ggplot() + 
+  geom_boxplot(aes(x = covid19_whynot_vax, y=num_cc_nonhh, weight=weight_pooled)) + 
+  ylim(0, 10)
+```
