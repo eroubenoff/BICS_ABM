@@ -71,7 +71,6 @@ def recode_lefthome(lefthome_num):
 def sum_to_1(v):
     return v/sum(v)
 
-# @profile
 
 
 def load_data():
@@ -98,68 +97,70 @@ def load_data():
 
 
     # Set index for efficient querying
-    BICS = BICS.set_index(['wave', 'agecat', 'gender'], drop=False).sort_index()
-    
-    # Pre-generate index combinations
-    BICS_idx = dict()
-    for i in BICS.index.unique():
-        BICS_idx[tuple(i)] = BICS.loc[i, :]
+    BICS = BICS.reset_index(drop=True).sort_index()
 
-    return BICS, BICS_idx
+    return BICS
 
 # Create these as globals
-BICS_global, BICS_idx_global = load_data()
+BICS_global =  load_data()
 
-@profile
-def create_pop(n_hh = 1000, wave = 6):
 
-    BICS = deepcopy(BICS_global)
-    BICS_idx = deepcopy(BICS_idx_global)
-    BICS = BICS[BICS["wave"] == wave].copy(deep=True).reset_index(drop=True)
 
-    pop = list()
+
+# @profile
+def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6) -> np.ndarray:
+
+    colnames = {k:v for v, k in enumerate(colnames)}
+
+    pop_list = list()
 
     # Pre-generate households 
-    hhs = BICS.sample(n = n_hh, replace=True,weights = BICS.weight_pooled)
-    hhs['hhid'] = range(hhs.shape[0])
+    hhs = np.random.choice(
+            pop.shape[0],
+            size = n_hh, 
+            replace = True, 
+            p = sum_to_1(pop[:,colnames["weight_pooled"]])
+            )
 
+    for hhid, hh in enumerate(hhs):
 
+        hhead = pop[hh,:]
+        hhead[colnames["hhid"]] = hhid 
+        pop_list.append(hhead.copy())
 
-    for hh, hhead in hhs.iterrows():
+        hhsize = int(hhead[colnames['hhsize']])
 
-        hhid = hhead['hhid'] 
-        pop.append(hhead)
-        hhsize = hhead['hhsize']
 
         if hhsize > 1: 
+
             for hhmember in range(min(hhsize, 5)):
                 hhmember = hhmember + 1
-                hhmember_age = hhead["resp_hh_roster#1_" + str(hhmember) + "_1"]
-                hhmember_gender = hhead["resp_hh_roster#2_" + str(hhmember)]
+                hhmember_age = hhead[colnames["resp_hh_roster#1_" + str(hhmember) + "_1"]]
+                hhmember_gender = hhead[colnames["resp_hh_roster#2_" + str(hhmember)]]
 
                 if hhmember_age == 0:
                     # TODO: go to POLYMOD
-                    hhmember = BICS
+                    hhmember = pop 
                 elif hhmember_age == -1 or hhmember_gender == -1:
-                    hhmember = BICS
+                    hhmember = pop
 
                 else:
-                    # Sample a corresponding person
-                    try:
-                        hhmember = BICS_idx[(wave, hhmember_age, hhmember_gender)] 
-                    except KeyError as e:
-                        print("Key not found: ",  hhmember_age, hhmember_gender)
+                    hhmember = pop[(pop[:,colnames['agecat']] == hhmember_age) & (pop[:,colnames['gender']] == hhmember_gender), :]
                     if hhmember.shape[0] == 0:
-                        hhmember = BICS
-                hhmember = hhmember.sample(1)
-                # hhmember['hhid'] = hhid
-                hhmember = hhmember.iloc[0,:] 
-                hhmember['hhid'] = hhid
-                pop.append(hhmember)
+                        hhmember = pop 
 
 
-    # ret = pd.DataFrame(pop)
-    ret = pd.DataFrame(pop)
+                # Sample a corresponding person
+                hhmember_id = np.random.choice( hhmember.shape[0], size = 1)
+                hhmember =  hhmember[hhmember_id][0]
+                hhmember[colnames['hhid']] = hhid
+                pop_list.append(hhmember.copy())
+
+    # Pull out the columns relevant and put everybody in a COLUMN-MAJOR (fortran-style) matrix! 
+    ret = np.stack(pop_list, axis = 0)
+
+    ret = ret[:, [colnames[x] for x in ["hhid", "agecat", "gender", "num_cc_nonhh", "lefthome_num", "vaccine_priority"]]]
+    ret = np.asfortranarray(ret)
 
     return ret 
 
@@ -237,19 +238,24 @@ def create_vax_priority(pop, vax_rules = None):
     
 def pop_to_np(pop: pd.DataFrame):
 
-    # Pull out the columns relevant and put everybody in a COLUMN-MAJOR (fortran-style) matrix! 
     # All data types are numeric
 
-    pop_np = np.zeros((pop.shape[0], 6), dtype = float, order = 'F')
+    pop.loc[:,"hhid"] = 0
+    colnames = ["hhid", "agecat", "gender", "num_cc_nonhh", 
+            "lefthome_num", "vaccine_priority", "weight_pooled", "hhsize",
+            "resp_hh_roster#1_1_1",
+            "resp_hh_roster#1_2_1",
+            "resp_hh_roster#1_3_1",
+            "resp_hh_roster#1_4_1",
+            "resp_hh_roster#1_5_1",
+            "resp_hh_roster#2_1",
+            "resp_hh_roster#2_2",
+            "resp_hh_roster#2_3",
+            "resp_hh_roster#2_4",
+            "resp_hh_roster#2_5",
+            ]
 
-    pop_np[:,0] = pop.hhid
-    pop_np[:,1] = pop.age
-    pop_np[:,2] = pop.gender
-    pop_np[:,3] = pop.num_cc_nonhh
-    pop_np[:,4] = pop.lefthome_num
-    pop_np[:,5] = pop.vaccine_priority
-
-    return pop_np
+    return colnames, pop.loc[:, colnames].to_numpy().astype(float)
 
 
 
@@ -337,9 +343,11 @@ class BICS_ABM:
             else:
                 setattr(self._params, k, v)
 
-        self._pop = create_pop(n_hh = self._params.N_HH, wave = self._params.WAVE)
+        self._pop = BICS_global.loc[BICS_global.wave == self._params.WAVE,:].copy(deep=True)
         self._pop = create_vax_priority(self._pop, vax_rules)
-        self._pop = pop_to_np(self._pop)
+        self._colnames, self._pop = pop_to_np(self._pop)
+        self._pop = create_pop(self._colnames, self._pop, n_hh = self._params.N_HH)
+
         self._instance = _BICS_ABM.BICS_ABM(self._pop, *self._pop.shape, self._params, silent)
 
         self.counter = self._instance.counter
@@ -383,4 +391,3 @@ class BICS_ABM:
 
 if __name__ == "__main__" :
     b0 = BICS_ABM()
-    b1 = BICS_ABM()
