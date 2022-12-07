@@ -22,10 +22,12 @@ History::History(int initial_length) {
     V2.resize(length, -1);
     VW.resize(length, -1);
     VBoost.resize(length, -1);
+    n_edges.resize(length, -1);
+
 }
 
 
-void History::add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int _V1, int _V2, int _VW, int _VBoost) {
+void History::add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int _V1, int _V2, int _VW, int _VBoost, int _n_edges) {
     if (counter == length-1) {
         length += 500;
         S.resize(length, -1);
@@ -38,6 +40,7 @@ void History::add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int
         V2.resize(length, -1);
         VW.resize(length, -1);
         VBoost.resize(length, -1);
+        n_edges.resize(length, -1);
     }
 
 
@@ -51,6 +54,7 @@ void History::add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int
     V2[counter] = _V2;
     VW[counter] = _VW;
     VBoost[counter] = _VBoost;
+    n_edges[counter] = _n_edges;
 
     counter++; 
 }

@@ -49,7 +49,6 @@ extern "C" typedef struct Params {
     float MU_VEC[9];
     int INDEX_CASES;
     int SEED;
-    int POP_SEED;
     int N_VAX_DAILY;
     float VE1;
     float VE2;
@@ -89,10 +88,11 @@ class History {
         vector<int> V2;
         vector<int> VW;
         vector<int> VBoost;
+        vector<int> n_edges;
         int counter;
         int length;
         History(int initial_length = 2000);
-        void add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int _V1, int _V2, int _VW, int _VBoost);
+        void add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int _V1, int _V2, int _VW, int _VBoost, int _n_edges);
         void save(string path = "history.csv");
         void plot_trajectory(string path = "plot.png") ;
 };

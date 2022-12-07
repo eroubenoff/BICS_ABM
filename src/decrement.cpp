@@ -242,8 +242,9 @@ void decrement(igraph_t *g, History *h, bool print) {
     SETGAN(g, "V2_count", V2_count);
     SETGAN(g, "VW_count", VW_count);
     SETGAN(g, "VBoost_count", VBoost_count);
+    SETGAN(g, "n_edges", hh_count + random_count);
 
-    h->add_history(S_count, E_count, Ic_count, Isc_count, R_count, D_count, V1_count, V2_count, VW_count, VBoost_count);
+    h->add_history(S_count, E_count, Ic_count, Isc_count, R_count, D_count, V1_count, V2_count, VW_count, VBoost_count, hh_count + random_count);
 
     if (print) {
         cout << "S: " << std::setw(5) << S_count << " | ";

@@ -57,19 +57,19 @@ void transmit(igraph_t *g,
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::V1){
-                    prob = params->BETA * params->VE1 * (symptomatic ? 1 : params->ALPHA);
+                    prob = params->BETA * (1-params->VE1) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::V2) {
-                    prob = params->BETA * params->VE2 * (symptomatic ? 1 : params->ALPHA);
+                    prob = params->BETA * (1-params->VE2) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::VW) {
-                    prob = params->BETA * params->VEW * (symptomatic ? 1 : params->ALPHA);
+                    prob = params->BETA * (1-params->VEW) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::VBoost) {
-                    prob = params->BETA * params->VEBOOST * (symptomatic ? 1 : params->ALPHA);
+                    prob = params->BETA * (1-params->VEBOOST) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else {

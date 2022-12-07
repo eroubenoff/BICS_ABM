@@ -14,7 +14,7 @@ extern "C" Params init_params(mt19937 generator) {
         0.1, // BETA
         {0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1}, // MU
         5, // INDEX_CASES
-        49, 4949, // SEED, POP_SEED
+        49, // SEED, POP_SEED
         100, // N_VAX_DAILY
         0.75, 0.95, // VE1, 2
         0.25, 0.95, // VEW, Boost 
@@ -44,7 +44,6 @@ void print_params(const Params *params) {
     cout << endl;
     cout << "INDEX_CASES:     " << params->INDEX_CASES << endl;
     cout << "SEED:            " << params->SEED<< endl;
-    cout << "POP_SEED:        " << params->POP_SEED<< endl;
     cout << "N_VAX_DAILY:     " << params->N_VAX_DAILY<< endl;
     cout << "VE1, VE2:        " << params->VE1 << ", " << params->VE2 << endl;
     cout << "VEW, VEBoost:    " << params->VEW << ", " << params->VEBOOST << endl;

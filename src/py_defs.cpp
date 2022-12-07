@@ -13,6 +13,7 @@ struct Trajectory {
     int V2_array[5000];
     int VW_array[5000];
     int VBoost_array[5000];
+    int n_edges_array[5000];
     int counter;
 
 };
@@ -116,6 +117,7 @@ extern "C" struct Trajectory BICS_ABM(double *pop, size_t pop_size, size_t n_col
     copy(history.V2.begin(), history.V2.end(), trajectory.V2_array);
     copy(history.VW.begin(), history.VW.end(), trajectory.VW_array);
     copy(history.VBoost.begin(), history.VBoost.end(), trajectory.VBoost_array);
+    copy(history.n_edges.begin(), history.n_edges.end(), trajectory.n_edges_array);
  
     if (silent) {
         // restore buffer

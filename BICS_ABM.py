@@ -108,7 +108,9 @@ BICS_global =  load_data()
 
 
 # @profile
-def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6) -> np.ndarray:
+def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6, seed = 49) -> np.ndarray:
+
+    np.random.seed(seed)
 
     colnames = {k:v for v, k in enumerate(colnames)}
 
@@ -165,7 +167,7 @@ def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6)
     return ret 
 
 class VaccineRule:
-    def __init__(self, query = "index == index or index != index", hesitancy = None, general = None):
+    def __init__(self, query = "index == index or index != index", hesitancy = None, general = False):
         if hesitancy is not None: 
             if hesitancy < 0 or hesitancy > 1:
                 raise ValueError("Hesitancy must be between 0 and 1, not " + str(hesitancy))
@@ -175,22 +177,18 @@ class VaccineRule:
         else:
             self.hesitancy = None
 
-        if general is not None:
-            if general == True:
-                self.general = True
-            elif general == False:
-                self.general = False
-            else: 
-                raise ValueError("General must be true, false, or none " + str(general))
-        else:
+        if general == True:
+            self.general = True
+        elif general == False:
             self.general = False
-
+        else: 
+            raise ValueError("General must be true, false, or none " + str(general))
         
         self.query = query
 
 
 
-def create_vax_priority(pop, vax_rules = None): 
+def create_vax_priority(pop, vax_rules = None, seed = 49): 
     """
     Assume that vax_rules is in the form of:
     [
@@ -217,20 +215,22 @@ def create_vax_priority(pop, vax_rules = None):
         idx = mask * range(pop.shape[0])
         idx = idx[idx != 0]
 
-        if v.general is True and v.hesitancy is not None:
-            # pop.iloc[np.random.choice(pop.shape[0], frac = v.hesitancy), vaccine_priority] = i + 1
-            idx = idx.sample(frac = v.hesitancy).tolist()
-            pop.iloc[idx, vaccine_priority] = i+1
+        if v.general is True and v.hesitancy is None:
+            pop.iloc[:,vaccine_priority] = i 
 
-        elif v.general is True:
-            pop.iloc[vaccine_priority] = i + 1
-        
+        elif v.general is True and v.hesitancy is not None:
+            idx = idx.sample(frac = v.hesitancy, random_state = seed).tolist()
+            pop.iloc[idx, vaccine_priority] = i
+
         elif v.hesitancy is not None:
-            idx = idx.sample(frac = v.hesitancy).tolist()
-            pop.iloc[idx, vaccine_priority] = i+1
+            idx = idx.sample(frac = v.hesitancy, random_state = seed).tolist()
+            pop.iloc[idx, vaccine_priority] = i
 
         else: 
-            pop.iloc[idx, vaccine_priority] = i+1
+            pop.iloc[idx, vaccine_priority] = i
+
+    # Tally total counts in each
+    # print(pop["vaccine_priority"].value_counts())
 
     return pop 
 
@@ -277,7 +277,6 @@ class Params(ctypes.Structure):
             ('MU_VEC', ctypes.c_float*9),
             ('INDEX_CASES', ctypes.c_int),
             ('SEED', ctypes.c_int),
-            ('POP_SEED', ctypes.c_int),
             ('N_VAX_DAILY', ctypes.c_int),
             ('VE1', ctypes.c_float),
             ('VE2', ctypes.c_float),
@@ -320,6 +319,7 @@ class Trajectory (ctypes.Structure):
         ('V2_array', ctypes.c_int*5000),
         ('VW_array', ctypes.c_int*5000),
         ('VBoost_array', ctypes.c_int*5000),
+        ('n_edges_array', ctypes.c_int*5000),
         ('counter', ctypes.c_int)
     ]
 
@@ -341,12 +341,18 @@ class BICS_ABM:
                 raise ValueError("Invalid parameter " + k + " passed to BICS_ABM")
 
             else:
+                if k == "MU_VEC":
+                    if len(v) != 9:
+                        raise ValueError("Case fatality must be 9 element list")
+                    v = (ctypes.c_float * 9)(* v)
                 setattr(self._params, k, v)
 
+        self.seed = self._params.SEED
+
         self._pop = BICS_global.loc[BICS_global.wave == self._params.WAVE,:].copy(deep=True)
-        self._pop = create_vax_priority(self._pop, vax_rules)
+        self._pop = create_vax_priority(self._pop, vax_rules, seed=self.seed)
         self._colnames, self._pop = pop_to_np(self._pop)
-        self._pop = create_pop(self._colnames, self._pop, n_hh = self._params.N_HH)
+        self._pop = create_pop(self._colnames, self._pop, n_hh = self._params.N_HH, seed=self.seed)
 
         self._instance = _BICS_ABM.BICS_ABM(self._pop, *self._pop.shape, self._params, silent)
 
@@ -361,6 +367,7 @@ class BICS_ABM:
         self.V2 = self._instance.V2_array[:self.counter]
         self.VW = self._instance.VW_array[:self.counter]
         self.VBoost = self._instance.VBoost_array[:self.counter]
+        self.n_edges= self._instance.n_edges_array[:self.counter]
 
     def plot_trajectory(self):
 
@@ -391,3 +398,39 @@ class BICS_ABM:
 
 if __name__ == "__main__" :
     b0 = BICS_ABM()
+    BICS_ABM(**{'N_HH': 1000,
+     'GAMMA_MIN': 24,
+     'GAMMA_MAX': 72,
+     'SIGMA_MIN': 72,
+     'SIGMA_MAX': 120,
+     'BETA': 0.05507544898896605,
+     'ALPHA': 0.1830251830862492,
+     'RHO': 0.6474413453425609,
+     'ISOLATION_MULTIPLIER': 0.824480802946687,
+     'MU_VEC': [3.5228070072044665e-05,
+      4.238936395192768e-05,
+      0.0010822282956317395,
+      0.002854986079377454,
+      0.010868770209864088,
+      0.013643996316117462,
+      0.04180962401407782,
+      0.16165378408335598,
+      0.2899616251020893],
+     'silent': False,
+     'INDEX_CASES' : 1,
+     'T0': 30},
+ vax_rules = [
+            VaccineRule("num_cc_nonhh > 30"),
+            VaccineRule("num_cc_nonhh > 25"),
+            VaccineRule("num_cc_nonhh > 20"),
+            VaccineRule("num_cc_nonhh > 15"),
+            VaccineRule("num_cc_nonhh > 10"),
+            VaccineRule("num_cc_nonhh > 5"),
+            VaccineRule("num_cc_nonhh > 4"),
+            VaccineRule("num_cc_nonhh > 3"),
+            VaccineRule("num_cc_nonhh > 2"),
+            VaccineRule("num_cc_nonhh > 1"),
+            VaccineRule(general = True)
+
+        ])
+              
