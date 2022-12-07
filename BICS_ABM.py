@@ -161,7 +161,7 @@ def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6,
     # Pull out the columns relevant and put everybody in a COLUMN-MAJOR (fortran-style) matrix! 
     ret = np.stack(pop_list, axis = 0)
 
-    ret = ret[:, [colnames[x] for x in ["hhid", "agecat", "gender", "num_cc_nonhh", "lefthome_num", "vaccine_priority"]]]
+    ret = ret[:, [colnames[x] for x in ["hhid", "agecat", "gender", "num_cc_nonhh", "lefthome_num", "vaccine_priority", "NPI"]]]
     ret = np.asfortranarray(ret)
 
     return ret 
@@ -242,7 +242,7 @@ def pop_to_np(pop: pd.DataFrame):
 
     pop.loc[:,"hhid"] = 0
     colnames = ["hhid", "agecat", "gender", "num_cc_nonhh", 
-            "lefthome_num", "vaccine_priority", "weight_pooled", "hhsize",
+            "lefthome_num", "vaccine_priority", "weight_pooled", "hhsize", "NPI",
             "resp_hh_roster#1_1_1",
             "resp_hh_roster#1_2_1",
             "resp_hh_roster#1_3_1",

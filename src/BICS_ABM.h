@@ -59,6 +59,7 @@ extern "C" typedef struct Params {
     int T0;
     float ALPHA; 
     float RHO;
+    float NPI;
 
 } Params;
 

@@ -30,6 +30,7 @@ void transmit(igraph_t *g,
     int rho; 
     bool symptomatic;
     double prob;
+    bool NPI;
 
     /* Pull attributes from g */
     igraph_vector_t ds_vec;
@@ -38,6 +39,10 @@ void transmit(igraph_t *g,
     igraph_vector_t vs_vec;
     igraph_vector_init(&vs_vec, vcount);
     VANV(g, "vaccine_status", &vs_vec);
+
+    igraph_vector_t NPI_vec;
+    igraph_vector_init(&NPI_vec, vcount);
+    VANV(g, "NPI", &NPI_vec);
 
     for (int i = vcount; i--; ) {
         ds = VECTOR(ds_vec)[i]; 
@@ -52,31 +57,30 @@ void transmit(igraph_t *g,
                 vs2 = VECTOR(vs_vec)[n2]; 
                 if (ds2 != ::S) continue; 
 
+                if (VECTOR(NPI_vec)[i] && VECTOR(NPI_vec)[n2]) NPI = true;
+
                 if (vs2 == ::V0){
-                    prob = params->BETA * (symptomatic ? 1 : params->ALPHA);
+                    prob = params-> BETA * (NPI ? 1 : (1-params->NPI)) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::V1){
-                    prob = params->BETA * (1-params->VE1) * (symptomatic ? 1 : params->ALPHA);
+                    prob = params-> BETA * (NPI ? 1 : (1-params->NPI)) * (1-params->VE1) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::V2) {
-                    prob = params->BETA * (1-params->VE2) * (symptomatic ? 1 : params->ALPHA);
+                    prob = params-> BETA * (NPI ? 1 : (1-params->NPI)) * (1-params->VE2) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::VW) {
-                    prob = params->BETA * (1-params->VEW) * (symptomatic ? 1 : params->ALPHA);
+                    prob = params->BETA * (NPI ? 1 : (1-params->NPI)) * (1-params->VEW) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::VBoost) {
-                    prob = params->BETA * (1-params->VEBOOST) * (symptomatic ? 1 : params->ALPHA);
+                    prob = params->BETA * (NPI ? 1 : (1-params->NPI)) * (1-params->VEBOOST) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else {
-                    cout << "Error in switch " << endl;
-                    prob = params->BETA * (symptomatic ? 1 : params->ALPHA);
-                    dist = bernoulli_distribution(prob);
-                    vs_next = dist(generator);
+                    throw runtime_error("Error in Transmit switch");
                 }
                 if (vs_next) {
                     uint_dist = uniform_int_distribution(params->GAMMA_MIN, params->GAMMA_MAX);
