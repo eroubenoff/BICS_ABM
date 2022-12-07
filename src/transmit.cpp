@@ -42,7 +42,7 @@ void transmit(igraph_t *g,
     for (int i = vcount; i--; ) {
         ds = VECTOR(ds_vec)[i]; 
 
-        if ((ds == ::Ic) || (ds == ::Isc) || (ds == ::E)) {
+        if ((ds == ::Ic) || (ds == ::Isc) /*|| (ds == ::E)*/) {
             igraph_neighbors(g, &neighbors, i, IGRAPH_ALL); 
             if (ds == ::Ic) symptomatic=true;
 
