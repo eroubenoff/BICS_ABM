@@ -286,7 +286,8 @@ class Params(ctypes.Structure):
             ('T_REINFECTION', ctypes.c_int),
             ('T0', ctypes.c_int),
             ('ALPHA', ctypes.c_float),
-            ('RHO', ctypes.c_float)
+            ('RHO', ctypes.c_float),
+            ('NPI', ctypes.c_float)
             
     ]
 
