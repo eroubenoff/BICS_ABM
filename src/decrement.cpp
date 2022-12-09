@@ -209,6 +209,7 @@ void decrement(igraph_t *g, History *h, bool print) {
     SETVANV(g, "time_until_v2", &tv2_vec);
     SETVANV(g, "time_until_vw", &tvw_vec);
     SETVANV(g, "time_until_vboost", &tvboost_vec);
+    SETVANV(g, "time_until_susceptible", &tsus_vec);
     igraph_vector_destroy(&ds_vec);
     igraph_vector_destroy(&vs_vec);
     igraph_vector_destroy(&rde_vec);
@@ -217,6 +218,7 @@ void decrement(igraph_t *g, History *h, bool print) {
     igraph_vector_destroy(&tv2_vec);
     igraph_vector_destroy(&tvw_vec);
     igraph_vector_destroy(&tvboost_vec);
+    igraph_vector_destroy(&tsus_vec);
 
     /* Tally edge counts */
     int hh_count = 0; 

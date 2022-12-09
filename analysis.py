@@ -145,7 +145,7 @@ def multi_fn(i):
 
 
 # 10 is about the efficiency limit-- 2400 cycles will take about 2 mins
-result_vec = Parallel(n_jobs=-1, verbose = 10#, prefer="threads"
+result_vec = Parallel(n_jobs=-1, verbose = 10, prefer="threads"
         )(delayed(multi_fn)(v) for v in range(nsims))
 
 
@@ -254,7 +254,7 @@ def multi_fn(i):
 
 
 # 10 is about the efficiency limit-- 2400 cycles will take about 2 mins
-result_vec = Parallel(n_jobs=-1, verbose = 10#, prefer="threads"
+result_vec = Parallel(n_jobs=-1, verbose = 10, prefer="threads"
         )(delayed(multi_fn)(v) for v in range(nsims))
 
 
@@ -394,7 +394,7 @@ def multi_fn(i):
 
 
 # 10 is about the efficiency limit-- 2400 cycles will take about 2 mins
-result_vec = Parallel(n_jobs=-1, verbose = 10#, prefer="threads"
+result_vec = Parallel(n_jobs=-1, verbose = 10, prefer="threads"
         )(delayed(multi_fn)(v) for v in range(nsims))
 
 

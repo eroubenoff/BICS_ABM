@@ -60,7 +60,7 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
 
 /* Treat data as a gloabl */
 // https://stackoverflow.com/questions/30184998/how-to-disable-cout-output-in-the-runtime
-extern "C" /*struct Trajectory*/ void BICS_ABM(double *pop, size_t pop_size, size_t n_cols, Trajectory *trajectory, Params params, bool silent = false) {
+extern "C" /*struct Trajectory*/ void BICS_ABM(double *pop, size_t pop_size, size_t n_cols, Trajectory *trajectory, Params *params, bool silent = false) {
 
     // get underlying buffer
     streambuf* orig_buf = cout.rdbuf();
@@ -94,7 +94,7 @@ extern "C" /*struct Trajectory*/ void BICS_ABM(double *pop, size_t pop_size, siz
      * Run sim
      */
 
-    BICS_ABM(&graph, &params, &history);
+    BICS_ABM(&graph, params, &history);
 
     /* 
      * Delete all remaining attributes. 

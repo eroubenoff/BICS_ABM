@@ -102,6 +102,7 @@ void transmit(igraph_t *g,
 
     igraph_vector_destroy(&ds_vec);
     igraph_vector_destroy(&vs_vec);
+    igraph_vector_destroy(&NPI_vec);
     igraph_vector_int_destroy(&neighbors);
 
 

@@ -291,6 +291,30 @@ class Params(ctypes.Structure):
             
     ]
 
+    def __init__(self): 
+        self.N_HH = 1000
+        self.WAVE = 6
+        self.GAMMA_MIN = 2*24
+        self.GAMMA_MAX = 4*24
+        self.SIGMA_MIN = 3*24
+        self.SIGMA_MAX = 7*24
+        self.BETA = 0.1
+        mu = [0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1]
+        self.MU_VEC = (ctypes.c_float * 9)(*mu)         
+        self.INDEX_CASES = 5
+        self.SEED = 49
+        self.N_VAX_DAILY = 100
+        self.VE1 = 0.75
+        self.VE2 = 0.95
+        self.VEW = 0.25
+        self.VEBOOST = 0.95
+        self.ISOLATION_MULTIPLIER = 1
+        self.T_REINFECTION = 90*24
+        self.T0 = 0
+        self.ALPHA = 0.5
+        self.RHO = 0.5
+        self.NPI = 0.75
+
 """ 
 Passing population array to ABM
 C-type corresponding to numpy 2-dimensional array (matrix)
@@ -324,7 +348,7 @@ class Trajectory (ctypes.Structure):
         ('counter', ctypes.c_int)
     ]
 
-_BICS_ABM.BICS_ABM.argtypes = [ND_POINTER_2, ctypes.c_size_t, ctypes.c_size_t, ctypes.POINTER(Trajectory), Params, ctypes.c_bool]
+_BICS_ABM.BICS_ABM.argtypes = [ND_POINTER_2, ctypes.c_size_t, ctypes.c_size_t, ctypes.POINTER(Trajectory), ctypes.POINTER(Params), ctypes.c_bool]
 _BICS_ABM.BICS_ABM.restype = None # Trajectory
 
 _BICS_ABM.init_params.argtypes = () 
@@ -337,7 +361,7 @@ class BICS_ABM:
     def __init__(self, n_hh = 1000, wave = 6, 
             vax_rules = [VaccineRule(general=True, hesitancy = 0.5)], silent = False, 
             pop = None, **kwargs):
-        self._params = _BICS_ABM.init_params()
+        self._params = Params()  # _BICS_ABM.init_params()
         for k, v in kwargs.items():
             if k not in self._params.__dir__():
 
@@ -363,7 +387,9 @@ class BICS_ABM:
 
         self._trajectory = Trajectory()
         # self._instance = _BICS_ABM.BICS_ABM(self._pop, *self._pop.shape, self._params, silent)
+        ctypes._reset_cache()
         _BICS_ABM.BICS_ABM(self._pop, *self._pop.shape, self._trajectory, self._params, silent)
+
 
         self.counter = self._trajectory.counter
         self.S = self._trajectory.S_array[:self.counter]
@@ -377,6 +403,8 @@ class BICS_ABM:
         self.VW = self._trajectory.VW_array[:self.counter]
         self.VBoost = self._trajectory.VBoost_array[:self.counter]
         self.n_edges= self._trajectory.n_edges_array[:self.counter]
+
+        del self._trajectory
 
     def plot_trajectory(self):
 
