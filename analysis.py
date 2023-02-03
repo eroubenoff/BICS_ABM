@@ -86,13 +86,11 @@ def multi_fn(i):
     )
 
     result_general = BICS_ABM(
-        pop = result_none._pop,
         **params,
         vax_rules = [VaccineRule(general = True)]
     )
 
     result_age = BICS_ABM(
-        pop = result_none._pop,
         **params,
         vax_rules = [
             VaccineRule("age > 80"),
@@ -106,7 +104,6 @@ def multi_fn(i):
     )
 
     result_cc = BICS_ABM(
-        pop = result_none._pop,
         **params,
         vax_rules = [
             VaccineRule("num_cc_nonhh > 30"),
@@ -204,13 +201,11 @@ def multi_fn(i):
     )
 
     result_general = BICS_ABM(
-        pop = result_none._pop,
         **params,
         vax_rules = [VaccineRule(general = True)]
     )
 
     result_age = BICS_ABM(
-        pop = result_none._pop,
         **params,
         vax_rules = [
             VaccineRule("age > 80"),
@@ -224,7 +219,6 @@ def multi_fn(i):
     )
 
     result_cc = BICS_ABM(
-        pop = result_none._pop,
         **params,
         vax_rules = [
             VaccineRule("num_cc_nonhh > 30"),
@@ -313,21 +307,18 @@ def multi_fn(i):
         ]
     )
     result_30 = BICS_ABM(
-        pop = result_general._pop,
         **params,
         vax_rules = [
             VaccineRule("num_cc_nonhh > 30")
         ]
     )
     result_25 = BICS_ABM(
-        pop = result_general._pop,
         **params,
         vax_rules = [
             VaccineRule("num_cc_nonhh > 25")
         ]
     )
     result_20 = BICS_ABM(
-        pop = result_general._pop,
         **params,
         vax_rules = [
             VaccineRule("num_cc_nonhh > 20")
@@ -335,14 +326,12 @@ def multi_fn(i):
     )
 
     result_15 = BICS_ABM(
-        pop = result_general._pop,
         **params,
         vax_rules = [
             VaccineRule("num_cc_nonhh > 15")
         ]
     )
     result_10 = BICS_ABM(
-        pop = result_general._pop,
         **params,
         vax_rules = [
             VaccineRule("num_cc_nonhh > 10")
@@ -350,21 +339,18 @@ def multi_fn(i):
     )
 
     result_5 = BICS_ABM(
-        pop = result_general._pop,
         **params,
         vax_rules = [
             VaccineRule("num_cc_nonhh > 5")
         ]
     )
     result_2 = BICS_ABM(
-        pop = result_general._pop,
         **params,
         vax_rules = [
             VaccineRule("num_cc_nonhh > 2")
         ]
     )
     result_1 = BICS_ABM(
-        pop = result_general._pop,
         **params,
         vax_rules = [
             VaccineRule("num_cc_nonhh > 1")

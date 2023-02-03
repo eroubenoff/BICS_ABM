@@ -17,6 +17,6 @@ void set_sick(igraph_t *g, int n, int rde, int rds, bool mu, int t_reinfection, 
   SETVAN(g, "remaining_days_exposed", n, rde);
   SETVAN(g, "remaining_days_sick", n, rds);
   SETVAN(g, "mu", n, mu);
-  SETVAN(g, "t_until_susceptible", n, t_reinfection);
+  SETVAN(g, "time_until_susceptible", n, t_reinfection);
   SETVAN(g, "symptomatic", n, is_symptomatic);
 }

@@ -4,7 +4,8 @@
 using namespace std;
 
 /* Params default values */ 
-extern "C" Params init_params(mt19937 generator) {
+/*
+extern "C" Params init_params() {
 
     Params params{
         1000, // N_HH
@@ -29,6 +30,7 @@ extern "C" Params init_params(mt19937 generator) {
 
     return params;
 };
+*/
 
 void print_params(const Params *params) {
     cout << "----------------------------------------"<< endl;
@@ -38,20 +40,33 @@ void print_params(const Params *params) {
     cout << "GAMMA_MIN, _MAX: " << params->GAMMA_MIN << ", " << params->GAMMA_MAX << endl;
     cout << "SIGMA_MIN, _MAX: " << params->SIGMA_MIN << ", " << params->SIGMA_MAX << endl;
     cout << "BETA:            " << params->BETA<< endl;
+    cout << "BETA_VEC:            ";
+    for (auto i: params->BETA_VEC) {
+        cout << i << "  ";
+    };
+    cout << endl;
     cout << "MU_VEC:          ";
     for (auto i: params->MU_VEC) {
         cout << i << "  ";
     }   
     cout << endl;
     cout << "INDEX_CASES:     " << params->INDEX_CASES << endl;
+    cout << "IMPORT_CASES_VEC:            ";
+    for (auto i: params->IMPORT_CASES_VEC) {
+        cout << i << "  ";
+    };
+    cout << endl;
     cout << "SEED:            " << params->SEED<< endl;
     cout << "N_VAX_DAILY:     " << params->N_VAX_DAILY<< endl;
     cout << "VE1, VE2:        " << params->VE1 << ", " << params->VE2 << endl;
     cout << "VEW, VEBoost:    " << params->VEW << ", " << params->VEBOOST << endl;
+    cout << "ISOLATION_MULT.: " << params->ISOLATION_MULTIPLIER<< endl;
+    cout << "T_REINFECTION:   " << params->T_REINFECTION<< endl;
+    cout << "T0:              " << params->T0<< endl;
     cout << "ALPHA:           " << params->ALPHA << endl;
     cout << "RHO:             " << params->RHO << endl;
-    cout << "ISOLATION_MULT.: " << params->ISOLATION_MULTIPLIER<< endl;
-    cout << "NPI            : " << params->NPI<< endl;
+    cout << "NPI:             " << params->NPI<< endl;
+    cout << "MAX_DAYS:        " << params->MAX_DAYS<< endl;
     cout << "----------------------------------------"<< endl;
 
 }

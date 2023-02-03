@@ -3,17 +3,18 @@
 
 
 struct Trajectory {
-    int S_array[5000];
-    int E_array[5000];
-    int Ic_array[5000];
-    int Isc_array[5000];
-    int R_array[5000];
-    int D_array[5000];
-    int V1_array[5000];
-    int V2_array[5000];
-    int VW_array[5000];
-    int VBoost_array[5000];
-    int n_edges_array[5000];
+    
+    int S_array[50000];
+    int E_array[50000];
+    int Ic_array[50000];
+    int Isc_array[50000];
+    int R_array[50000];
+    int D_array[50000];
+    int V1_array[50000];
+    int V2_array[50000];
+    int VW_array[50000];
+    int VBoost_array[50000];
+    int n_edges_array[50000];
     int counter;
 
 };

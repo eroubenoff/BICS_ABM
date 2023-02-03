@@ -46,8 +46,10 @@ extern "C" typedef struct Params {
     int SIGMA_MIN;
     int SIGMA_MAX;
     float BETA;
+    float BETA_VEC[365];
     float MU_VEC[9];
     int INDEX_CASES;
+    int IMPORT_CASES_VEC[365];
     int SEED;
     int N_VAX_DAILY;
     float VE1;
@@ -60,6 +62,7 @@ extern "C" typedef struct Params {
     float ALPHA; 
     float RHO;
     float NPI;
+    int MAX_DAYS;
 
 } Params;
 
@@ -72,7 +75,7 @@ extern "C" typedef struct Params {
  * @return Params object with baseline values. 
  *
  */
-extern "C" Params init_params(mt19937 generator); 
+// extern "C" Params init_params(); 
 void print_params(const Params *params); 
 extern "C" Params destroy_params(); 
 
@@ -153,7 +156,7 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_
 
 
 
-void BICS_ABM(igraph_t *graph, const Params *params, History *history);
+void BICS_ABM(igraph_t *graph, Params *params, History *history);
 
 
 void random_contacts(igraph_t *g, 

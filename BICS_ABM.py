@@ -274,8 +274,10 @@ class Params(ctypes.Structure):
             ('SIGMA_MIN', ctypes.c_int),
             ('SIGMA_MAX', ctypes.c_int),
             ('BETA', ctypes.c_float),
+            ('BETA_VEC', ctypes.c_float*365),
             ('MU_VEC', ctypes.c_float*9),
             ('INDEX_CASES', ctypes.c_int),
+            ('IMPORT_CASES_VEC', ctypes.c_int*365),
             ('SEED', ctypes.c_int),
             ('N_VAX_DAILY', ctypes.c_int),
             ('VE1', ctypes.c_float),
@@ -287,7 +289,8 @@ class Params(ctypes.Structure):
             ('T0', ctypes.c_int),
             ('ALPHA', ctypes.c_float),
             ('RHO', ctypes.c_float),
-            ('NPI', ctypes.c_float)
+            ('NPI', ctypes.c_float),
+            ('MAX_DAYS', ctypes.c_int)
             
     ]
 
@@ -299,9 +302,13 @@ class Params(ctypes.Structure):
         self.SIGMA_MIN = 3*24
         self.SIGMA_MAX = 7*24
         self.BETA = 0.1
+        beta_vec = [0] * 365 
+        self.BETA_VEC = (ctypes.c_float * 365)(*beta_vec)
         mu = [0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1]
         self.MU_VEC = (ctypes.c_float * 9)(*mu)         
         self.INDEX_CASES = 5
+        index_cases_vec = [0] * 365 
+        self.IMPORT_CASES_VEC= (ctypes.c_int* 365)(*index_cases_vec)
         self.SEED = 49
         self.N_VAX_DAILY = 100
         self.VE1 = 0.75
@@ -314,6 +321,7 @@ class Params(ctypes.Structure):
         self.ALPHA = 0.5
         self.RHO = 0.5
         self.NPI = 0.75
+        self.MAX_DAYS = -1
 
 """ 
 Passing population array to ABM
@@ -334,25 +342,25 @@ Return object
 """
 class Trajectory (ctypes.Structure):
     _fields_ = [
-        ('S_array', ctypes.c_int*5000),
-        ('E_array', ctypes.c_int*5000),
-        ('Ic_array', ctypes.c_int*5000),
-        ('Isc_array', ctypes.c_int*5000),
-        ('R_array', ctypes.c_int*5000),
-        ('D_array', ctypes.c_int*5000),
-        ('V1_array', ctypes.c_int*5000),
-        ('V2_array', ctypes.c_int*5000),
-        ('VW_array', ctypes.c_int*5000),
-        ('VBoost_array', ctypes.c_int*5000),
-        ('n_edges_array', ctypes.c_int*5000),
+        ('S_array', ctypes.c_int*50000),
+        ('E_array', ctypes.c_int*50000),
+        ('Ic_array', ctypes.c_int*50000),
+        ('Isc_array', ctypes.c_int*50000),
+        ('R_array', ctypes.c_int*50000),
+        ('D_array', ctypes.c_int*50000),
+        ('V1_array', ctypes.c_int*50000),
+        ('V2_array', ctypes.c_int*50000),
+        ('VW_array', ctypes.c_int*50000),
+        ('VBoost_array', ctypes.c_int*50000),
+        ('n_edges_array', ctypes.c_int*50000),
         ('counter', ctypes.c_int)
     ]
 
 _BICS_ABM.BICS_ABM.argtypes = [ND_POINTER_2, ctypes.c_size_t, ctypes.c_size_t, ctypes.POINTER(Trajectory), ctypes.POINTER(Params), ctypes.c_bool]
 _BICS_ABM.BICS_ABM.restype = None # Trajectory
 
-_BICS_ABM.init_params.argtypes = () 
-_BICS_ABM.init_params.restype = Params 
+# _BICS_ABM.init_params.argtypes = () 
+# _BICS_ABM.init_params.restype = Params 
 
 
 
@@ -361,7 +369,11 @@ class BICS_ABM:
     def __init__(self, n_hh = 1000, wave = 6, 
             vax_rules = [VaccineRule(general=True, hesitancy = 0.5)], silent = False, 
             pop = None, **kwargs):
+
+        kwargs = {k.upper():v for k,v in kwargs.items()}
+
         self._params = Params()  # _BICS_ABM.init_params()
+
         for k, v in kwargs.items():
             if k not in self._params.__dir__():
 
@@ -372,7 +384,22 @@ class BICS_ABM:
                     if len(v) != 9:
                         raise ValueError("Case fatality must be 9 element list")
                     v = (ctypes.c_float * 9)(* v)
-                setattr(self._params, k, v)
+                    setattr(self._params, k, v)
+
+                elif k == "BETA_VEC":
+                    if len(v) != 365:
+                        raise ValueError("Daily Beta must be 365 element list of float")
+                    v = (ctypes.c_float * 365)(* v)
+                    setattr(self._params, k, v)
+
+                elif k == "IMPORT_CASES_VEC":
+                    if len(v) != 365:
+                        raise ValueError("Daily import cases must be 365 element list of int")
+                    v = (ctypes.c_int * 365)(* v)
+                    setattr(self._params, k, v)
+
+                else:
+                    setattr(self._params, k, v)
 
         self.seed = self._params.SEED
 

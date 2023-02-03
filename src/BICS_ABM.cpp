@@ -44,7 +44,7 @@ void delete_all_edges(igraph_t *g) {
 }
 
 
-void BICS_ABM(igraph_t *graph, const Params *params, History *history) {
+void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
     print_params(params);
     cout << "N vertices: " << igraph_vcount(graph) << endl;
@@ -118,9 +118,77 @@ void BICS_ABM(igraph_t *graph, const Params *params, History *history) {
 
     
     /* 
+     * Set flags indicating if there is a time series of beta
+     * and index cases or not 
+     */
+
+    bool beta_daily_bool;
+    bool imported_cases_daily_bool;
+
+    for (int i = 0; i < 365; i++) {
+        if (params->BETA_VEC[i] != 0) {
+            beta_daily_bool = true;
+            break;
+        }
+    }
+    for (int i = 0; i < 365; i++) {
+        if (params->IMPORT_CASES_VEC [i] != 0) {
+            imported_cases_daily_bool = true;
+            break;
+        }
+    }
+
+    cout << "IMPORT CASES BOOL " << imported_cases_daily_bool << endl;
+
+
+    /* 
      * Run main sim 
      * */
-    while (GAN(graph, "Ic_count") + GAN(graph, "E_count") + GAN(graph, "Isc_count") > 0){
+    while ((day < params->MAX_DAYS) && (params->MAX_DAYS != -1)) {
+
+        // If no max days is set, break when infection count drops 
+        // to 0 to avoid an infinite loop 
+        if (params->MAX_DAYS == -1) {
+            if ((GAN(graph, "Ic_count") + GAN(graph, "E_count") + GAN(graph, "Isc_count")) > 0 ) {
+                break;
+            }
+        }
+
+        /* 
+         * If there is a daily seasonal forcing of Beta, 
+         * update it now 
+         */
+        if (beta_daily_bool) {
+            params->BETA = params->BETA_VEC[day % 365];
+        }
+
+        /*
+         * If there are daily imported cases,
+         * pick a random susceptible to get sick
+         */
+
+        if (imported_cases_daily_bool) {
+            // cout  << "Imported case"; 
+
+            // Tally up all Susceptibles 
+            vector<int> susceptibles; 
+            for (int i = 0; i < igraph_vcount(graph); i++) {
+                if (VAN(graph, "disease_status", i) == ::S) {
+                    susceptibles.push_back(i);
+                }
+            }
+
+            if (susceptibles.size() > 0) {
+                for (int i = 0; i < params->IMPORT_CASES_VEC[day % 365]; i++) {
+                    uniform_int_distribution<int> sus_distr(0, susceptibles.size() - 1);
+                    int import_case = susceptibles[sus_distr(generator)];
+                    //cout << import_case << "  " ;
+                    set_sick(graph, import_case, 3*24, 5*24, false, params->T_REINFECTION, ::Ic);
+                }
+
+                // cout << endl;
+            }
+        }
 
         // Hours 0-8
         for (hr = 0; hr < 8; hr++ ) {
