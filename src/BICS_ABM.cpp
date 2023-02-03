@@ -160,6 +160,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
          */
         if (beta_daily_bool) {
             params->BETA = params->BETA_VEC[day % 365];
+            cout << params->BETA << endl;
         }
 
         /*
