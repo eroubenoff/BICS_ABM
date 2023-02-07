@@ -5,6 +5,7 @@ import pandas as pd
 from numpy.ctypeslib import ndpointer
 from copy import deepcopy
 import matplotlib.pyplot as plt
+from threading import Thread
 
 
 path = os.getcwd()
@@ -415,7 +416,14 @@ class BICS_ABM:
         self._trajectory = Trajectory()
         # self._instance = _BICS_ABM.BICS_ABM(self._pop, *self._pop.shape, self._params, silent)
         ctypes._reset_cache()
-        _BICS_ABM.BICS_ABM(self._pop, *self._pop.shape, self._trajectory, self._params, silent)
+        # _BICS_ABM.BICS_ABM(self._pop, *self._pop.shape, self._trajectory, self._params, silent)
+
+        # Trying to add threading
+        t = Thread(target = _BICS_ABM.BICS_ABM, args = [self._pop, *self._pop.shape, self._trajectory, self._params, silent])
+        t.daemon = True
+        t.start()
+        while t.is_alive():
+            t.join(0.1)
 
 
         self.counter = self._trajectory.counter
@@ -461,6 +469,7 @@ class BICS_ABM:
 
 
 if __name__ == "__main__" :
+    """
     b0 = BICS_ABM()
     BICS_ABM(**{'N_HH': 1000,
      'GAMMA_MIN': 24,
@@ -497,4 +506,5 @@ if __name__ == "__main__" :
             VaccineRule(general = True)
 
         ])
+        """
               
