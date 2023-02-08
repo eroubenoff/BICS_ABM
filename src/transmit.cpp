@@ -7,6 +7,7 @@
 using namespace std;
 
 void transmit(igraph_t *g,
+        float BETA,
         const Params *params,
         mt19937 &generator){
 
@@ -60,23 +61,23 @@ void transmit(igraph_t *g,
                 if (VECTOR(NPI_vec)[i] && VECTOR(NPI_vec)[n2]) NPI = true;
 
                 if (vs2 == ::V0){
-                    prob = params-> BETA * (NPI ? 1 : (1-params->NPI)) * (symptomatic ? 1 : params->ALPHA);
+                    prob = BETA * (NPI ? 1 : (1-params->NPI)) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::V1){
-                    prob = params-> BETA * (NPI ? 1 : (1-params->NPI)) * (1-params->VE1) * (symptomatic ? 1 : params->ALPHA);
+                    prob = BETA * (NPI ? 1 : (1-params->NPI)) * (1-params->VE1) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::V2) {
-                    prob = params-> BETA * (NPI ? 1 : (1-params->NPI)) * (1-params->VE2) * (symptomatic ? 1 : params->ALPHA);
+                    prob = BETA * (NPI ? 1 : (1-params->NPI)) * (1-params->VE2) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::VW) {
-                    prob = params->BETA * (NPI ? 1 : (1-params->NPI)) * (1-params->VEW) * (symptomatic ? 1 : params->ALPHA);
+                    prob = BETA * (NPI ? 1 : (1-params->NPI)) * (1-params->VEW) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == ::VBoost) {
-                    prob = params->BETA * (NPI ? 1 : (1-params->NPI)) * (1-params->VEBOOST) * (symptomatic ? 1 : params->ALPHA);
+                    prob = BETA * (NPI ? 1 : (1-params->NPI)) * (1-params->VEBOOST) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else {

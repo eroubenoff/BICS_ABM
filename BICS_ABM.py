@@ -274,7 +274,6 @@ class Params(ctypes.Structure):
             ('GAMMA_MAX', ctypes.c_int),
             ('SIGMA_MIN', ctypes.c_int),
             ('SIGMA_MAX', ctypes.c_int),
-            ('BETA', ctypes.c_float),
             ('BETA_VEC', ctypes.c_float*365),
             ('MU_VEC', ctypes.c_float*9),
             ('INDEX_CASES', ctypes.c_int),
@@ -303,7 +302,6 @@ class Params(ctypes.Structure):
         self.GAMMA_MAX = 4*24
         self.SIGMA_MIN = 3*24
         self.SIGMA_MAX = 7*24
-        self.BETA = 0.1
         beta_vec = [0] * 365 
         self.BETA_VEC = (ctypes.c_float * 365)(*beta_vec)
         mu = [0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1]
@@ -377,6 +375,29 @@ class BICS_ABM:
 
         self._params = Params()  # _BICS_ABM.init_params()
 
+        # Handle Beta first
+        if "BETA0" in kwargs and "BETA1" in kwargs:
+            if "BETA" in kwargs or "BETA_VEC" in kwargs:
+                raise ValueError("Either BETA, BETA_VEC, or BETA1 and BETA2 must be provided")
+
+            v = [max(0, kwargs["BETA0"] * (1+kwargs["BETA1"]*np.cos(np.pi/180*t))) for t in range(365)]
+            v = (ctypes.c_float * 365)(*v)
+            setattr(self._params, "BETA_VEC", v)
+
+            del kwargs["BETA0"]
+            del kwargs["BETA1"]
+
+        if "BETA" in kwargs:
+            raise ValueError("BETA parameter is deprecated; instead use BETA1 with BETA2=0")
+
+        if "BETA_VEC" in kwargs:
+            if len(kwargs["BETA_VEC"]) != 365:
+                raise ValueError("Daily Beta must be 365 element list of float")
+            v = (ctypes.c_float * 365)(*kwargs["BETA_VEC"])
+            setattr(self._params, "BETA_VEC", v)
+
+            del kwargs["BETA_VEC"]
+
         for k, v in kwargs.items():
             if k not in self._params.__dir__():
 
@@ -387,12 +408,6 @@ class BICS_ABM:
                     if len(v) != 9:
                         raise ValueError("Case fatality must be 9 element list")
                     v = (ctypes.c_float * 9)(* v)
-                    setattr(self._params, k, v)
-
-                elif k == "BETA_VEC":
-                    if len(v) != 365:
-                        raise ValueError("Daily Beta must be 365 element list of float")
-                    v = (ctypes.c_float * 365)(* v)
                     setattr(self._params, k, v)
 
                 elif k == "IMPORT_CASES_VEC":

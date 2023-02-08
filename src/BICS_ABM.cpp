@@ -123,19 +123,12 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
     
     /* 
-     * Set flags indicating if there is a time series of beta
-     * and index cases or not 
+     * Set flags indicating if there is a time series of 
+     * index cases or not 
      */
 
-    bool beta_daily_bool;
     bool imported_cases_daily_bool;
 
-    for (int i = 0; i < 365; i++) {
-        if (params->BETA_VEC[i] != 0) {
-            beta_daily_bool = true;
-            break;
-        }
-    }
     for (int i = 0; i < 365; i++) {
         if (params->IMPORT_CASES_VEC [i] != 0) {
             imported_cases_daily_bool = true;
@@ -149,6 +142,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     /* 
      * Run main sim 
      * */
+    float BETA;
     while ((day < params->MAX_DAYS) && (params->MAX_DAYS != -1)) {
 
         // If no max days is set, break when infection count drops 
@@ -163,10 +157,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
          * If there is a daily seasonal forcing of Beta, 
          * update it now 
          */
-        if (beta_daily_bool) {
-            params->BETA = params->BETA_VEC[day % 365];
-            // cout << params->BETA << endl;
-        }
+        BETA = params->BETA_VEC[day % 365];
 
         /*
          * If there are daily imported cases,
@@ -199,7 +190,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         // Hours 0-8
         for (hr = 0; hr < 8; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            transmit(graph, params, generator);
+            transmit(graph, BETA, params, generator);
             decrement(graph, history);
 
         }
@@ -221,7 +212,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
              */
 
             random_contacts(graph, &hhedges, &hhedges_type, params -> ISOLATION_MULTIPLIER, generator);
-            transmit(graph, params, generator);
+            transmit(graph, BETA, params, generator);
             decrement(graph, history);
 
         }
@@ -233,7 +224,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         SETEANV(graph, "type", &hhedges_type);
         for (hr = 16; hr < 24; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            transmit(graph, params, generator);
+            transmit(graph, BETA, params, generator);
             decrement(graph, history);
 
         }

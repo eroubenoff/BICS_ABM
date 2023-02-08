@@ -47,7 +47,6 @@ extern "C" typedef struct Params {
     int GAMMA_MAX;
     int SIGMA_MIN;
     int SIGMA_MAX;
-    float BETA;
     float BETA_VEC[365];
     float MU_VEC[9];
     int INDEX_CASES;
@@ -129,6 +128,7 @@ void print_attributes(const igraph_t *g, bool nodes_only = false);
    */
 
 void transmit(igraph_t *g,
+        float BETA,
         const Params *params,
         mt19937 &generator);
 

@@ -39,7 +39,6 @@ void print_params(const Params *params) {
     cout << "N_HH:            " << params->N_HH << endl;
     cout << "GAMMA_MIN, _MAX: " << params->GAMMA_MIN << ", " << params->GAMMA_MAX << endl;
     cout << "SIGMA_MIN, _MAX: " << params->SIGMA_MIN << ", " << params->SIGMA_MAX << endl;
-    cout << "BETA:            " << params->BETA<< endl;
     cout << "BETA_VEC:            ";
     for (auto i: params->BETA_VEC) {
         cout << i << "  ";
