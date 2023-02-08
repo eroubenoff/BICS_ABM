@@ -27,6 +27,8 @@ extern int V1;
 extern int V2;
 extern int VW;
 extern int VBoost;
+extern int Random;
+extern int Household;
 
 
 /*
@@ -63,6 +65,7 @@ extern "C" typedef struct Params {
     float RHO;
     float NPI;
     int MAX_DAYS;
+    int BOOSTER_DAY;
 
 } Params;
 
@@ -150,7 +153,7 @@ void decrement(igraph_t *g, History *h, bool print = true);
 
 
 
-void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_vw, int time_until_vboost) ;
+void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_vw, /*int time_until_vboost, */ bool vboost) ;
 
 
 
@@ -161,7 +164,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history);
 
 void random_contacts(igraph_t *g, 
         igraph_vector_int_t *regular_contacts_el,
-        igraph_strvector_t *regular_contacts_type,
+        igraph_vector_t *regular_contacts_type,
         float isolation_multiplier,
         mt19937 &generator) ;
 void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges);

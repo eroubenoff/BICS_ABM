@@ -6,10 +6,10 @@
 #include "BICS_ABM.h"
 #include <random>
 
-void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_vw, int time_until_vboost) {
+void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_vw, /*int time_until_vboost, */ bool vboost) {
     int n_remaining_v1 = n_daily / 2;
     int n_remaining_v2 = n_daily / 2;
-    int n_remaining_vboost = n_daily/2;
+    int n_remaining_vboost = n_daily;
     default_random_engine gen;
     /* 
      * Get the list of highest priority people
@@ -25,7 +25,7 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_
         }
         if ((VAN(g, "vaccine_status", i) == ::V1) & (VAN(g, "time_until_v2", i) == 0))
             priorities_v2.push_back(i);
-        if ((VAN(g, "vaccine_status", i) == ::VW) & (VAN(g, "time_until_vboost", i) == 0))
+        if ((VAN(g, "vaccine_status", i) == ::VW) /*& (VAN(g, "time_until_vboost", i) == 0)*/)
             priorities_vboost.push_back(i);
     }
 
@@ -58,7 +58,7 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_
         SETVAN(g, "vaccine_status", node_to_vax, ::V1);
         SETVAN(g, "time_until_v2", node_to_vax, time_until_v2);
         SETVAN(g, "time_until_vw", node_to_vax, time_until_vw);
-        SETVAN(g, "time_until_vboost", node_to_vax, time_until_vboost);
+        // SETVAN(g, "time_until_vboost", node_to_vax, time_until_vboost);
 
         n_remaining_v1--;
 
@@ -82,15 +82,20 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_
     /* 
      * Move to VBoost as possible 
      * */
-    while ((n_remaining_vboost > 0) & (priorities_vboost.size() > 0)) {
-        
-        node_to_vax = priorities_vboost[priorities_vboost.size() - 1];
-        priorities_vboost.pop_back();
 
-        SETVAN(g, "vaccine_status", node_to_vax, ::V2);
-        SETVAN(g, "time_until_vboost", node_to_vax, -1);
+    if (vboost) {
+        while ((n_remaining_vboost > 0) & (priorities_vboost.size() > 0)) {
+            
+            node_to_vax = priorities_vboost[priorities_vboost.size() - 1];
+            priorities_vboost.pop_back();
 
-        n_remaining_v2--;
+            SETVAN(g, "vaccine_status", node_to_vax, ::VBoost);
+            // SETVAN(g, "time_until_vboost", node_to_vax, time_until_vboost);
+            SETVAN(g, "time_until_vw", node_to_vax, time_until_vw);
+
+            n_remaining_vboost--;
+        }
+
     }
 
     

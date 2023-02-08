@@ -291,7 +291,8 @@ class Params(ctypes.Structure):
             ('ALPHA', ctypes.c_float),
             ('RHO', ctypes.c_float),
             ('NPI', ctypes.c_float),
-            ('MAX_DAYS', ctypes.c_int)
+            ('MAX_DAYS', ctypes.c_int),
+            ('BOOSTER_DAY', ctypes.c_int)
             
     ]
 
@@ -323,6 +324,7 @@ class Params(ctypes.Structure):
         self.RHO = 0.5
         self.NPI = 0.75
         self.MAX_DAYS = -1
+        self.BOOSTER_DAY = 400 
 
 """ 
 Passing population array to ABM

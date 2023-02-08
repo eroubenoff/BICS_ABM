@@ -20,7 +20,7 @@
 
 void random_contacts(igraph_t *g, 
         igraph_vector_int_t *regular_contacts_el,
-        igraph_strvector_t *regular_contacts_type,
+        igraph_vector_t *regular_contacts_type,
         float isolation_multiplier,
         mt19937 &generator) {
 
@@ -43,7 +43,7 @@ void random_contacts(igraph_t *g,
     /* 
      * Add type 
      * */
-    igraph_cattribute_EAS_setv(g, "type", regular_contacts_type);
+    SETEANV(g, "type", regular_contacts_type);
 
     /* 
      * ZIP parameters 
@@ -174,18 +174,18 @@ void random_contacts(igraph_t *g,
      * Set edge types 
      * First get the type of the reduced edges 
      * */
-    igraph_strvector_t edges_type;
-    igraph_strvector_init(&edges_type, igraph_ecount(g));
-    EASV(g, "type", &edges_type);
+    igraph_vector_t edges_type;
+    igraph_vector_init(&edges_type, igraph_ecount(g));
+    EANV(g, "type", &edges_type);
 
 
     /* 
      * Set any additional contacts to type "random" 
      * */
-    int n_regular = igraph_strvector_size(&edges_type);
-    igraph_strvector_resize(&edges_type, n_regular + igraph_ecount(&new_graph));
-    for (int i = n_regular; i < igraph_strvector_size(&edges_type); i++) {
-        igraph_strvector_set(&edges_type, i, "random");
+    int n_regular = igraph_vector_size(&edges_type);
+    igraph_vector_resize(&edges_type, n_regular + igraph_ecount(&new_graph));
+    for (int i = n_regular; i < igraph_vector_size(&edges_type); i++) {
+        VECTOR(edges_type)[i] = ::Random;
     }
 
     /*
@@ -196,7 +196,8 @@ void random_contacts(igraph_t *g,
     /* 
      * Set edge types to graph 
      * */
-    igraph_cattribute_EAS_setv(g, "type", &edges_type);
+    //igraph_cattribute_EAS_setv(g, "type", &edges_type);
+    SETEANV(g, "type", &edges_type);
 
     // print_attributes(g);
     //cout << igraph_ecount(g) << endl;
@@ -210,7 +211,7 @@ void random_contacts(igraph_t *g,
     igraph_destroy(&new_graph);
     igraph_vector_int_destroy(&stubs_count);
     igraph_vector_int_destroy(&random_edgelist);
-    igraph_strvector_destroy(&edges_type);
+    igraph_vector_destroy(&edges_type);
 
 }
 

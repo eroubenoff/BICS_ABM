@@ -33,6 +33,11 @@ int V2 = 2;
 int VW = 3;
 int VBoost = 4;
 
+/* Gloabls for edge attributes
+ */
+
+int Household = 0;
+int Random = 1;
 
 
 void delete_all_edges(igraph_t *g) {
@@ -65,12 +70,12 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
      * Vector containing the type of edges (all are household) 
      * Set type attribute 
      * */
-    igraph_strvector_t hhedges_type;
-    igraph_strvector_init(&hhedges_type, igraph_ecount(graph));
-    for (int i = 0; i < igraph_strvector_size(&hhedges_type);i++){
-        igraph_strvector_set(&hhedges_type, i, "household");
+    igraph_vector_t hhedges_type;
+    igraph_vector_init(&hhedges_type, igraph_ecount(graph));
+    for (int i = 0; i < igraph_vector_size(&hhedges_type);i++){
+        VECTOR(hhedges_type)[i] = ::Household;
     }
-    igraph_cattribute_EAS_setv(graph, "type", &hhedges_type);
+    SETEANV(graph, "type", &hhedges_type);
 
     /* Generate daytime edges that include work contacts*/ 
     /*
@@ -93,7 +98,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             decrement(graph, history, false);
         }
-        distribute_vax(graph, params->N_VAX_DAILY, 25*24, 30*24, 30*24);
+        distribute_vax(graph, params->N_VAX_DAILY, 25*24, params->T_REINFECTION, false);
         for (hr = 8; hr < 24; hr++) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             decrement(graph, history, false);
@@ -138,7 +143,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         }
     }
 
-    cout << "IMPORT CASES BOOL " << imported_cases_daily_bool << endl;
+    // cout << "IMPORT CASES BOOL " << imported_cases_daily_bool << endl;
 
 
     /* 
@@ -160,7 +165,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
          */
         if (beta_daily_bool) {
             params->BETA = params->BETA_VEC[day % 365];
-            cout << params->BETA << endl;
+            // cout << params->BETA << endl;
         }
 
         /*
@@ -200,7 +205,8 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         }
 
 
-        distribute_vax(graph, params->N_VAX_DAILY, 25*24, 30*24, 30*24);
+        bool vboost = (day % 365) >= params->BOOSTER_DAY;
+        distribute_vax(graph, params->N_VAX_DAILY, 25*24, params->T_REINFECTION, vboost);
 
         // Hours 8-16
         for (hr = 8; hr < 16; hr++){
@@ -224,7 +230,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         // Hours 16-24
         delete_all_edges(graph);
         igraph_add_edges(graph, &hhedges, NULL);
-        igraph_cattribute_EAS_setv(graph, "type", &hhedges_type);
+        SETEANV(graph, "type", &hhedges_type);
         for (hr = 16; hr < 24; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             transmit(graph, params, generator);
@@ -242,7 +248,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
     // Destroy vector/
     igraph_vector_int_destroy(&hhedges);
-    igraph_strvector_destroy(&hhedges_type);
+    igraph_vector_destroy(&hhedges_type);
 
     /*
     igraph_vector_int_destroy(&daytime_edges);

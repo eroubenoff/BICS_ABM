@@ -58,9 +58,9 @@ void decrement(igraph_t *g, History *h, bool print) {
     igraph_vector_t tvw_vec;
     igraph_vector_init(&tvw_vec, vcount);
     VANV(g, "time_until_vw", &tvw_vec);
-    igraph_vector_t tvboost_vec;
-    igraph_vector_init(&tvboost_vec, vcount);
-    VANV(g, "time_until_vboost", &tvboost_vec);
+    //igraph_vector_t tvboost_vec;
+    //igraph_vector_init(&tvboost_vec, vcount);
+    //VANV(g, "time_until_vboost", &_vec);
 
 
     igraph_vector_t tsus_vec;
@@ -189,14 +189,32 @@ void decrement(igraph_t *g, History *h, bool print) {
          */
         else if (vs == ::VW){
             ++VW_count;
+            /*
             tvboost = VECTOR(tvboost_vec)[i];
             if (tvboost > 0.0){
                 VECTOR(tvboost_vec)[i] -=1;
             }
+            */
         }
 
         else if (vs == ::VBoost) {
             ++VBoost_count;
+
+            tvw = VECTOR(tvw_vec)[i];            
+            if (tvw > 0.0) {
+                VECTOR(tvw_vec)[i] -= 1;
+            }
+            else {
+                VECTOR(vs_vec)[i] = ::VW;
+            }
+            /*
+            tvboost = VECTOR(tvboost_vec)[i];
+            if (tvboost > 0) {
+                VECTOR(tvboost_vec)[i] -= 1;
+            } else if (tvboost == 0) {
+                VECTOR(vs_vec)[i] = ::VW;
+            }
+            */ 
         }
         
     }
@@ -208,7 +226,7 @@ void decrement(igraph_t *g, History *h, bool print) {
     SETVANV(g, "remaining_days_sick", &rds_vec);
     SETVANV(g, "time_until_v2", &tv2_vec);
     SETVANV(g, "time_until_vw", &tvw_vec);
-    SETVANV(g, "time_until_vboost", &tvboost_vec);
+    //SETVANV(g, "time_until_vboost", &tvboost_vec);
     SETVANV(g, "time_until_susceptible", &tsus_vec);
     igraph_vector_destroy(&ds_vec);
     igraph_vector_destroy(&vs_vec);
@@ -217,20 +235,20 @@ void decrement(igraph_t *g, History *h, bool print) {
     igraph_vector_destroy(&mu_vec);
     igraph_vector_destroy(&tv2_vec);
     igraph_vector_destroy(&tvw_vec);
-    igraph_vector_destroy(&tvboost_vec);
+    //igraph_vector_destroy(&tvboost_vec);
     igraph_vector_destroy(&tsus_vec);
 
     /* Tally edge counts */
     int hh_count = 0; 
     int random_count = 0;
-    igraph_strvector_t etypes;
-    igraph_strvector_init(&etypes, 0);
-    EASV(g, "type", &etypes);
+    igraph_vector_t etypes;
+    igraph_vector_init(&etypes, 0);
+    EANV(g, "type", &etypes);
     for (int i = igraph_ecount(g); i--; ) {
-        if (!strcmp(VECTOR(etypes)[i], "household") ) hh_count++;
-        if (!strcmp(VECTOR(etypes)[i], "random") ) random_count++;
+        if (VECTOR(etypes)[i] == ::Household) hh_count++;
+        if (VECTOR(etypes)[i] == ::Random) random_count++;
     }
-    igraph_strvector_destroy(&etypes);
+    igraph_vector_destroy(&etypes);
 
 
 
