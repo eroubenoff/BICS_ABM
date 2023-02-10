@@ -341,19 +341,22 @@ ND_POINTER_2 = np.ctypeslib.ndpointer(dtype=np.float64,
 """
 Return object
 """
+TRAJ_SIZE = 100000
 class Trajectory (ctypes.Structure):
     _fields_ = [
-        ('S_array', ctypes.c_int*50000),
-        ('E_array', ctypes.c_int*50000),
-        ('Ic_array', ctypes.c_int*50000),
-        ('Isc_array', ctypes.c_int*50000),
-        ('R_array', ctypes.c_int*50000),
-        ('D_array', ctypes.c_int*50000),
-        ('V1_array', ctypes.c_int*50000),
-        ('V2_array', ctypes.c_int*50000),
-        ('VW_array', ctypes.c_int*50000),
-        ('VBoost_array', ctypes.c_int*50000),
-        ('n_edges_array', ctypes.c_int*50000),
+        ('S_array', ctypes.c_int*TRAJ_SIZE),
+        ('E_array', ctypes.c_int*TRAJ_SIZE),
+        ('Ic_array', ctypes.c_int*TRAJ_SIZE),
+        ('Cc_array', ctypes.c_int*TRAJ_SIZE),
+        ('Isc_array', ctypes.c_int*TRAJ_SIZE),
+        ('Csc_array', ctypes.c_int*TRAJ_SIZE),
+        ('R_array', ctypes.c_int*TRAJ_SIZE),
+        ('D_array', ctypes.c_int*TRAJ_SIZE),
+        ('V1_array', ctypes.c_int*TRAJ_SIZE),
+        ('V2_array', ctypes.c_int*TRAJ_SIZE),
+        ('VW_array', ctypes.c_int*TRAJ_SIZE),
+        ('VBoost_array', ctypes.c_int*TRAJ_SIZE),
+        ('n_edges_array', ctypes.c_int*TRAJ_SIZE),
         ('counter', ctypes.c_int)
     ]
 
@@ -447,7 +450,9 @@ class BICS_ABM:
         self.S = self._trajectory.S_array[:self.counter]
         self.E = self._trajectory.E_array[:self.counter]
         self.Ic = self._trajectory.Ic_array[:self.counter]
+        self.Cc = self._trajectory.Cc_array[:self.counter]
         self.Isc = self._trajectory.Isc_array[:self.counter]
+        self.Csc = self._trajectory.Csc_array[:self.counter]
         self.R = self._trajectory.R_array[:self.counter]
         self.D = self._trajectory.D_array[:self.counter]
         self.V1 = self._trajectory.V1_array[:self.counter]

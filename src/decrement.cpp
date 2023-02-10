@@ -13,7 +13,7 @@
 using namespace std;
 
 
-void decrement(igraph_t *g, History *h, bool print) {
+void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     igraph_real_t rds, rde, tv2, tvw, tvboost;
 
     // short int ds;
@@ -264,7 +264,7 @@ void decrement(igraph_t *g, History *h, bool print) {
     SETGAN(g, "VBoost_count", VBoost_count);
     SETGAN(g, "n_edges", hh_count + random_count);
 
-    h->add_history(S_count, E_count, Ic_count, Isc_count, R_count, D_count, V1_count, V2_count, VW_count, VBoost_count, hh_count + random_count);
+    h->add_history(S_count, E_count, Ic_count, Cc, Isc_count, Csc, R_count, D_count, V1_count, V2_count, VW_count, VBoost_count, hh_count + random_count);
 
     if (print) {
         cout << "S: " << std::setw(5) << S_count << " | ";

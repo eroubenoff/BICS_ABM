@@ -4,9 +4,10 @@
 #include<iostream>
 #include "BICS_ABM.h"
 #include <random>
+#include<tuple>
 using namespace std;
 
-void transmit(igraph_t *g,
+tuple<int, int> transmit(igraph_t *g,
         float BETA,
         const Params *params,
         mt19937 &generator){
@@ -44,6 +45,10 @@ void transmit(igraph_t *g,
     igraph_vector_t NPI_vec;
     igraph_vector_init(&NPI_vec, vcount);
     VANV(g, "NPI", &NPI_vec);
+
+    // Counts of new infections (to be returned)
+    int Cc = 0;
+    int Csc = 0;
 
     for (int i = vcount; i--; ) {
         ds = VECTOR(ds_vec)[i]; 
@@ -93,6 +98,7 @@ void transmit(igraph_t *g,
                     dist = bernoulli_distribution(params->RHO); 
                     rho = dist(generator);
 
+                    if (rho) Cc++; else Csc++;
 
                     set_sick(g, n2, gamma, sigma, mu, params->T_REINFECTION, rho ? ::Ic : ::Isc);
                 }
@@ -105,6 +111,8 @@ void transmit(igraph_t *g,
     igraph_vector_destroy(&vs_vec);
     igraph_vector_destroy(&NPI_vec);
     igraph_vector_int_destroy(&neighbors);
+
+    return make_tuple(Cc, Csc);
 
 
 }

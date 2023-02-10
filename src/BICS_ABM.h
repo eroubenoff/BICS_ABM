@@ -5,6 +5,7 @@
 #include <igraph.h>
 #include <random>
 #include <map>
+#include <tuple>
 using namespace std;
 
 /* 
@@ -87,7 +88,9 @@ class History {
         vector<int> S;
         vector<int> E;
         vector<int> Ic;
+        vector<int> Cc;
         vector<int> Isc;
+        vector<int> Csc;
         vector<int> R;
         vector<int> D;
         vector<int> V1;
@@ -98,7 +101,7 @@ class History {
         int counter;
         int length;
         History(int initial_length = 2000);
-        void add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int _V1, int _V2, int _VW, int _VBoost, int _n_edges);
+        void add_history(int _S, int _E, int _Ic, int _Cc, int _Isc, int _Csc, int _R, int _D, int _V1, int _V2, int _VW, int _VBoost, int _n_edges);
         void save(string path = "history.csv");
         void plot_trajectory(string path = "plot.png") ;
 };
@@ -127,7 +130,7 @@ void print_attributes(const igraph_t *g, bool nodes_only = false);
    @return none
    */
 
-void transmit(igraph_t *g,
+tuple<int, int> transmit(igraph_t *g,
         float BETA,
         const Params *params,
         mt19937 &generator);
@@ -149,7 +152,7 @@ void set_sick(igraph_t *g, int n, int rde, int rds, bool mu, int t_reinfection, 
 /* 
    Decrements each node's progression through disease time
    */
-void decrement(igraph_t *g, History *h, bool print = true);
+void decrement(igraph_t *g, History *h, int Cc=0, int Csc=0, bool print = true);
 
 
 

@@ -15,7 +15,9 @@ History::History(int initial_length) {
     S.resize(length, -1);
     E.resize(length, -1);
     Ic.resize(length, -1);
+    Cc.resize(length, -1);
     Isc.resize(length, -1);
+    Csc.resize(length, -1);
     R.resize(length, -1);
     D.resize(length, -1);
     V1.resize(length, -1);
@@ -27,13 +29,15 @@ History::History(int initial_length) {
 }
 
 
-void History::add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int _V1, int _V2, int _VW, int _VBoost, int _n_edges) {
+void History::add_history(int _S, int _E, int _Ic, int _Cc, int _Isc, int _Csc, int _R, int _D, int _V1, int _V2, int _VW, int _VBoost, int _n_edges) {
     if (counter == length-1) {
         length += 500;
         S.resize(length, -1);
         E.resize(length, -1);
         Ic.resize(length, -1);
+        Cc.resize(length, -1);
         Isc.resize(length, -1);
+        Csc.resize(length, -1);
         R.resize(length, -1);
         D.resize(length, -1);
         V1.resize(length, -1);
@@ -47,7 +51,9 @@ void History::add_history(int _S, int _E, int _Ic, int _Isc, int _R, int _D, int
     S[counter] = _S;
     E[counter] = _E;
     Ic[counter] = _Ic;
+    Cc[counter] = _Cc;
     Isc[counter] = _Isc;
+    Csc[counter] = _Csc;
     R[counter] = _R;
     D[counter] = _D;
     V1[counter] = _V1;

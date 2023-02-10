@@ -88,7 +88,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
     int day; 
     int hr;
-    decrement(graph, history, false);
+    decrement(graph, history);
 
     /* 
      * Distribute vaccines before T0 
@@ -96,12 +96,12 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     for (day = 0; day < params->T0; day++){
         for (hr = 0; hr < 8; hr++) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            decrement(graph, history, false);
+            decrement(graph, history);
         }
         distribute_vax(graph, params->N_VAX_DAILY, 25*24, params->T_REINFECTION, false);
         for (hr = 8; hr < 24; hr++) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            decrement(graph, history, false);
+            decrement(graph, history);
         }
     }
 
@@ -143,12 +143,26 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
      * Run main sim 
      * */
     float BETA;
-    while ((day < params->MAX_DAYS) && (params->MAX_DAYS != -1)) {
+    int Cc, Csc;
+    while (true) {
+        Cc = 0;
+        Csc = 0;
+
+
+        /* If max days is given, break on that day;
+         * if no max days is given (-1), then break
+         * when infection count drops to 0
+         */
+        if (params->MAX_DAYS != -1) {
+            if (day > params->MAX_DAYS) {
+                break;
+            }
+        }
 
         // If no max days is set, break when infection count drops 
         // to 0 to avoid an infinite loop 
         if (params->MAX_DAYS == -1) {
-            if ((GAN(graph, "Ic_count") + GAN(graph, "E_count") + GAN(graph, "Isc_count")) > 0 ) {
+            if ((GAN(graph, "Ic_count") + GAN(graph, "E_count") + GAN(graph, "Isc_count")) == 0 ) {
                 break;
             }
         }
@@ -190,8 +204,8 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         // Hours 0-8
         for (hr = 0; hr < 8; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            transmit(graph, BETA, params, generator);
-            decrement(graph, history);
+            tie(Cc, Csc) = transmit(graph, BETA, params, generator);
+            decrement(graph, history, Cc, Csc);
 
         }
 
@@ -212,8 +226,8 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
              */
 
             random_contacts(graph, &hhedges, &hhedges_type, params -> ISOLATION_MULTIPLIER, generator);
-            transmit(graph, BETA, params, generator);
-            decrement(graph, history);
+            tie(Cc, Csc) = transmit(graph, BETA, params, generator);
+            decrement(graph, history, Cc, Csc);
 
         }
 
@@ -224,8 +238,8 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         SETEANV(graph, "type", &hhedges_type);
         for (hr = 16; hr < 24; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
-            transmit(graph, BETA, params, generator);
-            decrement(graph, history);
+            tie(Cc, Csc) = transmit(graph, BETA, params, generator);
+            decrement(graph, history, Cc, Csc);
 
         }
 

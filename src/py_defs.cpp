@@ -4,17 +4,19 @@
 
 struct Trajectory {
     
-    int S_array[50000];
-    int E_array[50000];
-    int Ic_array[50000];
-    int Isc_array[50000];
-    int R_array[50000];
-    int D_array[50000];
-    int V1_array[50000];
-    int V2_array[50000];
-    int VW_array[50000];
-    int VBoost_array[50000];
-    int n_edges_array[50000];
+    int S_array[100000];
+    int E_array[100000];
+    int Ic_array[100000];
+    int Cc_array[100000];
+    int Isc_array[100000];
+    int Csc_array[100000];
+    int R_array[100000];
+    int D_array[100000];
+    int V1_array[100000];
+    int V2_array[100000];
+    int VW_array[100000];
+    int VBoost_array[100000];
+    int n_edges_array[100000];
     int counter;
 
 };
@@ -112,7 +114,9 @@ extern "C" /*struct Trajectory*/ void BICS_ABM(double *pop, size_t pop_size, siz
     copy(history.S.begin(), history.S.end(), trajectory->S_array);
     copy(history.E.begin(), history.E.end(), trajectory->E_array);
     copy(history.Ic.begin(), history.Ic.end(), trajectory->Ic_array);
+    copy(history.Cc.begin(), history.Cc.end(), trajectory->Cc_array);
     copy(history.Isc.begin(), history.Isc.end(), trajectory->Isc_array);
+    copy(history.Csc.begin(), history.Csc.end(), trajectory->Csc_array);
     copy(history.R.begin(), history.R.end(), trajectory->R_array);
     copy(history.D.begin(), history.D.end(), trajectory->D_array);
     copy(history.V1.begin(), history.V1.end(), trajectory->V1_array);
