@@ -21,7 +21,7 @@ iGraph documentation for this).
 Then, run the base simulation in 
 python as:
 
-```{python}```
+```python
 >> from BICS_ABM import BICS_ABM
 >> BICS_ABM()
 ```
