@@ -5,6 +5,7 @@
 #include <igraph.h>
 #include "BICS_ABM.h"
 #include <random>
+#include <algorithm>
 
 void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_vw, /*int time_until_vboost, */ bool vboost) {
     int n_remaining_v1 = n_daily / 2;

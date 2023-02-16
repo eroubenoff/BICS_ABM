@@ -166,13 +166,15 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history);
 
 
 void random_contacts(igraph_t *g, 
-        igraph_vector_int_t *regular_contacts_el,
+        igraph_vector_t *regular_contacts_el,
         igraph_vector_t *regular_contacts_type,
         float isolation_multiplier,
         mt19937 &generator) ;
-void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges);
+void gen_hh_edges(igraph_t *graph, igraph_vector_t *hhedges);
+/*
 void gen_daytime_edges(const igraph_t *graph, 
         const igraph_vector_int_t *hh_edges, 
         igraph_vector_int_t *daytime_edges,
         igraph_strvector_t *daytime_edges_type
     );
+*/

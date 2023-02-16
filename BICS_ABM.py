@@ -9,12 +9,12 @@ from threading import Thread
 
 
 path = os.getcwd()
-path = os.path.join(path, "build", "libBICS_ABM_lib.dylib")
+path = os.path.join(path, "build", "libBICS_ABM_lib.so")
 _BICS_ABM = ctypes.CDLL(path)
 
 
 def recode_age(age):
-    
+
     if np.isnan(age):
         return -1
 
@@ -64,7 +64,7 @@ def recode_lefthome(lefthome_num):
     if lefthome_num == "More than 5":
         return 6
     else:
-        try: 
+        try:
             return int(lefthome_num)
         except:
             raise ValueError("Invalid lefthome num: " +  lefthome_num)
@@ -117,24 +117,24 @@ def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6,
 
     pop_list = list()
 
-    # Pre-generate households 
+    # Pre-generate households
     hhs = np.random.choice(
             pop.shape[0],
-            size = n_hh, 
-            replace = True, 
+            size = n_hh,
+            replace = True,
             p = sum_to_1(pop[:,colnames["weight_pooled"]])
             )
 
     for hhid, hh in enumerate(hhs):
 
         hhead = pop[hh,:]
-        hhead[colnames["hhid"]] = hhid 
+        hhead[colnames["hhid"]] = hhid
         pop_list.append(hhead.copy())
 
         hhsize = int(hhead[colnames['hhsize']])
 
 
-        if hhsize > 1: 
+        if hhsize > 1:
 
             for hhmember in range(min(hhsize, 5)):
                 hhmember = hhmember + 1
@@ -143,14 +143,14 @@ def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6,
 
                 if hhmember_age == 0:
                     # TODO: go to POLYMOD
-                    hhmember = pop 
+                    hhmember = pop
                 elif hhmember_age == -1 or hhmember_gender == -1:
                     hhmember = pop
 
                 else:
                     hhmember = pop[(pop[:,colnames['agecat']] == hhmember_age) & (pop[:,colnames['gender']] == hhmember_gender), :]
                     if hhmember.shape[0] == 0:
-                        hhmember = pop 
+                        hhmember = pop
 
 
                 # Sample a corresponding person
@@ -159,17 +159,17 @@ def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6,
                 hhmember[colnames['hhid']] = hhid
                 pop_list.append(hhmember.copy())
 
-    # Pull out the columns relevant and put everybody in a COLUMN-MAJOR (fortran-style) matrix! 
+    # Pull out the columns relevant and put everybody in a COLUMN-MAJOR (fortran-style) matrix!
     ret = np.stack(pop_list, axis = 0)
 
     ret = ret[:, [colnames[x] for x in ["hhid", "agecat", "gender", "num_cc_nonhh", "lefthome_num", "vaccine_priority", "NPI"]]]
     ret = np.asfortranarray(ret)
 
-    return ret 
+    return ret
 
 class VaccineRule:
     def __init__(self, query = "index == index or index != index", hesitancy = None, general = False):
-        if hesitancy is not None: 
+        if hesitancy is not None:
             if hesitancy < 0 or hesitancy > 1:
                 raise ValueError("Hesitancy must be between 0 and 1, not " + str(hesitancy))
             else:
@@ -182,18 +182,18 @@ class VaccineRule:
             self.general = True
         elif general == False:
             self.general = False
-        else: 
+        else:
             raise ValueError("General must be true, false, or none " + str(general))
-        
+
         self.query = query
 
 
 
-def create_vax_priority(pop, vax_rules = None, seed = 49): 
+def create_vax_priority(pop, vax_rules = None, seed = 49):
     """
     Assume that vax_rules is in the form of:
     [
-        VaccineRule("age > 80"), 
+        VaccineRule("age > 80"),
         VaccineRule("age > 60 & num_cc_nonhh > 10"),
         VaccineRule(general = True, hesitancy = 0.5)
     ]
@@ -203,21 +203,21 @@ def create_vax_priority(pop, vax_rules = None, seed = 49):
 
     pop["vaccine_priority"] = -1
 
-    if vax_rules is None: 
+    if vax_rules is None:
         return pop
 
     vax_rules.reverse()
 
     vaccine_priority = pop.columns.get_loc("vaccine_priority")
 
-    # Parse rules into a more ordered format 
+    # Parse rules into a more ordered format
     for i, v in enumerate(vax_rules):
         mask = pop.eval(v.query)
         idx = mask * range(pop.shape[0])
         idx = idx[idx != 0]
 
         if v.general is True and v.hesitancy is None:
-            pop.iloc[:,vaccine_priority] = i 
+            pop.iloc[:,vaccine_priority] = i
 
         elif v.general is True and v.hesitancy is not None:
             idx = idx.sample(frac = v.hesitancy, random_state = seed).tolist()
@@ -227,22 +227,22 @@ def create_vax_priority(pop, vax_rules = None, seed = 49):
             idx = idx.sample(frac = v.hesitancy, random_state = seed).tolist()
             pop.iloc[idx, vaccine_priority] = i
 
-        else: 
+        else:
             pop.iloc[idx, vaccine_priority] = i
 
     # Tally total counts in each
     # print(pop["vaccine_priority"].value_counts())
 
-    return pop 
+    return pop
 
 
-    
+
 def pop_to_np(pop: pd.DataFrame):
 
     # All data types are numeric
 
     pop.loc[:,"hhid"] = 0
-    colnames = ["hhid", "agecat", "gender", "num_cc_nonhh", 
+    colnames = ["hhid", "agecat", "gender", "num_cc_nonhh",
             "lefthome_num", "vaccine_priority", "weight_pooled", "hhsize", "NPI",
             "resp_hh_roster#1_1_1",
             "resp_hh_roster#1_2_1",
@@ -262,8 +262,8 @@ def pop_to_np(pop: pd.DataFrame):
 
 """
 Parameters object. Note that all of the arguments
-here ABSOLUTELY must match the order in 
-BICS_ABM.h! 
+here ABSOLUTELY must match the order in
+BICS_ABM.h!
 """
 
 class Params(ctypes.Structure):
@@ -292,22 +292,22 @@ class Params(ctypes.Structure):
             ('NPI', ctypes.c_float),
             ('MAX_DAYS', ctypes.c_int),
             ('BOOSTER_DAY', ctypes.c_int)
-            
+
     ]
 
-    def __init__(self): 
+    def __init__(self):
         self.N_HH = 1000
         self.WAVE = 6
         self.GAMMA_MIN = 2*24
         self.GAMMA_MAX = 4*24
         self.SIGMA_MIN = 3*24
         self.SIGMA_MAX = 7*24
-        beta_vec = [0] * 365 
+        beta_vec = [0] * 365
         self.BETA_VEC = (ctypes.c_float * 365)(*beta_vec)
         mu = [0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1]
-        self.MU_VEC = (ctypes.c_float * 9)(*mu)         
+        self.MU_VEC = (ctypes.c_float * 9)(*mu)
         self.INDEX_CASES = 5
-        index_cases_vec = [0] * 365 
+        index_cases_vec = [0] * 365
         self.IMPORT_CASES_VEC= (ctypes.c_int* 365)(*index_cases_vec)
         self.SEED = 49
         self.N_VAX_DAILY = 100
@@ -322,9 +322,9 @@ class Params(ctypes.Structure):
         self.RHO = 0.5
         self.NPI = 0.75
         self.MAX_DAYS = -1
-        self.BOOSTER_DAY = 400 
+        self.BOOSTER_DAY = 400
 
-""" 
+"""
 Passing population array to ABM
 C-type corresponding to numpy 2-dimensional array (matrix)
 https://asiffer.github.io/posts/numpy/
@@ -332,7 +332,7 @@ https://asiffer.github.io/posts/numpy/
 IMPORTANT: note that this is COLUMN-MAJOR order, Fortran style,
 which saves us a loop on the c++ side when adding to igraph
 
-""" 
+"""
 ND_POINTER_2 = np.ctypeslib.ndpointer(dtype=np.float64,
                                       ndim=2,
                                       flags="F")
@@ -363,15 +363,15 @@ class Trajectory (ctypes.Structure):
 _BICS_ABM.BICS_ABM.argtypes = [ND_POINTER_2, ctypes.c_size_t, ctypes.c_size_t, ctypes.POINTER(Trajectory), ctypes.POINTER(Params), ctypes.c_bool]
 _BICS_ABM.BICS_ABM.restype = None # Trajectory
 
-# _BICS_ABM.init_params.argtypes = () 
-# _BICS_ABM.init_params.restype = Params 
+# _BICS_ABM.init_params.argtypes = ()
+# _BICS_ABM.init_params.restype = Params
 
 
 
 class BICS_ABM:
 
-    def __init__(self, n_hh = 1000, wave = 6, 
-            vax_rules = [VaccineRule(general=True, hesitancy = 0.5)], silent = False, 
+    def __init__(self, n_hh = 1000, wave = 6,
+            vax_rules = [VaccineRule(general=True, hesitancy = 0.5)], silent = False,
             pop = None, **kwargs):
 
         kwargs = {k.upper():v for k,v in kwargs.items()}
@@ -383,7 +383,7 @@ class BICS_ABM:
             if "BETA" in kwargs or "BETA_VEC" in kwargs:
                 raise ValueError("Either BETA, BETA_VEC, or BETA1 and BETA2 must be provided")
 
-            v = [max(0, kwargs["BETA0"] * (1+kwargs["BETA1"]*np.cos(np.pi/180*t))) for t in range(365)]
+            v = [max(0, kwargs["BETA0"] * (1+kwargs["BETA1"]*np.cos(np.pi/182.5*t))) for t in range(365)]
             v = (ctypes.c_float * 365)(*v)
             setattr(self._params, "BETA_VEC", v)
 
@@ -402,6 +402,7 @@ class BICS_ABM:
             del kwargs["BETA_VEC"]
 
         for k, v in kwargs.items():
+            print(k,v)
             if k not in self._params.__dir__():
 
                 raise ValueError("Invalid parameter " + k + " passed to BICS_ABM")
@@ -529,4 +530,4 @@ if __name__ == "__main__" :
 
         ])
         """
-              
+

@@ -11,7 +11,7 @@
 #include "BICS_ABM.h"
 #include <random>
 #include <set>
-
+#include <iomanip>
 
 /* 
  * Disease and vaccine status as globals 
@@ -62,7 +62,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     /* 
      * Generate household edges and add to g 
      * */
-    igraph_vector_int_t hhedges;
+    igraph_vector_t hhedges;
     gen_hh_edges(graph, &hhedges);
     igraph_add_edges(graph, &hhedges, NULL);
 
@@ -252,7 +252,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
 
     // Destroy vector/
-    igraph_vector_int_destroy(&hhedges);
+    igraph_vector_destroy(&hhedges);
     igraph_vector_destroy(&hhedges_type);
 
     /*

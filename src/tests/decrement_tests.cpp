@@ -15,28 +15,28 @@ TEST(DecrementTests, GeneralTest) {
     igraph_vector_t tempvec;
     vector<igraph_real_t> temparr;
     temparr = {(double) ::S, (double) ::E, (double) ::E, (double) ::Ic, (double) ::Ic , (double) ::R, (double) ::D};
-    igraph_vector_init_array(&tempvec, temparr.data(), 7);
+    igraph_vector_init_copy(&tempvec, temparr.data(), 7);
     SETVANV(&new_graph, "disease_status", &tempvec);
 
     temparr = {(double) ::V2, (double) ::V2, (double) ::V1, (double) ::V1, (double) ::V1, (double) ::V1, (double) ::V0};
-    igraph_vector_init_array(&tempvec, temparr.data(), 7);
+    igraph_vector_init_copy(&tempvec, temparr.data(), 7);
     SETVANV(&new_graph, "vaccine_status", &tempvec);
 
 
     temparr = {0, 3, 0, 0, 0, 0, 0};
-    igraph_vector_init_array(&tempvec, temparr.data(), 7);
+    igraph_vector_init_copy(&tempvec, temparr.data(), 7);
     SETVANV(&new_graph, "remaining_days_exposed", &tempvec);
 
     temparr = {0, 0, 0, 3, 0, 0, 0};
-    igraph_vector_init_array(&tempvec, temparr.data(), 7);
+    igraph_vector_init_copy(&tempvec, temparr.data(), 7);
     SETVANV(&new_graph, "remaining_days_sick", &tempvec);
 
     temparr = {0, 0, 0, 0, 1, 0, 1};
-    igraph_vector_init_array(&tempvec, temparr.data(), 7);
+    igraph_vector_init_copy(&tempvec, temparr.data(), 7);
     SETVANV(&new_graph, "mu", &tempvec);
 
     temparr = {0, 0, 1, 10, 10, 2};
-    igraph_vector_init_array(&tempvec, temparr.data(), 7);
+    igraph_vector_init_copy(&tempvec, temparr.data(), 7);
     SETVANV(&new_graph, "time_until_v2", &tempvec);
 
 
