@@ -16,8 +16,8 @@ tuple<int, int> transmit(igraph_t *g,
     uniform_int_distribution uint_dist;
 
     int vcount= igraph_vcount(g);
-    igraph_vector_int_t neighbors;
-    igraph_vector_int_init(&neighbors, 0);
+    igraph_vector_t neighbors;
+    igraph_vector_init(&neighbors, 0);
 
     // Faster to compare int than char, avoids call to strcmp 
     int ds; // Disease status of infectious node
@@ -57,7 +57,7 @@ tuple<int, int> transmit(igraph_t *g,
             igraph_neighbors(g, &neighbors, i, IGRAPH_ALL); 
             if (ds == ::Ic) symptomatic=true;
 
-            for (int n_neighbors = igraph_vector_int_size(&neighbors) ; n_neighbors--; ) {
+            for (int n_neighbors = igraph_vector_size(&neighbors) ; n_neighbors--; ) {
                 n2 = VECTOR(neighbors)[n_neighbors];
                 ds2 = VECTOR(ds_vec)[n2];  
                 vs2 = VECTOR(vs_vec)[n2]; 
@@ -110,7 +110,7 @@ tuple<int, int> transmit(igraph_t *g,
     igraph_vector_destroy(&ds_vec);
     igraph_vector_destroy(&vs_vec);
     igraph_vector_destroy(&NPI_vec);
-    igraph_vector_int_destroy(&neighbors);
+    igraph_vector_destroy(&neighbors);
 
     return make_tuple(Cc, Csc);
 

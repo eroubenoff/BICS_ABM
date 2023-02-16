@@ -33,7 +33,7 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
     vector<string> colnames = {"hhid", "age", "gender", "num_cc_nonhh", "lefthome_num", "vaccine_priority", "NPI"};
 
     for (int c = 0; c < n_cols; c++){
-        igraph_vector_init_array(&col, &pop[c * pop_size], pop_size); // Might have to check the pointer arithmetic
+        igraph_vector_init_copy(&col, &pop[c * pop_size], pop_size); // Might have to check the pointer arithmetic
 
         SETVANV(g, colnames[c].c_str(), &col);
 
