@@ -16,3 +16,5 @@ unused/.Rhistory
 *.prof
 cache/
 sims/
+*.zip
+*.pgz
