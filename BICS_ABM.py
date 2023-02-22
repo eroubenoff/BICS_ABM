@@ -402,7 +402,6 @@ class BICS_ABM:
             del kwargs["BETA_VEC"]
 
         for k, v in kwargs.items():
-            print(k,v)
             if k not in self._params.__dir__():
 
                 raise ValueError("Invalid parameter " + k + " passed to BICS_ABM")
