@@ -24,7 +24,7 @@ import time
 from joblib import Parallel, delayed
 import pickle
 import gzip
-from scipy.stats import norm, uniform, randint
+from scipy.stats import norm, uniform, randint, qmc
 from copy import deepcopy
 import random
 
@@ -65,39 +65,47 @@ def baseline_params():
         "ALPHA" : 0.5,
         "RHO" : 0.5,
         "NPI" : 0.5,
-        "MAX_DAYS" : 365*10
+        "MAX_DAYS" : 365*5
     }
 
-def create_params(n=100):
+def create_params(nreps=100):
     random.seed(4949)
 
-    # Average probability of transmission: U(0.01, 0.1)
-    BETA0 = np.arange(0.01, 0.1, 0.01)
-    # Amplitude of seasonal forcing: U(0, 1)
-    BETA1 = np.arange(0.0, 1, 0.1)
+    sampler = qmc.LatinHypercube(d=6)
+    sample = sampler.random(n=nreps)
+
+    RHO = uniform.ppf(sample[:,0], 0.5, 0.3)
+    VEBoost = uniform.ppf(sample[:,1], .437, .261)
+    VEW = uniform.ppf(sample[:,2], 0.02, 44)
+    ISOLATION_MULTIPLIER = uniform.ppf(sample[:,3], 0, 0.5)
+    BETA0 = uniform.ppf(sample[:,4], 0.01, 0.1)
+    BETA1 = uniform.ppf(sample[:,5], 0, 1)
 
 
     # Treatment Params
-    BOOSTER_DAY = np.cumsum([0, 31,28,31,30,31,30,31,31,30,31,30])
+    BOOSTER_DAY = [0, 59, 151, 243]
     T_REINFECTION = [180*24, 270*24, 365*24]
     vu_vec = [0.25, 0.5, 0.75]
 
     params_list = []
 
     # Create all combinations of treatment x transmission params
-    for b0 in BETA0:
-        for b1 in BETA1:
-            for bd in BOOSTER_DAY:
-                for tr in T_REINFECTION:
-                    for vu in vu_vec:
-                        params_list.append(baseline_params())
-                        params_list[-1]["BETA0"] = b0
-                        params_list[-1]["BETA1"] = b1
-                        params_list[-1]["BOOSTER_DAY"] = bd
-                        params_list[-1]["T_REINFECTION"] = tr
-                        params_list[-1]["vax_rules"] = [VaccineRule(general=True,
-                                                                    hesitancy=(1-vu))]
-                        params_list[-1]["SEED"] = random.randint(0, 10000000)
+    for bd in BOOSTER_DAY:
+        for tr in T_REINFECTION:
+            for vu in vu_vec:
+                for n in range(nreps):
+                    params_list.append(baseline_params())
+                    params_list[-1]["BOOSTER_DAY"] = bd
+                    params_list[-1]["T_REINFECTION"] = tr
+                    params_list[-1]["vax_rules"] = [VaccineRule(general=True,
+                                                                hesitancy=(1-vu))]
+                    params_list[-1]["RHO"] = RHO[n]
+                    params_list[-1]["VEBOOST"] = VEBoost[n]
+                    params_list[-1]["VEW"] = VEW[n]
+                    params_list[-1]["ISOLATION_MULTIPLIER"] = ISOLATION_MULTIPLIER[n]
+                    params_list[-1]["BETA0"] = BETA0[n]
+                    params_list[-1]["BETA1"] = BETA1[n]
+                    params_list[-1]["SEED"] = random.randint(0, 10000000)
 
     return params_list
 
@@ -142,7 +150,7 @@ if __name__ == "__main__":
         run_sim(v, sims_path)
     """
 
-    Parallel(n_jobs=20, verbose = 5)(delayed(run_sim)(v, sims_path) for v in params)
+    Parallel(n_jobs=20, verbose = 10)(delayed(run_sim)(v, sims_path) for v in params)
 
     # TODO: Sensitivty tests
     ISOLATION_MULTIPLIER = [0.25, 0.9]
