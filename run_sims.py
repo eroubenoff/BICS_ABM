@@ -76,14 +76,14 @@ def create_params(nreps=100):
 
     RHO = uniform.ppf(sample[:,0], 0.5, 0.3)
     VEBoost = uniform.ppf(sample[:,1], .437, .261)
-    VEW = uniform.ppf(sample[:,2], 0.02, 44)
+    VEW = uniform.ppf(sample[:,2], 0.20, 0.20)
     ISOLATION_MULTIPLIER = uniform.ppf(sample[:,3], 0, 0.5)
     BETA0 = uniform.ppf(sample[:,4], 0.01, 0.1)
     BETA1 = uniform.ppf(sample[:,5], 0, 1)
 
 
     # Treatment Params
-    BOOSTER_DAY = [0, 59, 151, 243]
+    BOOSTER_DAY = [0, 90, 182, 243]
     T_REINFECTION = [180*24, 270*24, 365*24]
     vu_vec = [0.25, 0.5, 0.75]
 
