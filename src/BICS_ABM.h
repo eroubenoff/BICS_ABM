@@ -178,3 +178,5 @@ void gen_daytime_edges(const igraph_t *graph,
         igraph_strvector_t *daytime_edges_type
     );
 */
+
+void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_cols)  ;

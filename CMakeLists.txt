@@ -8,9 +8,6 @@ project(BICS_ABM)
 add_subdirectory(igraph)
 add_subdirectory(googletest)
 
-enable_testing()
-
-
 # Add testing 
 enable_testing()
 
@@ -28,9 +25,10 @@ add_library(BICS_ABM_lib SHARED # MODULE
     src/mixing.cpp
     )
 
-# add_executable(BICS_ABM 
-#     src/main.cpp 
-#     )
+add_executable(BICS_ABM 
+    src/main.cpp 
+    src/sample_pop.h
+    )
 
 add_executable(BICS_ABM_tests
     # src/tests/pop_tests.cpp
@@ -42,7 +40,7 @@ add_executable(BICS_ABM_tests
 file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(BICS_ABM_lib PUBLIC igraph)
-# target_link_libraries(BICS_ABM PUBLIC BICS_ABM_lib)
+target_link_libraries(BICS_ABM PUBLIC BICS_ABM_lib igraph)
 target_link_libraries(BICS_ABM_tests PUBLIC BICS_ABM_lib PRIVATE gtest gtest_main )
 
 include(GoogleTest)

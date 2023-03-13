@@ -27,21 +27,33 @@ struct Trajectory {
  */
 void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_cols)  {
 
+
+    cout << "~~~~~ 0 ~~~~~" << endl;
+
     igraph_add_vertices(g, pop_size, 0);
 
+    cout << "~~~~~ 1 ~~~~~" << endl;
     igraph_vector_t col;
     vector<string> colnames = {"hhid", "age", "gender", "num_cc_nonhh", "lefthome_num", "vaccine_priority", "NPI"};
 
+    cout << "~~~~~ 2x ~~~~~" << endl;
+
     for (int c = 0; c < n_cols; c++){
+        cout << colnames[c] << endl;
         igraph_vector_init_copy(&col, &pop[c * pop_size], pop_size); // Might have to check the pointer arithmetic
 
         SETVANV(g, colnames[c].c_str(), &col);
 
     }
 
+    cout << "~~~~~ 3x ~~~~~" << endl;
+    cout << igraph_vcount(g) << endl;
+
     // Fixed characteristics
     igraph_vector_fill(&col, ::S);
     SETVANV(g, "disease_status", &col);
+
+    cout << "~~~~~ 4x ~~~~~" << endl;
 
     igraph_vector_fill(&col, -1);
     SETVANV(g, "remaining_days_exposed", &col);
@@ -52,9 +64,12 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
     SETVANV(g, "time_until_vboost", &col);
     SETVANV(g, "time_until_susceptible", &col);
 
+    cout << "~~~~~ 5 ~~~~~" << endl;
+
     igraph_vector_fill(&col, 0);
     SETVANV(g, "vaccine_status", &col);
     SETVANV(g, "mu", &col);
+    cout << "~~~~~ 6 ~~~~~" << endl;
 
     igraph_vector_destroy(&col);
 }

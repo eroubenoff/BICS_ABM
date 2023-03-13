@@ -69,6 +69,7 @@ void random_contacts(igraph_t *g,
     igraph_vector_init(&cc_vec, vcount);
     VANV(g, "num_cc_nonhh", &cc_vec);
 
+
     bool isolation = false;
     int n_stubs;
     float temp;
@@ -143,7 +144,7 @@ void random_contacts(igraph_t *g,
     igraph_vector_init(&elist_to_remove, 0);
     igraph_vector_t temp_elist;
     igraph_vector_init(&temp_elist, 0);
-
+    
     for (int i = 0; i < igraph_vcount(g); i++) {
         if (VECTOR(stubs_count)[i] > 0) {
             igraph_incident(g, &temp_elist, i, IGRAPH_ALL);
@@ -164,12 +165,11 @@ void random_contacts(igraph_t *g,
      * */
     igraph_vector_t random_edgelist;
     igraph_degree_sequence_game(&new_graph, &stubs_count, NULL, IGRAPH_DEGSEQ_SIMPLE); // IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE); //IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE ); // IGRAPH_DEGSEQ_CONFIGURATION);
-   //  igraph_realize_degree_sequence(&new_graph, &stubs_count, NULL, IGRAPH_MULTI_SW, IGRAPH_REALIZE_DEGSEQ_SMALLEST);
+    //  igraph_realize_degree_sequence(&new_graph, &stubs_count, NULL, IGRAPH_MULTI_SW, IGRAPH_REALIZE_DEGSEQ_SMALLEST);
     /* Simplify graph */
     igraph_simplify(&new_graph, true, true, NULL);
     igraph_vector_init(&random_edgelist, igraph_vcount(&new_graph));
     igraph_get_edgelist(&new_graph, &random_edgelist, false);
-
 
     /* 
      * Set edge types 
@@ -177,14 +177,18 @@ void random_contacts(igraph_t *g,
      * */
     igraph_vector_t edges_type;
     igraph_vector_init(&edges_type, igraph_ecount(g));
-    EANV(g, "type", &edges_type);
+    // EANV(g, "type", &edges_type);
 
 
     /* 
      * Set any additional contacts to type "random" 
      * */
+
     int n_regular = igraph_vector_size(&edges_type);
     igraph_vector_resize(&edges_type, n_regular + igraph_ecount(&new_graph));
+    for (int i = 0; i < n_regular; i++) {
+        VECTOR(edges_type)[i] = ::Household;
+    }
     for (int i = n_regular; i < igraph_vector_size(&edges_type); i++) {
         VECTOR(edges_type)[i] = ::Random;
     }
@@ -197,18 +201,15 @@ void random_contacts(igraph_t *g,
     /* 
      * Set edge types to graph 
      * */
-    //igraph_cattribute_EAS_setv(g, "type", &edges_type);
+    
     SETEANV(g, "type", &edges_type);
-
-    // print_attributes(g);
-    //cout << igraph_ecount(g) << endl;
 
 
 
     /* 
      * Call destructors 
      * */
-    DELALL(&new_graph);
+    //DELALL(&new_graph);
     igraph_destroy(&new_graph);
     igraph_vector_destroy(&stubs_count);
     igraph_vector_destroy(&random_edgelist);

@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include "BICS_ABM.h"
 #include <random>
+#include "sample_pop.h"
 // #include <gtest/gtest.h>
 
 using namespace std;
@@ -22,121 +23,71 @@ using namespace std;
 
 int main(int argc, char **argv) {
 
-    throw runtime_error("Command line API is DEPRECATED! Use Python API."); 
+    float mu[9] = {0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1};
+     sample_params.N_HH = 100;
+     sample_params.WAVE = 6;
+     sample_params.GAMMA_MIN = 2*24;
+     sample_params.GAMMA_MAX = 4*24;
+     sample_params.SIGMA_MIN = 3*24;
+     sample_params.SIGMA_MAX = 7*24;
+     std::fill(sample_params.BETA_VEC, sample_params.BETA_VEC + 365, 0.05 ); 
+     std::copy(std::begin(mu), std::end(mu), std::begin(sample_params.MU_VEC));
+     // sample_params.MU_VEC = mu;
+     sample_params.INDEX_CASES = 5;
+     std::fill(sample_params.IMPORT_CASES_VEC, sample_params.IMPORT_CASES_VEC + 365, 1); 
+     sample_params.SEED =  49;
+     sample_params.N_VAX_DAILY =  100;
+     sample_params.VE1 =  0.75;
+     sample_params.VE2 =  0.95;
+     sample_params.VEW =  0.25;
+     sample_params.VEBOOST = 0.95;
+     sample_params.ISOLATION_MULTIPLIER = 1;
+     sample_params.T_REINFECTION = 90*24;
+     sample_params.T0 =  0;
+     sample_params.ALPHA =  0.5;
+     sample_params.RHO =  0.5;
+     sample_params.NPI =  0.75;
+     sample_params.MAX_DAYS = -1;
+     sample_params.BOOSTER_DAY =  400;
 
-    /*
-    mt19937 generator;
-    Params params = init_params(generator);
+    if (argc > 1) {
+        throw runtime_error("Command line API is DEPRECATED! Use Python API."); 
+    }
+
+    // Trajectory trajectory; 
     History history;
 
-    // Parse command line options into an unordered map
-    unordered_map<string, string> args;
-
-    for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "--gtest_list_tests")) {cout << "1" << endl; continue;}
-        if ((argv[i][0] == '-') & (argv[i+1][0] != '-'))  {
-            // Pull a pair like 
-            args[argv[i]] = argv[i+1]; 
-            i++;
-        } else {
-            args[argv[i]] = "true";
-        }
-    }
-
-    cout << "1 " << endl;
-
-    for (auto i: args) {
-        cout << i.first << ": " << i.second<< endl;
-    }
-
-    // Parse the args into params object
-
-    // Number of households
-    if (args.find("-n_hh") != args.end()) {
-        params.N_HH = stoi(args["-n_hh"]);
-    }
-
-    // Wave to simulate from
-    if (args.find("-wave") != args.end()){
-        params.WAVE = stoi(args["-wave"]); 
-    }
-
-    // Lower and upper bounds on latent period, in hours
-    if (args.find("-gamma_min") != args.end() ){
-        params.GAMMA_MIN = stoi(args["-gamma_min"]);
-    }
-    if (args.find("-gamma_max") != args.end() ){
-        params.GAMMA_MAX = stoi(args["-gamma_max"]);
-    }
-
-    // Lower and upper bounds on infectious period, in hours
-    if (args.find("-sigma_min") != args.end() ){
-        params.SIGMA_MIN = stoi(args["-sigma_min"]);
-    }
-    if (args.find("-sigma_max") != args.end() ){
-        params.SIGMA_MAX = stoi(args["-sigma_max"]);
-    }
-
-    // Per-contact probability of transmission
-    if (args.find("-beta") != args.end()){
-        params.BETA = stof(args["-beta"]);
-    }
-
-    // Mortality rate vector. Must be as long age 
-    if (args.find("-mu") != args.end()) {
-        vector<float> muvec = stovf(args["-mu"]) ; 
-        copy(muvec.begin(), muvec.end(), params.MU_VEC);
-        // params.MU_VEC = stovf(args["-mu"]);
-    }
-
-    // Number of initial cases
-    if (args.find("-index_cases") != args.end()) {
-        params.INDEX_CASES = stoi(args["-index_cases"]);
-    }
-
-    // Passed to generator
-    if (args.find("-seed") != args.end()) {
-        params.SEED = stoi(args["-seed"]);
-    }
-    if (args.find("-pop_seed") != args.end()) {
-        params.POP_SEED = stoi(args["-pop_seed"]);
-    }
-
-    // Vaccine params
-    if (args.find("-n_vax_daily") != args.end() ) {
-        params.N_VAX_DAILY = stoi(args["-n_vax_daily"]);
-    }
-    if (args.find("-ve1") != args.end()) {
-        params.VE1 = stof(args["-ve1"]);
-    }
-    if (args.find("-ve2") != args.end()) {
-        params.VE2 = stof(args["-ve2"]);
-    }
-    if (args.find("-isolation_multiplier") != args.end()) {
-        params.ISOLATION_MULTIPLIER = stof(args["-isolation_multiplier"]);
-    }
-    if (args.find("-t0") != args.end()) {
-        params.T0= stof(args["-t0"]);
-    }
-    if (args.find("-vax_rules") != args.end()) {
-        cout << "CANNOT READ VAX RULES FROM COMMAND LINE. MUST USE PYTHON INTERFACE" << endl;
-    }
-
-
+    /* 
+     * Create the empty graph 
+     * Turn on attribute handling. 
+     * Create a directed graph with no vertices or edges. 
+     * */
 
     igraph_t graph;
     igraph_set_attribute_table(&igraph_cattribute_table);
     igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
 
-    gen_pop_from_survey_csv(::database[params.WAVE], &graph, &params);
 
+    /* 
+     * Generate population
+     * */
+    create_graph_from_pop(&graph, sample_pop, sample_pop_size, sample_pop_cols);
 
-    BICS_ABM(&graph, &params, &history);
+    /*
+     * Run sim
+     */
+    BICS_ABM(&graph, &sample_params, &history);
 
+    /* 
+     * Delete all remaining attributes. 
+     * */
     DELALL(&graph);
 
+    /* 
+     * Destroy the graph. 
+     * */
     igraph_destroy(&graph);
-    */ 
+
 
     return 0;
 }
