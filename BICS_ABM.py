@@ -9,8 +9,14 @@ from threading import Thread
 
 
 path = os.getcwd()
-#path = os.path.join(path, "build", "libBICS_ABM_lib.so")
-path = os.path.join(path, "build", "libBICS_ABM_lib.dylib")
+
+paths = os.path.join(path, "build", "libBICS_ABM_lib.so")
+pathd = os.path.join(path, "build", "libBICS_ABM_lib.dylib")
+
+if os.path.isfile(paths):
+    path = paths
+elif os.path.isfile(pathd):
+    path = pathd
 _BICS_ABM = ctypes.CDLL(path)
 
 
