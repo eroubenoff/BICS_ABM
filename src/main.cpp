@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
      sample_params.ALPHA =  0.5;
      sample_params.RHO =  0.5;
      sample_params.NPI =  0.75;
-     sample_params.MAX_DAYS = -1;
+     sample_params.MAX_DAYS = 1000;
      sample_params.BOOSTER_DAY =  400;
 
     if (argc > 1) {

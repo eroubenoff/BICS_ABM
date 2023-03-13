@@ -144,28 +144,12 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
      * */
     float BETA;
     int Cc, Csc;
-    while (true) {
+    bool run = true;
+    while (run) {
         Cc = 0;
         Csc = 0;
 
 
-        /* If max days is given, break on that day;
-         * if no max days is given (-1), then break
-         * when infection count drops to 0
-         */
-        if (params->MAX_DAYS != -1) {
-            if (day > params->MAX_DAYS) {
-                break;
-            }
-        }
-
-        // If no max days is set, break when infection count drops 
-        // to 0 to avoid an infinite loop 
-        if (params->MAX_DAYS == -1) {
-            if ((GAN(graph, "Ic_count") + GAN(graph, "E_count") + GAN(graph, "Isc_count")) == 0 ) {
-                break;
-            }
-        }
 
         /* 
          * If there is a daily seasonal forcing of Beta, 
@@ -245,6 +229,23 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
         day++;
 
+        /* If max days is given, break on that day;
+         * if no max days is given (-1), then break
+         * when infection count drops to 0
+         */
+        if (params->MAX_DAYS != -1) {
+            if (day > params->MAX_DAYS) {
+                run = false;
+            }
+        }
+
+        // If no max days is set, break when infection count drops 
+        // to 0 to avoid an infinite loop 
+        else if (params->MAX_DAYS == -1) {
+            if ((GAN(graph, "Ic_count") + GAN(graph, "E_count") + GAN(graph, "Isc_count")) == 0 ) {
+                run = false;
+            }
+        }
 
     }
 
