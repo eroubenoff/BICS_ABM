@@ -13,6 +13,68 @@
 #include <set>
 
 /*
+ * Functions to disconnect a node from their household
+ *
+ * Takes the graph, dictionary of household nodes,
+ * node id, and modifies graph in place
+ * Also modifies node home_status to be 'out' instead of 'in'
+ *
+ */
+
+void disconnect_hh(igraph_t* g,
+        unordered_map<int, vector<int>>& hhid_lookup,
+        int node_id) {
+
+    int hhid = VAN(g, "hhid", node_id);
+    vector<int> hh_members = hhid_lookup[hhid];
+
+    SETVAN(g, "home_status", node_id, ::Out);
+
+    /* 
+     * Traverse household members; if there are any connections,
+     * sever them.
+     */
+
+    igraph_bool_t are_connected;
+    igraph_es_t edge;
+
+    for (auto i: hh_members) {
+
+        igraph_are_connected(g, node_id, i, &are_connected);
+
+        if (are_connected) {
+            igraph_es_pairs_small(&edge, true, node_id, i, -1);
+            igraph_delete_edges(g, edge);
+            
+        }
+    }
+
+    igraph_es_destroy(&edge);
+}
+
+void reconnect_hh(igraph_t* g, 
+        unordered_map<int, vector<int>>& hhid_lookup,
+        int node_id) {
+    
+
+    int hhid = VAN(g, "hhid", node_id);
+    vector<int> hh_members = hhid_lookup[hhid];
+
+    SETVAN(g, "home_status", node_id, ::In);
+
+
+    for (auto i: hh_members) {
+
+        int status = VAN(g, "home_status", node_id);
+
+        if (status == ::In) {
+            igraph_add_edge(g, node_id, i);
+        }
+    }
+}
+
+
+/*
  * Includes random contacts as outlined in section 3.4
  *
  * Does not modify graph g, but does modify random_edgelist in place. 

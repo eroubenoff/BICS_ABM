@@ -39,6 +39,9 @@ int VBoost = 4;
 int Household = 0;
 int Random = 1;
 
+int In = 0;
+int Out = 1;
+
 
 void delete_all_edges(igraph_t *g) {
     igraph_es_t es;

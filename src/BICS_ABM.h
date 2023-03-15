@@ -30,6 +30,8 @@ extern int VW;
 extern int VBoost;
 extern int Random;
 extern int Household;
+extern int In;
+extern int Out;
 
 
 /*
@@ -180,3 +182,13 @@ void gen_daytime_edges(const igraph_t *graph,
 */
 
 void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_cols)  ;
+
+
+/* Functions to re/disconnect a node from 
+ * their household members */
+void reconnect_hh(igraph_t* g, 
+        unordered_map<int, vector<int>>* hhid_lookup,
+        int node_id);
+void disconnect_hh(igraph_t* g,
+        unordered_map<int, vector<int>>* hhid_lookup,
+        int node_id);
