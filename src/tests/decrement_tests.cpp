@@ -14,11 +14,11 @@ TEST(DecrementTests, GeneralTest) {
     igraph_add_vertices(&new_graph, 7, 0);
     igraph_vector_t tempvec;
     vector<igraph_real_t> temparr;
-    temparr = {(double) ::S, (double) ::E, (double) ::E, (double) ::Ic, (double) ::Ic , (double) ::R, (double) ::D};
+    temparr = {(double) _S, (double) _E, (double) _E, (double) _Ic, (double) _Ic , (double) _R, (double) _D};
     igraph_vector_init_copy(&tempvec, temparr.data(), 7);
     SETVANV(&new_graph, "disease_status", &tempvec);
 
-    temparr = {(double) ::V2, (double) ::V2, (double) ::V1, (double) ::V1, (double) ::V1, (double) ::V1, (double) ::V0};
+    temparr = {(double) _V2, (double) _V2, (double) _V1, (double) _V1, (double) _V1, (double) _V1, (double) _V0};
     igraph_vector_init_copy(&tempvec, temparr.data(), 7);
     SETVANV(&new_graph, "vaccine_status", &tempvec);
 
@@ -48,13 +48,13 @@ TEST(DecrementTests, GeneralTest) {
     decrement(&new_graph, &h);
 
 
-    EXPECT_EQ(VAN(&new_graph, "disease_status", 0), ::S);
-    EXPECT_EQ(VAN(&new_graph, "disease_status", 1), ::E);
-    EXPECT_EQ(VAN(&new_graph, "disease_status", 2), ::Ic);
-    EXPECT_EQ(VAN(&new_graph, "disease_status", 3), ::Ic);
-    EXPECT_EQ(VAN(&new_graph, "disease_status", 4), ::D);
-    EXPECT_EQ(VAN(&new_graph, "disease_status", 5), ::R);
-    EXPECT_EQ(VAN(&new_graph, "disease_status", 6), ::D);
+    EXPECT_EQ(VAN(&new_graph, "disease_status", 0), _S);
+    EXPECT_EQ(VAN(&new_graph, "disease_status", 1), _E);
+    EXPECT_EQ(VAN(&new_graph, "disease_status", 2), _Ic);
+    EXPECT_EQ(VAN(&new_graph, "disease_status", 3), _Ic);
+    EXPECT_EQ(VAN(&new_graph, "disease_status", 4), _D);
+    EXPECT_EQ(VAN(&new_graph, "disease_status", 5), _R);
+    EXPECT_EQ(VAN(&new_graph, "disease_status", 6), _D);
 
     DELALL(&new_graph);
     igraph_destroy(&new_graph);

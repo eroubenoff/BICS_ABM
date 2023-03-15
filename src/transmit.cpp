@@ -53,35 +53,35 @@ tuple<int, int> transmit(igraph_t *g,
     for (int i = vcount; i--; ) {
         ds = VECTOR(ds_vec)[i]; 
 
-        if ((ds == ::Ic) || (ds == ::Isc) /*|| (ds == ::E)*/) {
+        if ((ds == _Ic) || (ds == _Isc) /*|| (ds == _E)*/) {
             igraph_neighbors(g, &neighbors, i, IGRAPH_ALL); 
-            if (ds == ::Ic) symptomatic=true;
+            if (ds == _Ic) symptomatic=true;
 
             for (int n_neighbors = igraph_vector_size(&neighbors) ; n_neighbors--; ) {
                 n2 = VECTOR(neighbors)[n_neighbors];
                 ds2 = VECTOR(ds_vec)[n2];  
                 vs2 = VECTOR(vs_vec)[n2]; 
-                if (ds2 != ::S) continue; 
+                if (ds2 != _S) continue; 
 
                 if (VECTOR(NPI_vec)[i] && VECTOR(NPI_vec)[n2]) NPI = true;
 
-                if (vs2 == ::V0){
+                if (vs2 == _V0){
                     prob = BETA * (NPI ? (1-params->NPI) : 1) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
-                } else if (vs2 == ::V1){
+                } else if (vs2 == _V1){
                     prob = BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VE1) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
-                } else if (vs2 == ::V2) {
+                } else if (vs2 == _V2) {
                     prob = BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VE2) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
-                } else if (vs2 == ::VW) {
+                } else if (vs2 == _VW) {
                     prob = BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VEW) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
-                } else if (vs2 == ::VBoost) {
+                } else if (vs2 == _VBoost) {
                     prob = BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VEBOOST) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
@@ -100,7 +100,7 @@ tuple<int, int> transmit(igraph_t *g,
 
                     if (rho) Cc++; else Csc++;
 
-                    set_sick(g, n2, gamma, sigma, mu, params->T_REINFECTION, rho ? ::Ic : ::Isc);
+                    set_sick(g, n2, gamma, sigma, mu, params->T_REINFECTION, rho ? _Ic : _Isc);
                 }
             }
         }

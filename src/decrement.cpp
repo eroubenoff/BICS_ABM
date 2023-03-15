@@ -78,7 +78,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
         /* 
          * If susceptible do nothing
          */
-        if (ds == ::S){
+        if (ds == _S){
             ++S_count;
         }
 
@@ -86,15 +86,15 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
          * If exposed and RDE = 0, set to infectious,
          * otherwise decrement RDE
          */
-        else if (ds == ::E) {
+        else if (ds == _E) {
             ++E_count;
             rde = VECTOR(rde_vec)[i]; 
             if (rde == 0.0) {
-                if (VAN(g, "symptomatic", i) == ::Ic) {
-                    VECTOR(ds_vec)[i] = ::Ic;
+                if (VAN(g, "symptomatic", i) == _Ic) {
+                    VECTOR(ds_vec)[i] = _Ic;
                 } 
-                else if (VAN(g, "symptomatic", i) == ::Isc) {
-                    VECTOR(ds_vec)[i] = ::Isc;
+                else if (VAN(g, "symptomatic", i) == _Isc) {
+                    VECTOR(ds_vec)[i] = _Isc;
                 }
             } else {
                 VECTOR(rde_vec)[i] -= 1;
@@ -106,30 +106,30 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
          * depending on mu
          * Otherwise decrement RDS
          */
-        else if (ds == ::Ic) {  
+        else if (ds == _Ic) {  
             ++Ic_count;
             rds = VECTOR(rds_vec)[i]; 
             mu = VECTOR(mu_vec)[i]; 
             if ((rds == 0.0) & (mu == 0.0)) {
-                VECTOR(ds_vec)[i] = ::R;
+                VECTOR(ds_vec)[i] = _R;
 
             } else if ((rds == 0.0 ) & (mu == 1.0) ) {
-                VECTOR(ds_vec)[i] = ::D;
+                VECTOR(ds_vec)[i] = _D;
 
             } else {
                 VECTOR(rds_vec)[i] -= 1;
             }
         }
 
-        else if (ds == ::Isc) {  
+        else if (ds == _Isc) {  
             ++Isc_count;
             rds = VECTOR(rds_vec)[i]; 
             mu = VECTOR(mu_vec)[i]; 
             if ((rds == 0.0) & (mu == 0.0)) {
-                VECTOR(ds_vec)[i] = ::R;
+                VECTOR(ds_vec)[i] = _R;
 
             } else if ((rds == 0.0 ) & (mu == 1.0) ) {
-                VECTOR(ds_vec)[i] = ::D;
+                VECTOR(ds_vec)[i] = _D;
 
             } else {
                 VECTOR(rds_vec)[i] -= 1;
@@ -139,10 +139,10 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
         /*
          * If recovered, do nothing
          */
-        else if (ds == ::R) {
+        else if (ds == _R) {
             ++R_count;
             if (VECTOR(tsus_vec)[i] == 0 ) {
-                VECTOR(ds_vec)[i] = ::S;
+                VECTOR(ds_vec)[i] = _S;
             }
             else {
                 VECTOR(tsus_vec)[i] -=1; 
@@ -151,7 +151,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
         }
 
         /* If dead, do nothing */
-        else if (ds == ::D) {
+        else if (ds == _D) {
             ++D_count;
         }
 
@@ -160,7 +160,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
          * If vaccine status is V1, then decrement tv2
          * and wait until the next vaccine distribution
          */
-        if (vs == ::V1) {
+        if (vs == _V1) {
             ++V1_count;
             tv2 = VECTOR(tv2_vec)[i];
             if (tv2 > 0.0) {
@@ -172,14 +172,14 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
          * until 0
          * If tvw == 0, set vaccine status to VW
          */
-        else if (vs == ::V2) {
+        else if (vs == _V2) {
             ++V2_count;
             tvw = VECTOR(tvw_vec)[i];            
             if (tvw > 0.0) {
                 VECTOR(tvw_vec)[i] -= 1;
             }
             else {
-                VECTOR(vs_vec)[i] = ::VW;
+                VECTOR(vs_vec)[i] = _VW;
             }
         } 
 
@@ -188,7 +188,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
          * If tvboost == 0, wait
          * until next vaccine distribution.
          */
-        else if (vs == ::VW){
+        else if (vs == _VW){
             ++VW_count;
             /*
             tvboost = VECTOR(tvboost_vec)[i];
@@ -198,7 +198,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
             */
         }
 
-        else if (vs == ::VBoost) {
+        else if (vs == _VBoost) {
             ++VBoost_count;
 
             tvw = VECTOR(tvw_vec)[i];            
@@ -206,14 +206,14 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
                 VECTOR(tvw_vec)[i] -= 1;
             }
             else {
-                VECTOR(vs_vec)[i] = ::VW;
+                VECTOR(vs_vec)[i] = _VW;
             }
             /*
             tvboost = VECTOR(tvboost_vec)[i];
             if (tvboost > 0) {
                 VECTOR(tvboost_vec)[i] -= 1;
             } else if (tvboost == 0) {
-                VECTOR(vs_vec)[i] = ::VW;
+                VECTOR(vs_vec)[i] = _VW;
             }
             */ 
         }
@@ -246,8 +246,8 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     igraph_vector_init(&etypes, 0);
     EANV(g, "type", &etypes);
     for (int i = igraph_ecount(g); i--; ) {
-        if (VECTOR(etypes)[i] == ::Household) hh_count++;
-        if (VECTOR(etypes)[i] == ::Random) random_count++;
+        if (VECTOR(etypes)[i] == _Household) hh_count++;
+        if (VECTOR(etypes)[i] == _Random) random_count++;
     }
     igraph_vector_destroy(&etypes);
 

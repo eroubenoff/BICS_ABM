@@ -13,36 +13,6 @@
 #include <set>
 #include <iomanip>
 
-/* 
- * Disease and vaccine status as globals 
- *
- * This is done so that they can be internally
- * represented as ints, which is much faster than
- * strings with the igraph api. They are globals for consistency. 
- * */
-
-int S = 1;
-int E = 2;
-int Ic = 3;
-int Isc = 4;
-int R = 5;
-int D = 6;
-int V0 = 0;
-int V1 = 1;
-int V2 = 2;
-int VW = 3;
-int VBoost = 4;
-
-/* Gloabls for edge attributes
- */
-
-int Household = 0;
-int Random = 1;
-
-int In = 0;
-int Out = 1;
-
-
 void delete_all_edges(igraph_t *g) {
     igraph_es_t es;
     igraph_es_all(&es, IGRAPH_EDGEORDER_ID);
@@ -76,7 +46,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     igraph_vector_t hhedges_type;
     igraph_vector_init(&hhedges_type, igraph_ecount(graph));
     for (int i = 0; i < igraph_vector_size(&hhedges_type);i++){
-        VECTOR(hhedges_type)[i] = ::Household;
+        VECTOR(hhedges_type)[i] = _Household;
     }
     SETEANV(graph, "type", &hhedges_type);
 
@@ -117,7 +87,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     for (int i = 0; i < params->INDEX_CASES; i++) {
         int index_case = distribution(generator);
         cout << index_case << "  " ;
-        set_sick(graph, index_case, 3*24, 5*24, false, params->T_REINFECTION, ::Ic);
+        set_sick(graph, index_case, 3*24, 5*24, false, params->T_REINFECTION, _Ic);
     }
 
     cout << endl;
@@ -171,7 +141,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
             // Tally up all Susceptibles 
             vector<int> susceptibles; 
             for (int i = 0; i < igraph_vcount(graph); i++) {
-                if (VAN(graph, "disease_status", i) == ::S) {
+                if (VAN(graph, "disease_status", i) == _S) {
                     susceptibles.push_back(i);
                 }
             }
@@ -181,7 +151,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
                     uniform_int_distribution<int> sus_distr(0, susceptibles.size() - 1);
                     int import_case = susceptibles[sus_distr(generator)];
                     //cout << import_case << "  " ;
-                    set_sick(graph, import_case, 3*24, 5*24, false, params->T_REINFECTION, ::Ic);
+                    set_sick(graph, import_case, 3*24, 5*24, false, params->T_REINFECTION, _Ic);
                 }
 
                 // cout << endl;

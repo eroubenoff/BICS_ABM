@@ -21,12 +21,12 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_
     vector<int> priorities_vboost;
 
     for (int i = igraph_vcount(g); i--; ) {
-        if (VAN(g, "vaccine_status", i) == ::V0) {
+        if (VAN(g, "vaccine_status", i) == _V0) {
             priorities_v1[VAN(g, "vaccine_priority", i)].push_back(i);
         }
-        if ((VAN(g, "vaccine_status", i) == ::V1) & (VAN(g, "time_until_v2", i) == 0))
+        if ((VAN(g, "vaccine_status", i) == _V1) & (VAN(g, "time_until_v2", i) == 0))
             priorities_v2.push_back(i);
-        if ((VAN(g, "vaccine_status", i) == ::VW) /*& (VAN(g, "time_until_vboost", i) == 0)*/)
+        if ((VAN(g, "vaccine_status", i) == _VW) /*& (VAN(g, "time_until_vboost", i) == 0)*/)
             priorities_vboost.push_back(i);
     }
 
@@ -56,7 +56,7 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_
         priorities_v1[max_prior].pop_back();
         
         SETVAN(g, "vaccine_priority", node_to_vax, -1);
-        SETVAN(g, "vaccine_status", node_to_vax, ::V1);
+        SETVAN(g, "vaccine_status", node_to_vax, _V1);
         SETVAN(g, "time_until_v2", node_to_vax, time_until_v2);
         SETVAN(g, "time_until_vw", node_to_vax, time_until_vw);
         // SETVAN(g, "time_until_vboost", node_to_vax, time_until_vboost);
@@ -74,7 +74,7 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_
         node_to_vax = priorities_v2[priorities_v2.size() - 1];
         priorities_v2.pop_back();
 
-        SETVAN(g, "vaccine_status", node_to_vax, ::V2);
+        SETVAN(g, "vaccine_status", node_to_vax, _V2);
         SETVAN(g, "time_until_v2", node_to_vax, -1);
 
         n_remaining_v2--;
@@ -90,7 +90,7 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_
             node_to_vax = priorities_vboost[priorities_vboost.size() - 1];
             priorities_vboost.pop_back();
 
-            SETVAN(g, "vaccine_status", node_to_vax, ::VBoost);
+            SETVAN(g, "vaccine_status", node_to_vax, _VBoost);
             // SETVAN(g, "time_until_vboost", node_to_vax, time_until_vboost);
             SETVAN(g, "time_until_vw", node_to_vax, time_until_vw);
 

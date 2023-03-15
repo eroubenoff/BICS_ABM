@@ -9,7 +9,7 @@
 using namespace std;
 
 /* 
- * Disease and vaccine status as globals. These are shorthands for numerical
+ * Disease and vaccine status as macros. These are shorthands for numerical
  * representations. I.e, S = 1, E = 2. It is easier to read this way.
  *
  * This is done so that they can be internally
@@ -17,21 +17,21 @@ using namespace std;
  * strings with the igraph api. They are globals for consistency. 
  * */
 
-extern int S;
-extern int E;
-extern int Ic;
-extern int Isc;
-extern int R;
-extern int D;
-extern int V0;
-extern int V1;
-extern int V2;
-extern int VW;
-extern int VBoost;
-extern int Random;
-extern int Household;
-extern int In;
-extern int Out;
+#define _S 1
+#define _E 2
+#define _Ic 3
+#define _Isc 4
+#define _R 5
+#define _D 6
+#define _V0 0
+#define _V1 1
+#define _V2 2
+#define _VW 3
+#define _VBoost 4
+#define _Random 0
+#define _Household 1
+#define _In 0
+#define _Out 1
 
 
 /*
@@ -103,7 +103,7 @@ class History {
         int counter;
         int length;
         History(int initial_length = 2000);
-        void add_history(int _S, int _E, int _Ic, int _Cc, int _Isc, int _Csc, int _R, int _D, int _V1, int _V2, int _VW, int _VBoost, int _n_edges);
+        void add_history(int S_count, int E_count, int Ic_count, int Cc_count, int Isc_count, int Csc_count, int R_count, int D_count, int V1_count, int V2_count, int VW_count, int VBoost_count, int n_edges_count); 
         void save(string path = "history.csv");
         void plot_trajectory(string path = "plot.png") ;
 };

@@ -28,7 +28,7 @@ void disconnect_hh(igraph_t* g,
     int hhid = VAN(g, "hhid", node_id);
     vector<int> hh_members = hhid_lookup[hhid];
 
-    SETVAN(g, "home_status", node_id, ::Out);
+    SETVAN(g, "home_status", node_id, _Out);
 
     /* 
      * Traverse household members; if there are any connections,
@@ -60,14 +60,14 @@ void reconnect_hh(igraph_t* g,
     int hhid = VAN(g, "hhid", node_id);
     vector<int> hh_members = hhid_lookup[hhid];
 
-    SETVAN(g, "home_status", node_id, ::In);
+    SETVAN(g, "home_status", node_id, _In);
 
 
     for (auto i: hh_members) {
 
         int status = VAN(g, "home_status", node_id);
 
-        if (status == ::In) {
+        if (status == _In) {
             igraph_add_edge(g, node_id, i);
         }
     }
@@ -137,7 +137,7 @@ void random_contacts(igraph_t *g,
     float temp;
     for (int i = vcount; i--; ) {
         /* See if node is in isolation */
-        if (VECTOR(ds_vec)[i] == ::Ic){ 
+        if (VECTOR(ds_vec)[i] == _Ic){ 
             isolation = true;
         } else {
             isolation = false;
@@ -249,10 +249,10 @@ void random_contacts(igraph_t *g,
     int n_regular = igraph_vector_size(&edges_type);
     igraph_vector_resize(&edges_type, n_regular + igraph_ecount(&new_graph));
     for (int i = 0; i < n_regular; i++) {
-        VECTOR(edges_type)[i] = ::Household;
+        VECTOR(edges_type)[i] = _Household;
     }
     for (int i = n_regular; i < igraph_vector_size(&edges_type); i++) {
-        VECTOR(edges_type)[i] = ::Random;
+        VECTOR(edges_type)[i] = _Random;
     }
 
     /*

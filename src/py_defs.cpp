@@ -44,7 +44,7 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
     cout << igraph_vcount(g) << endl;
 
     // Fixed characteristics
-    igraph_vector_fill(&col, ::S);
+    igraph_vector_fill(&col, _S);
     SETVANV(g, "disease_status", &col);
 
 
@@ -62,7 +62,7 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
     SETVANV(g, "mu", &col);
 
 
-    igraph_vector_fill(&col, ::In);
+    igraph_vector_fill(&col, _In);
     SETVANV(g, "home_status", &col);
 
 
