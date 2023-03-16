@@ -24,13 +24,20 @@ void delete_all_edges(igraph_t *g) {
 
 void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
+    int day; 
+    int hr;
+    igraph_bool_t connected;
+    igraph_integer_t eid; 
+    const bool cached = false;
+    int hhid;
+    float BETA;
+    int Cc, Csc;
+    bool run = true;
+
     print_params(params);
     cout << "N vertices: " << igraph_vcount(graph) << endl;
 
-    const bool cached = false;
     mt19937 generator(params->SEED);
-
-
 
     /* 
      * Generate household edges and add to g 
@@ -38,6 +45,18 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     igraph_vector_t hhedges;
     gen_hh_edges(graph, &hhedges);
     igraph_add_edges(graph, &hhedges, NULL);
+
+
+    /* Get all hhs into a dict */
+    unordered_map<int, vector<int>> hh_lookup;
+    for (int i = igraph_vcount(graph); i--; ) {
+        hhid = VAN(graph, "hhid", i);
+        if (hh_lookup.count(i) == 0) {
+            hh_lookup[hhid] = vector<int>{i};
+        } else {
+            hh_lookup[hhid].push_back(i);
+        }
+    }
 
     /* 
      * Vector containing the type of edges (all are household) 
@@ -49,18 +68,6 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         VECTOR(hhedges_type)[i] = _Household;
     }
     SETEANV(graph, "type", &hhedges_type);
-
-    /* Generate daytime edges that include work contacts*/ 
-    /*
-    igraph_vector_int_t daytime_edges;
-    igraph_strvector_t daytime_edges_type;
-    gen_daytime_edges(graph, &hhedges, &daytime_edges, &daytime_edges_type);
-    */
-
-
-
-    int day; 
-    int hr;
     decrement(graph, history);
 
     /* 
@@ -77,6 +84,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
             decrement(graph, history);
         }
     }
+    cout << endl;
 
     /* 
      * Randomly choose index cases 
@@ -109,19 +117,20 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         }
     }
 
-    // cout << "IMPORT CASES BOOL " << imported_cases_daily_bool << endl;
+    unordered_map<int, vector<edgeinfo>> daily_contacts;
 
-
+    igraph_vector_t hourly_edges;
+    igraph_vector_init(&hourly_edges, 0);
     /* 
      * Run main sim 
      * */
-    float BETA;
-    int Cc, Csc;
-    bool run = true;
     while (run) {
         Cc = 0;
         Csc = 0;
 
+        /* Reset all edges */
+        igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
+        igraph_add_edges(graph, &hhedges, NULL);
 
 
         /* 
@@ -136,7 +145,6 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
          */
 
         if (imported_cases_daily_bool) {
-            // cout  << "Imported case"; 
 
             // Tally up all Susceptibles 
             vector<int> susceptibles; 
@@ -150,11 +158,8 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
                 for (int i = 0; i < params->IMPORT_CASES_VEC[day % 365]; i++) {
                     uniform_int_distribution<int> sus_distr(0, susceptibles.size() - 1);
                     int import_case = susceptibles[sus_distr(generator)];
-                    //cout << import_case << "  " ;
                     set_sick(graph, import_case, 3*24, 5*24, false, params->T_REINFECTION, _Ic);
                 }
-
-                // cout << endl;
             }
         }
 
@@ -165,35 +170,94 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
             decrement(graph, history, Cc, Csc);
 
         }
+        
 
 
         bool vboost = (day % 365) >= params->BOOSTER_DAY;
         distribute_vax(graph, params->N_VAX_DAILY, 25*24, params->T_REINFECTION, vboost);
+        daily_contacts = random_contacts_duration(graph, params->ISOLATION_MULTIPLIER, generator);
+        igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
 
         // Hours 8-16
-        for (hr = 8; hr < 16; hr++){
+        for (hr = 8; hr < 18; hr++){
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
+            
 
             /* 
-             * Generate random contacts on graph, and save them in random_contacts_es.
-             * random_contacts_es is passed back to random_contacts so that
-             * it can be used to efficiently remove the previous time step's 
-             * random contacts, without having to re-wire everything using delete_all edges or 
-             * similar.
+             * Retrieve the corresponding vector of edges we should connect at each hour,
+             * remove each end point from their home, then 
+             * connect the edges.
              */
 
-            random_contacts(graph, &hhedges, &hhedges_type, params -> ISOLATION_MULTIPLIER, generator);
+            vector<edgeinfo> hourly_contacts = daily_contacts[hr];
+
+            /* Need to turn the vector of edgeinfo into vectors of endpoints */
+            if (true) {
+                igraph_vector_resize(&hourly_edges, 0);
+
+                for (auto c: hourly_contacts) {
+                    // Confirm that nodes 1 and 2 are valid
+                    if ((c.node1 < 0) | (c.node1 > igraph_vcount(graph))){
+                        throw runtime_error("Node 1 out of range");
+                    }
+                    if ((c.node2 < 0) | (c.node2 > igraph_vcount(graph))){
+                        throw runtime_error("Node 1 out of range");
+                    }
+                    igraph_vector_push_back(&hourly_edges, c.node1);
+                    igraph_vector_push_back(&hourly_edges, c.node2);
+                }
+
+                igraph_add_edges(graph, &hourly_edges, 0);
+            }
+
+            if (false) {
+                for (auto c: hourly_contacts) {
+                    cout << "Attempting connection between nodes " <<c.node1 << "  and " << c.node2 << endl;
+                    cout << "Disease status of node " << c.node1 << ": " << VAN(graph, "disease_status", c.node1);
+                    cout << " and  node " << c.node2 << " " << VAN(graph, "disease_status", c.node2) << endl;
+
+                    // continue;
+
+                    /* Check if edge already exists; if so, pass */
+                    igraph_are_connected(graph, c.node1, c.node2, &connected);
+                    cout << "Are nodes connected? " << endl;
+                    
+                    if (connected) {
+                        cout << "Nodes are already connected" << endl;
+                    } else {cout << "Nope" << endl;}
+
+                    igraph_add_edge(graph, c.node1, c.node2);
+                    cout << "Edge added" << endl;
+                    igraph_get_eid(graph, &eid, c.node1, c.node2, false, false);
+                    if (eid == -1) {
+                        throw runtime_error("Incorrect edge number");
+                    }
+                    cout << "Edge id " << eid << "Added successfully" << endl;
+                    
+                    // Check disease status, since I think that's what's throwing us off here
+                    SETEAN(graph, "duration", eid, c.duration);
+                    SETEAN(graph, "type", eid, _Random);
+                    cout << "with duration " << EAN(graph, "duration", eid) << endl;
+                    //disconnect_hh(graph, hh_lookup, c.node1);           
+                    //disconnect_hh(graph, hh_lookup, c.node2);           
+                }
+            }
+            
+            
             tie(Cc, Csc) = transmit(graph, BETA, params, generator);
             decrement(graph, history, Cc, Csc);
+            
+            // Deleting all
+            igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
 
         }
 
 
-        // Hours 16-24
-        delete_all_edges(graph);
-        igraph_add_edges(graph, &hhedges, NULL);
-        SETEANV(graph, "type", &hhedges_type);
-        for (hr = 16; hr < 24; hr++ ) {
+        // Hours 18-24
+        //delete_all_edges(graph);
+        //igraph_add_edges(graph, &hhedges, NULL);
+        //SETEANV(graph, "type", &hhedges_type);
+        for (hr = 19; hr < 24; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             tie(Cc, Csc) = transmit(graph, BETA, params, generator);
             decrement(graph, history, Cc, Csc);
@@ -220,6 +284,10 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
             }
         }
 
+        if (day > 10000) {
+            throw runtime_error("Day limit reached! Check code.");
+        }
+
     }
 
     cout << endl;
@@ -228,7 +296,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     // Destroy vector/
     igraph_vector_destroy(&hhedges);
     igraph_vector_destroy(&hhedges_type);
-
+    igraph_vector_destroy(&hourly_edges);
     /*
     igraph_vector_int_destroy(&daytime_edges);
     igraph_strvector_destroy(&daytime_edges_type);

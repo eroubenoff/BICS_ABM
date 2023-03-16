@@ -35,13 +35,14 @@ tuple<int, int> transmit(igraph_t *g,
     bool NPI;
 
     /* Pull attributes from g */
-    igraph_vector_t ds_vec;
-    igraph_vector_init(&ds_vec, vcount);
-    VANV(g, "disease_status", &ds_vec);
+
     igraph_vector_t vs_vec;
     igraph_vector_init(&vs_vec, vcount);
     VANV(g, "vaccine_status", &vs_vec);
 
+    igraph_vector_t ds_vec;
+    igraph_vector_init(&ds_vec, vcount);
+    VANV(g, "disease_status", &ds_vec);
     igraph_vector_t NPI_vec;
     igraph_vector_init(&NPI_vec, vcount);
     VANV(g, "NPI", &NPI_vec);

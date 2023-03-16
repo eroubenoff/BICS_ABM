@@ -32,6 +32,10 @@ using namespace std;
 #define _Household 1
 #define _In 0
 #define _Out 1
+#define _dur_lt1m 1/60
+#define _dur_lt15m 15/60
+#define _dur_lt1hr 1.0
+#define _dur mt1hr 2.0
 
 
 /*
@@ -172,6 +176,32 @@ void random_contacts(igraph_t *g,
         igraph_vector_t *regular_contacts_type,
         float isolation_multiplier,
         mt19937 &generator) ;
+class edgeinfo {
+    public:
+        int node1; 
+        int node2; 
+        float duration;
+        edgeinfo(int n1, int n2, float d){
+            node1=n1;
+            node2=n2;
+            duration=d;
+        };
+        edgeinfo(){};
+};
+/* Generates a single random graph of contacts,
+ * accounting for isolation
+ *
+ * unordered_map<int start_time, tuple<int node1, int node2, int duration>>
+ * Start time
+ * duration
+ * start node, end node
+ * 
+ */
+
+unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
+        float isolation_multiplier,
+        mt19937 &generator) ;
+
 void gen_hh_edges(igraph_t *graph, igraph_vector_t *hhedges);
 /*
 void gen_daytime_edges(const igraph_t *graph, 
@@ -187,8 +217,8 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
 /* Functions to re/disconnect a node from 
  * their household members */
 void reconnect_hh(igraph_t* g, 
-        unordered_map<int, vector<int>>* hhid_lookup,
+        unordered_map<int, vector<int>> hhid_lookup,
         int node_id);
 void disconnect_hh(igraph_t* g,
-        unordered_map<int, vector<int>>* hhid_lookup,
+        unordered_map<int, vector<int>> hhid_lookup,
         int node_id);

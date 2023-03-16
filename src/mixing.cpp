@@ -11,6 +11,7 @@
 #include "BICS_ABM.h"
 #include <random>
 #include <set>
+#include <math.h>
 
 /*
  * Functions to disconnect a node from their household
@@ -22,7 +23,7 @@
  */
 
 void disconnect_hh(igraph_t* g,
-        unordered_map<int, vector<int>>& hhid_lookup,
+        unordered_map<int, vector<int>> hhid_lookup,
         int node_id) {
 
     int hhid = VAN(g, "hhid", node_id);
@@ -53,7 +54,7 @@ void disconnect_hh(igraph_t* g,
 }
 
 void reconnect_hh(igraph_t* g, 
-        unordered_map<int, vector<int>>& hhid_lookup,
+        unordered_map<int, vector<int>> hhid_lookup,
         int node_id) {
     
 
@@ -71,6 +72,89 @@ void reconnect_hh(igraph_t* g,
             igraph_add_edge(g, node_id, i);
         }
     }
+}
+
+/* Generates a single random graph of contacts,
+ * accounting for isolation
+ *
+ * unordered_map<int start_time, tuple<int node1, int node2, int duration>>
+ * Start time
+ * duration
+ * start node, end node
+ * 
+ */
+
+unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
+        float isolation_multiplier,
+        mt19937 &generator) {
+
+    /* Create return object */
+    unordered_map<int, vector<edgeinfo>> ret;
+
+    /* Pull the information from the graph */
+    igraph_vector_t stubs_count;
+    igraph_vector_init(&stubs_count, igraph_vcount(g));
+    VANV(g, "num_cc_nonhh", &stubs_count);
+
+    igraph_vector_t ds_vec;
+    igraph_vector_init(&ds_vec, igraph_vcount(g));
+    VANV(g, "disease_status", &ds_vec);
+
+    /* See if node is in isolation */
+    for (int i = igraph_vcount(g); i--; ) {
+        if (VECTOR(ds_vec)[i] == _Ic){ 
+            // Trick for rounding becuase float -> int cast truncates
+            VECTOR(stubs_count)[i] = round(VECTOR(stubs_count)[i] * isolation_multiplier);
+        } 
+    }
+
+    /* Draw random graph */
+    igraph_t new_graph;
+    igraph_empty(&new_graph, 0, IGRAPH_UNDIRECTED);
+    igraph_degree_sequence_game(&new_graph, &stubs_count, NULL, IGRAPH_DEGSEQ_SIMPLE); 
+    // IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE); //IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE ); // IGRAPH_DEGSEQ_CONFIGURATION);
+    /* Simplify graph */
+    // igraph_simplify(&new_graph, true, true, NULL);
+
+    /* Time of day */
+    uniform_int_distribution<int> ToD(8,18);
+    for (int i = 8; i <= 18; i++) {
+        ret[i] = vector<edgeinfo>();
+    }
+
+    /* Loop over each edge and extract the relevant information */
+    edgeinfo ei;
+    igraph_es_t es;
+    igraph_es_all(&es, IGRAPH_EDGEORDER_ID);
+    igraph_eit_t eit;
+    igraph_eit_create(g, es, &eit);
+    int current_edge;
+    while(!IGRAPH_EIT_END(eit)) {
+        current_edge = IGRAPH_EIT_GET(eit);
+
+        int time = ToD(generator);
+
+        /* Extract FROM and TO */
+        ei = edgeinfo(
+            IGRAPH_FROM(&new_graph, current_edge),
+            IGRAPH_TO(&new_graph, current_edge),
+            /* For now, set all contacts to be 1 hour */
+            _dur_lt1hr
+        );
+
+        /* Append to return object */
+        ret[time].push_back(ei);
+
+        IGRAPH_EIT_NEXT(eit);
+    }
+    igraph_es_destroy(&es);
+    igraph_eit_destroy(&eit);
+    // DELALL(&new_graph); // New graph doesn't have any attributes
+    igraph_vector_destroy(&stubs_count);
+    igraph_vector_destroy(&ds_vec);
+    igraph_destroy(&new_graph);
+
+    return ret;
 }
 
 
