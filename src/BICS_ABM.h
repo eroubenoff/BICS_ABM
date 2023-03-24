@@ -28,14 +28,14 @@ using namespace std;
 #define _V2 2
 #define _VW 3
 #define _VBoost 4
-#define _Random 0
+#define _Random 2
 #define _Household 1
 #define _In 0
 #define _Out 1
 #define _dur_lt1m 1/60
 #define _dur_lt15m 15/60
 #define _dur_lt1hr 1.0
-#define _dur mt1hr 2.0
+#define _dur_mt1hr 2.0
 
 
 /*
@@ -220,5 +220,11 @@ void reconnect_hh(igraph_t* g,
         unordered_map<int, vector<int>> hhid_lookup,
         int node_id);
 void disconnect_hh(igraph_t* g,
-        unordered_map<int, vector<int>> hhid_lookup,
+        unordered_map<int, vector<int>> &hhid_lookup,
+        igraph_vector_t* edges_to_delete,
         int node_id);
+
+void set_duration(igraph_t* g,
+        discrete_distribution<float> &dist,
+        mt19937 &generator
+        ) ;

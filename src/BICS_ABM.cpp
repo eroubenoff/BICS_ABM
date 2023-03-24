@@ -21,6 +21,41 @@ void delete_all_edges(igraph_t *g) {
 
 }
 
+/*
+ * Helper fn to set edge attributes given
+ * a vector of end points
+ */
+void set_edge_attribute(igraph_t *g, 
+        igraph_vector_t *end_points,
+        string attribute_name,
+        igraph_real_t attribute_value,
+        bool force = false) {
+
+    // Pull edge attribute vector
+
+
+    if (force){
+        igraph_vector_t attr;
+        igraph_vector_init(&attr, igraph_ecount(g));
+        igraph_vector_fill(&attr, attribute_value); 
+        SETEANV(g, attribute_name.c_str(), &attr);
+        igraph_vector_destroy(&attr);
+    } 
+    else {
+        igraph_vector_t eids;
+        igraph_vector_init(&eids, 0);
+        igraph_get_eids(g, &eids, end_points, NULL, false, false);
+
+        for (int i = 0; i < igraph_vector_size(&eids); i++) {
+            SETEAN(g, attribute_name.c_str(), VECTOR(eids)[i], attribute_value);
+        }
+
+        igraph_vector_destroy(&eids);
+
+    }
+
+}
+
 
 void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
@@ -33,6 +68,8 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     float BETA;
     int Cc, Csc;
     bool run = true;
+    igraph_vector_t edges_to_delete;
+    igraph_vector_init(&edges_to_delete, 0);
 
     print_params(params);
     cout << "N vertices: " << igraph_vcount(graph) << endl;
@@ -40,12 +77,30 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     mt19937 generator(params->SEED);
 
     /* 
+     * Generate distribution of contact duration 
+     *
+     * Values here come from the weighted proportion
+     * of contact duration derived from wave 6: 
+     *   p_lt15 p_lt1hr p_lt1min p_mt1hr
+           <dbl>   <dbl>    <dbl>   <dbl>
+           0.452   0.187    0.171   0.189
+     * */
+
+    /* Arrange them in order from shortest to longest time
+        _dur_lt1m 1/60
+        _dur_lt15m 15/60
+        _dur_lt1hr 1.0
+        _dur_mt1hr 2.0
+    */
+
+    discrete_distribution<float> duration_dist{0.171, 0.452, 0.187, 0.189};
+
+
+    /* 
      * Generate household edges and add to g 
      * */
     igraph_vector_t hhedges;
     gen_hh_edges(graph, &hhedges);
-    igraph_add_edges(graph, &hhedges, NULL);
-
 
     /* Get all hhs into a dict */
     unordered_map<int, vector<int>> hh_lookup;
@@ -58,16 +113,17 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         }
     }
 
+
+
     /* 
      * Vector containing the type of edges (all are household) 
      * Set type attribute 
      * */
-    igraph_vector_t hhedges_type;
-    igraph_vector_init(&hhedges_type, igraph_ecount(graph));
-    for (int i = 0; i < igraph_vector_size(&hhedges_type);i++){
-        VECTOR(hhedges_type)[i] = _Household;
-    }
-    SETEANV(graph, "type", &hhedges_type);
+
+    igraph_add_edges(graph, &hhedges, 0);
+    set_edge_attribute(graph, &hhedges, "type", _Household, true);
+    set_edge_attribute(graph, &hhedges, "duration", 0, true);
+
     decrement(graph, history);
 
     /* 
@@ -131,12 +187,14 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         /* Reset all edges */
         igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
         igraph_add_edges(graph, &hhedges, NULL);
+        //igraph_add_edges(graph, &hhedges, &hhedges_attr);
 
 
         /* 
          * If there is a daily seasonal forcing of Beta, 
          * update it now 
          */
+
         BETA = params->BETA_VEC[day % 365];
 
         /*
@@ -176,12 +234,14 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         bool vboost = (day % 365) >= params->BOOSTER_DAY;
         distribute_vax(graph, params->N_VAX_DAILY, 25*24, params->T_REINFECTION, vboost);
         daily_contacts = random_contacts_duration(graph, params->ISOLATION_MULTIPLIER, generator);
-        igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
 
         // Hours 8-16
         for (hr = 8; hr < 18; hr++){
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             
+            igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
+            igraph_add_edges(graph, &hhedges, NULL);
+            set_edge_attribute(graph, &hhedges, "type", _Household, false);
 
             /* 
              * Retrieve the corresponding vector of edges we should connect at each hour,
@@ -192,71 +252,47 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
             vector<edgeinfo> hourly_contacts = daily_contacts[hr];
 
             /* Need to turn the vector of edgeinfo into vectors of endpoints */
-            if (true) {
-                igraph_vector_resize(&hourly_edges, 0);
+            igraph_vector_resize(&edges_to_delete, 0);
+            igraph_vector_resize(&hourly_edges, 0);
 
-                for (auto c: hourly_contacts) {
-                    // Confirm that nodes 1 and 2 are valid
-                    if ((c.node1 < 0) | (c.node1 > igraph_vcount(graph))){
-                        throw runtime_error("Node 1 out of range");
-                    }
-                    if ((c.node2 < 0) | (c.node2 > igraph_vcount(graph))){
-                        throw runtime_error("Node 1 out of range");
-                    }
-                    igraph_vector_push_back(&hourly_edges, c.node1);
-                    igraph_vector_push_back(&hourly_edges, c.node2);
+            for (auto c: hourly_contacts) {
+                // Confirm that nodes 1 and 2 are valid
+                if ((c.node1 < 0) | (c.node1 > igraph_vcount(graph))){
+                    throw runtime_error("Node 1 out of range");
+                }
+                if ((c.node2 < 0) | (c.node2 > igraph_vcount(graph))){
+                    throw runtime_error("Node 2 out of range");
                 }
 
-                igraph_add_edges(graph, &hourly_edges, 0);
+                igraph_vector_push_back(&hourly_edges, c.node1);
+                igraph_vector_push_back(&hourly_edges, c.node2);
+
+                /* Disconnect node1 and 2 from hh edges */
+                disconnect_hh(graph, hh_lookup, &edges_to_delete, c.node1);
+                disconnect_hh(graph, hh_lookup, &edges_to_delete, c.node2);
             }
 
-            if (false) {
-                for (auto c: hourly_contacts) {
-                    cout << "Attempting connection between nodes " <<c.node1 << "  and " << c.node2 << endl;
-                    cout << "Disease status of node " << c.node1 << ": " << VAN(graph, "disease_status", c.node1);
-                    cout << " and  node " << c.node2 << " " << VAN(graph, "disease_status", c.node2) << endl;
+            /* Delete HH Edges */
+            igraph_delete_edges(graph, igraph_ess_vector(&edges_to_delete));
 
-                    // continue;
 
-                    /* Check if edge already exists; if so, pass */
-                    igraph_are_connected(graph, c.node1, c.node2, &connected);
-                    cout << "Are nodes connected? " << endl;
-                    
-                    if (connected) {
-                        cout << "Nodes are already connected" << endl;
-                    } else {cout << "Nope" << endl;}
+            /* Add new hourly random edges */
+            igraph_add_edges(graph, &hourly_edges, 0);
 
-                    igraph_add_edge(graph, c.node1, c.node2);
-                    cout << "Edge added" << endl;
-                    igraph_get_eid(graph, &eid, c.node1, c.node2, false, false);
-                    if (eid == -1) {
-                        throw runtime_error("Incorrect edge number");
-                    }
-                    cout << "Edge id " << eid << "Added successfully" << endl;
-                    
-                    // Check disease status, since I think that's what's throwing us off here
-                    SETEAN(graph, "duration", eid, c.duration);
-                    SETEAN(graph, "type", eid, _Random);
-                    cout << "with duration " << EAN(graph, "duration", eid) << endl;
-                    //disconnect_hh(graph, hh_lookup, c.node1);           
-                    //disconnect_hh(graph, hh_lookup, c.node2);           
-                }
-            }
-            
-            
+            /* Add edge type and duration */
+            set_edge_attribute(graph, &hourly_edges, "type", _Random, false);
+            // set_duration(graph, duration_dist, generator);
+
+            /* Transmit and decrement */
             tie(Cc, Csc) = transmit(graph, BETA, params, generator);
             decrement(graph, history, Cc, Csc);
-            
-            // Deleting all
-            igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
-
         }
 
+        igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
+        igraph_add_edges(graph, &hhedges, 0);
+        set_edge_attribute(graph, &hhedges, "type", _Household, false);
 
         // Hours 18-24
-        //delete_all_edges(graph);
-        //igraph_add_edges(graph, &hhedges, NULL);
-        //SETEANV(graph, "type", &hhedges_type);
         for (hr = 19; hr < 24; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             tie(Cc, Csc) = transmit(graph, BETA, params, generator);
@@ -293,14 +329,9 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     cout << endl;
 
 
-    // Destroy vector/
+    /* Garbage collect */
     igraph_vector_destroy(&hhedges);
-    igraph_vector_destroy(&hhedges_type);
     igraph_vector_destroy(&hourly_edges);
-    /*
-    igraph_vector_int_destroy(&daytime_edges);
-    igraph_strvector_destroy(&daytime_edges_type);
-    */
-
+    igraph_vector_destroy(&edges_to_delete);
 
 }

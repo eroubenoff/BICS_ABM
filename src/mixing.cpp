@@ -20,15 +20,35 @@
  * node id, and modifies graph in place
  * Also modifies node home_status to be 'out' instead of 'in'
  *
+ * Parameters
+ * ----------
+ * igraph_t* g 
+ *  - pointer to igraph object
+ * unordered_map<int, vector<ing>> &hhid_lookup
+ *  - lookup object of households. Contains a vector of all 
+ *    nodes in each household, hashed on the household id
+ * igraph_vector_t* edges_to_delete
+ *  - pointer to vector that contains the edges to delete,
+ *    stored as adjacent edge end points
+ * int node_id
+ *  - node id that we are disconnecting
+ *
+ *
+ * Returns
+ * -------
+ *  - None
+ *
+ * Modifies 
+ * --------
+ *  - adds pairs of vectors to edges_to_delete
  */
 
 void disconnect_hh(igraph_t* g,
-        unordered_map<int, vector<int>> hhid_lookup,
+        unordered_map<int, vector<int>> &hhid_lookup,
+        igraph_vector_t* edges_to_delete,
         int node_id) {
 
     int hhid = VAN(g, "hhid", node_id);
-    vector<int> hh_members = hhid_lookup[hhid];
-
     SETVAN(g, "home_status", node_id, _Out);
 
     /* 
@@ -37,42 +57,196 @@ void disconnect_hh(igraph_t* g,
      */
 
     igraph_bool_t are_connected;
-    igraph_es_t edge;
+    int hhsize = hhid_lookup[hhid].size();
+    int node_id2;
+    for (int i = 0; i < hhsize; i++) {
 
-    for (auto i: hh_members) {
-
-        igraph_are_connected(g, node_id, i, &are_connected);
+        node_id2 = hhid_lookup[hhid][i];
+        igraph_are_connected(g, node_id, node_id2, &are_connected);
 
         if (are_connected) {
-            igraph_es_pairs_small(&edge, true, node_id, i, -1);
-            igraph_delete_edges(g, edge);
+            igraph_vector_push_back(edges_to_delete, node_id);
+            igraph_vector_push_back(edges_to_delete, node_id2);
             
         }
     }
-
-    igraph_es_destroy(&edge);
 }
 
+
+
+
+
+
+/* 
+ * Reconnects a node with their household -- in effect,
+ * does the opposite of disconnect_hh
+ *
+ * Parameters
+ * ---------
+ *
+ * igraph_t* g 
+ *  - pointer to igraph object
+ * unordered_map<int, vector<ing>> &hhid_lookup
+ *  - lookup object of households. Contains a vector of all 
+ *    nodes in each household, hashed on the household id
+ * igraph_vector_t* edges_to_add 
+ *  - pointer to vector that contains the household edges to add,
+ *    stored as adjacent edge end points
+ * int node_id
+ *  - node id that we are re-connecting 
+ *
+ * Returns
+ * -------
+ *  - None
+ *
+ * Modifies 
+ * --------
+ *  - adds pairs of vectors to edges_to_delete
+ *
+ *
+ */
 void reconnect_hh(igraph_t* g, 
-        unordered_map<int, vector<int>> hhid_lookup,
+        unordered_map<int, vector<int>> &hhid_lookup,
+        igraph_vector_t* edges_to_add,
         int node_id) {
     
 
     int hhid = VAN(g, "hhid", node_id);
-    vector<int> hh_members = hhid_lookup[hhid];
 
     SETVAN(g, "home_status", node_id, _In);
 
+    igraph_bool_t are_connected;
+    int hhsize = hhid_lookup[hhid].size();
+    int node_id2;
+    for (int i = 0; i < hhsize; i++){
 
-    for (auto i: hh_members) {
+        node_id2 = hhid_lookup[hhid][i];
 
-        int status = VAN(g, "home_status", node_id);
+        igraph_are_connected(g, node_id, node_id2, &are_connected);
 
-        if (status == _In) {
-            igraph_add_edge(g, node_id, i);
+        if ((!are_connected) & (VAN(g, "home_status", node_id2) == _In)){
+            igraph_vector_push_back(edges_to_add, node_id);
+            igraph_vector_push_back(edges_to_add, node_id2);
         }
     }
 }
+
+
+/* 
+ * Sets the duration of contacts as a random draw
+ * from a set of options. This is to be called after 
+ * random_contacts_duration. All edges are initialized
+ * with a duration of 0. 
+ *
+ * This function works by scanning the non-household edges,
+ * and assigning a duration to any edges with a duration of 
+ * 0. Durations can be fractional hours, which is used to 
+ * scale the probability used in transmit(), or multiple
+ * hours. The duration of each edge is decremented by 1 (hour)
+ * in the decrement() function. 
+ * 
+ *
+ * Parameters
+ * ----------
+ * igraph_t* g
+ *  - graph to modify
+ * discrete_distribution<float> &dist
+ *  - distribution to sample from of durations
+ * mt19937 &generator
+ *  - random state
+ *
+ * Returns 
+ * ------
+ *  None
+ *
+ * Modifies
+ * --------
+ *  graph object in place by added durations to edges.
+ *
+ */
+
+void set_duration(igraph_t* g,
+        discrete_distribution<float> &dist,
+        mt19937 &generator
+        ) {
+
+    /* 
+     * Get edge type and duration
+     * */
+
+    igraph_vector_t type;
+    igraph_vector_init(&type, 0);
+    EANV(g, "type", &type);
+
+    igraph_vector_t duration;
+    igraph_vector_init(&duration, 0);
+    EANV(g, "duration", &duration);
+    cout << endl;
+    cout << " Trying! " << endl;
+    SETEANV(g, "duration", &duration);
+    cout << "Worked!" << endl;
+
+
+    /*
+     * Loop over edges, doing random draws and modifying
+     * duration vector as necessary
+     */
+    int n_edges = igraph_vector_size(&type);
+    int draw; 
+
+
+    cout << "N_edges " <<  igraph_ecount(g) << " type vector size" <<  n_edges << endl;
+ 
+    for (int i = 0; i < n_edges; i++) {
+
+        /* Random choices are 0-3; recode to
+            0: _dur_lt1m 1/60
+            1: _dur_lt15m 15/60
+            2: _dur_lt1hr 1.0
+            3: _dur_mt1hr 2.0
+        */ 
+
+        if ((VECTOR(type)[i] == _Random) & (VECTOR(duration)[i] == 0) ) {
+            draw = dist(generator);
+            
+            switch(draw){
+                case 0:
+                    VECTOR(duration)[i] = _dur_lt1m;
+                    break;
+
+                case 1:
+                    VECTOR(duration)[i] = _dur_lt15m;
+                    break;
+
+                case 2:
+                    VECTOR(duration)[i] = _dur_lt1hr;
+                    break;
+
+                case 3:
+                    VECTOR(duration)[i] = _dur_mt1hr;
+                    break;
+
+                default:
+                    VECTOR(duration)[i] = 0;
+                    break;
+            }
+
+        } 
+
+    }
+
+    /* Assign dist back to graph object */
+    SETEANV(g, "duration", &duration);
+
+    /* Garbage collect */
+    igraph_vector_destroy(&duration);
+    igraph_vector_destroy(&type);
+}
+
+
+
+
+
 
 /* Generates a single random graph of contacts,
  * accounting for isolation
@@ -106,6 +280,27 @@ unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
             // Trick for rounding becuase float -> int cast truncates
             VECTOR(stubs_count)[i] = round(VECTOR(stubs_count)[i] * isolation_multiplier);
         } 
+    }
+
+    /* 
+     * Make sure sum is an even number; otherwise decrease a random stub until it is 
+     *
+     * */
+
+    int sum = igraph_vector_sum(&stubs_count);
+    if (sum % 2 == 1) { 
+        // Pick a random index
+        int tries = 0;
+        int randomIndex;
+        while (tries < 1000) {
+            randomIndex = rand() % igraph_vector_size(&stubs_count);
+
+            if (VECTOR(stubs_count)[randomIndex] > 1) {
+                VECTOR(stubs_count)[randomIndex] -= 1;
+                break;
+            }
+            tries++;
+        }
     }
 
     /* Draw random graph */
