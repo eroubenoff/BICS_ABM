@@ -52,6 +52,10 @@ tuple<int, int> transmit(igraph_t *g,
     int Cc = 0;
     int Csc = 0;
 
+    // Edge id
+    igraph_integer_t eid;
+    double duration;
+
     for (int i = vcount; i--; ) {
         ds = VECTOR(ds_vec)[i]; 
 
@@ -61,6 +65,10 @@ tuple<int, int> transmit(igraph_t *g,
 
             for (int n_neighbors = igraph_vector_int_size(&neighbors) ; n_neighbors--; ) {
                 n2 = VECTOR(neighbors)[n_neighbors];
+                igraph_get_eid(g, &eid, i, n2, false, true);
+                duration = EAN(g, "duration", eid);
+                duration = max(duration, 1.0);
+
                 ds2 = VECTOR(ds_vec)[n2];  
                 vs2 = VECTOR(vs_vec)[n2]; 
                 if (ds2 != _S) continue; 
@@ -68,23 +76,23 @@ tuple<int, int> transmit(igraph_t *g,
                 if (VECTOR(NPI_vec)[i] && VECTOR(NPI_vec)[n2]) NPI = true;
 
                 if (vs2 == _V0){
-                    prob = BETA * (NPI ? (1-params->NPI) : 1) * (symptomatic ? 1 : params->ALPHA);
+                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == _V1){
-                    prob = BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VE1) * (symptomatic ? 1 : params->ALPHA);
+                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VE1) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == _V2) {
-                    prob = BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VE2) * (symptomatic ? 1 : params->ALPHA);
+                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VE2) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == _VW) {
-                    prob = BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VEW) * (symptomatic ? 1 : params->ALPHA);
+                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VEW) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == _VBoost) {
-                    prob = BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VEBOOST) * (symptomatic ? 1 : params->ALPHA);
+                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VEBOOST) * (symptomatic ? 1 : params->ALPHA);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else {
