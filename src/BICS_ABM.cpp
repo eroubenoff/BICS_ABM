@@ -290,12 +290,37 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
             /* Add edge type and duration */
             set_edge_attribute(graph, &hourly_edges, "type", _Random, false);
-
             set_duration(graph, duration_dist, generator);
 
             /* Transmit and decrement */
             tie(Cc, Csc) = transmit(graph, BETA, params, generator);
             decrement(graph, history, Cc, Csc);
+
+            /* Sever any connections that were under an hour */
+            igraph_vector_int_resize(&edges_to_delete, 0);
+            igraph_vector_int_resize(&hourly_edges, 0);
+
+            for (int i = 0; i < igraph_ecount(graph); i++) {
+                if ((EAN(graph, "type", i) == _Random ) & (EAN(graph, "duration", i) == -1)) {
+                    /* Sever those connections */
+                    igraph_vector_int_push_back(&edges_to_delete, IGRAPH_FROM(graph, i)); 
+                    igraph_vector_int_push_back(&edges_to_delete, IGRAPH_TO(graph, i)); 
+                }
+            }
+
+            // igraph_delete_edges(graph, igraph_ess_vector(&edges_to_delete));
+
+            /* Reconnect with households */
+            for (int i = 0; i < igraph_ecount(graph); i++) {
+                if ((EAN(graph, "type", i) == _Random ) & (EAN(graph, "duration", i) == -1)) {
+                    /* Reconnect with household */
+                    reconnect_hh(graph, hh_lookup, &hourly_edges, IGRAPH_FROM(graph, i));
+                    reconnect_hh(graph, hh_lookup, &hourly_edges, IGRAPH_TO(graph, i));
+
+                }
+            }
+
+            //igraph_add_edges(graph, &hourly_edges, NULL);
         }
 
         igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));

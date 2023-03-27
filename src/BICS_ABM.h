@@ -217,8 +217,9 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
 /* Functions to re/disconnect a node from 
  * their household members */
 void reconnect_hh(igraph_t* g, 
-        unordered_map<int, vector<int>> hhid_lookup,
-        int node_id);
+        unordered_map<int, vector<int>> &hhid_lookup,
+        igraph_vector_int_t* edges_to_add,
+        int node_id) ;
 void disconnect_hh(igraph_t* g,
         unordered_map<int, vector<int>> &hhid_lookup,
         igraph_vector_int_t* edges_to_delete,

@@ -239,17 +239,40 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     //igraph_vector_destroy(&tvboost_vec);
     igraph_vector_destroy(&tsus_vec);
 
-    /* Tally edge counts */
+    /* Tally edge counts
+     *
+     * For random edges, decrement the 'duration' if it is greater
+     * than 1 hr, otherwise terminate
+     *
+     * */
     int hh_count = 0; 
     int random_count = 0;
     igraph_vector_t etypes;
     igraph_vector_init(&etypes, 0);
     EANV(g, "type", &etypes);
+
+    igraph_vector_t durations;
+    igraph_vector_init(&durations, 0);
+    EANV(g, "duration", &durations);
     for (int i = igraph_ecount(g); i--; ) {
         if (VECTOR(etypes)[i] == _Household) hh_count++;
-        if (VECTOR(etypes)[i] == _Random) random_count++;
+        if (VECTOR(etypes)[i] == _Random) {
+
+            random_count++;
+
+            if (VECTOR(durations)[i] > 1) {
+                VECTOR(durations)[i] = VECTOR(durations)[i] - 1;
+
+            } else {
+                VECTOR(durations)[i] = -1;
+
+            }
+        }
     }
+    SETEANV(g, "duration", &durations);
+
     igraph_vector_destroy(&etypes);
+    igraph_vector_destroy(&durations);
 
 
 

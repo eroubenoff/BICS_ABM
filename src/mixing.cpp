@@ -106,11 +106,33 @@ void disconnect_hh(igraph_t* g,
  */
 void reconnect_hh(igraph_t* g, 
         unordered_map<int, vector<int>> &hhid_lookup,
-        igraph_vector_t* edges_to_add,
+        igraph_vector_int_t* edges_to_add,
         int node_id) {
     
-
     int hhid = VAN(g, "hhid", node_id);
+
+    /* 
+     * Check if node has any other random edges;
+     * if it does, then return without doing anything
+     * */
+    igraph_es_t es;
+    igraph_es_incident(&es, node_id, IGRAPH_ALL);
+    igraph_vector_t type;
+    igraph_vector_init(&type, 0);
+    igraph_cattribute_EANV(g, "type", es, &type);
+
+
+    for (int i = 0; i < igraph_vector_size(&type); i++) {
+        if (VECTOR(type)[i] == _Random) {
+            igraph_vector_destroy(&type);
+            igraph_es_destroy(&es);
+            return;
+        }
+    }
+
+    igraph_vector_destroy(&type);
+    igraph_es_destroy(&es);
+
 
     SETVAN(g, "home_status", node_id, _In);
 
@@ -124,8 +146,8 @@ void reconnect_hh(igraph_t* g,
         igraph_are_connected(g, node_id, node_id2, &are_connected);
 
         if ((!are_connected) & (VAN(g, "home_status", node_id2) == _In)){
-            igraph_vector_push_back(edges_to_add, node_id);
-            igraph_vector_push_back(edges_to_add, node_id2);
+            igraph_vector_int_push_back(edges_to_add, node_id);
+            igraph_vector_int_push_back(edges_to_add, node_id2);
         }
     }
 }
