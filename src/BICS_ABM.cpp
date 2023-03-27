@@ -35,11 +35,16 @@ void set_edge_attribute(igraph_t *g,
 
 
     if (force){
+        for (int i = 0; i < igraph_ecount(g); i++) {
+            SETEAN(g, attribute_name.c_str(), i, attribute_value);
+        }
+        /*
         igraph_vector_t attr;
         igraph_vector_init(&attr, igraph_ecount(g));
         igraph_vector_fill(&attr, attribute_value); 
         SETEANV(g, attribute_name.c_str(), &attr);
         igraph_vector_destroy(&attr);
+        */
     } 
     else {
         igraph_vector_t eids;
@@ -47,7 +52,11 @@ void set_edge_attribute(igraph_t *g,
         igraph_get_eids(g, &eids, end_points, NULL, false, false);
 
         for (int i = 0; i < igraph_vector_size(&eids); i++) {
-            SETEAN(g, attribute_name.c_str(), VECTOR(eids)[i], attribute_value);
+            if (VECTOR(eids)[i] == -1) {
+                cout << "Edge not present " << endl; continue;
+            } else {
+                SETEAN(g, attribute_name.c_str(), VECTOR(eids)[i], attribute_value);
+            }
         }
 
         igraph_vector_destroy(&eids);
@@ -56,6 +65,32 @@ void set_edge_attribute(igraph_t *g,
 
 }
 
+void figure_out_bug(igraph_t *g) {
+        igraph_vector_t temp_v;
+        igraph_vector_t edges_to_delete;
+        igraph_vector_init_seq(&temp_v, 0, igraph_ecount(g)-1);
+        SETEANV(g, "test", &temp_v);
+
+
+        /* Delete some random edges */
+        igraph_vector_init(&edges_to_delete, 10);
+        for (int i = 0; i < 10; i++) {
+            VECTOR(edges_to_delete)[i] = i * 10;
+        }
+
+        // igraph_delete_edges(g, igraph_ess_vector(&edges_to_delete));
+        igraph_delete_edges(g, igraph_ess_1(6));
+        EANV(g, "test", &temp_v);
+
+        cout << "Number of edges in graph: " << igraph_ecount(g) << "; Number of items in attribute vector: " << igraph_vector_size(&temp_v) << endl;
+
+        for (int i = 0; i < igraph_ecount(g); i++) {
+            cout << "Edge no. " << i << " with graph value " << EAN(g, "test", i) <<  " and vector value " << VECTOR(temp_v)[i] << endl;
+        }
+
+        igraph_vector_destroy(&temp_v);
+        igraph_vector_destroy(&edges_to_delete);
+}
 
 void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
@@ -121,6 +156,12 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
      * */
 
     igraph_add_edges(graph, &hhedges, 0);
+
+
+    /* TRYING TO FIGURE OUT THIS STUPID BUG */
+    cout << "Test 0" << endl;
+    figure_out_bug(graph);
+
     set_edge_attribute(graph, &hhedges, "type", _Household, true);
     set_edge_attribute(graph, &hhedges, "duration", 0, true);
 
@@ -180,6 +221,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     /* 
      * Run main sim 
      * */
+
     while (run) {
         Cc = 0;
         Csc = 0;
@@ -187,21 +229,17 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         /* Reset all edges */
         igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
         igraph_add_edges(graph, &hhedges, NULL);
-        //igraph_add_edges(graph, &hhedges, &hhedges_attr);
-
 
         /* 
          * If there is a daily seasonal forcing of Beta, 
          * update it now 
          */
-
         BETA = params->BETA_VEC[day % 365];
 
         /*
          * If there are daily imported cases,
          * pick a random susceptible to get sick
          */
-
         if (imported_cases_daily_bool) {
 
             // Tally up all Susceptibles 
@@ -267,20 +305,21 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
                 igraph_vector_push_back(&hourly_edges, c.node1);
                 igraph_vector_push_back(&hourly_edges, c.node2);
 
-                /* Disconnect node1 and 2 from hh edges */
+                // Disconnect node1 and 2 from hh edges /
                 disconnect_hh(graph, hh_lookup, &edges_to_delete, c.node1);
                 disconnect_hh(graph, hh_lookup, &edges_to_delete, c.node2);
             }
 
+
             /* Delete HH Edges */
             igraph_delete_edges(graph, igraph_ess_vector(&edges_to_delete));
-
 
             /* Add new hourly random edges */
             igraph_add_edges(graph, &hourly_edges, 0);
 
             /* Add edge type and duration */
             set_edge_attribute(graph, &hourly_edges, "type", _Random, false);
+
             // set_duration(graph, duration_dist, generator);
 
             /* Transmit and decrement */

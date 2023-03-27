@@ -59,15 +59,14 @@ void disconnect_hh(igraph_t* g,
     igraph_bool_t are_connected;
     int hhsize = hhid_lookup[hhid].size();
     int node_id2;
+    igraph_integer_t eid;
     for (int i = 0; i < hhsize; i++) {
 
         node_id2 = hhid_lookup[hhid][i];
-        igraph_are_connected(g, node_id, node_id2, &are_connected);
+        igraph_get_eid(g, &eid, node_id, node_id2, false, false);
 
-        if (are_connected) {
-            igraph_vector_push_back(edges_to_delete, node_id);
-            igraph_vector_push_back(edges_to_delete, node_id2);
-            
+        if (eid != -1) {
+            igraph_vector_push_back(edges_to_delete, eid);
         }
     }
 }
@@ -183,6 +182,7 @@ void set_duration(igraph_t* g,
     EANV(g, "duration", &duration);
     cout << endl;
     cout << " Trying! " << endl;
+    printf("%ld\n", igraph_vector_size(&type));
     SETEANV(g, "duration", &duration);
     cout << "Worked!" << endl;
 

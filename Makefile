@@ -2,7 +2,8 @@ run: CMakeLists.txt build/
 	clear
 	cmake . -B build/ 
 	cmake --build build/ 
-	python BICS_ABM.py
+	# python BICS_ABM.py
+	./build/BICS_ABM
 
 xcode: CMakeLists.txt build/
 	clear
