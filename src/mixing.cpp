@@ -27,7 +27,7 @@
  * unordered_map<int, vector<ing>> &hhid_lookup
  *  - lookup object of households. Contains a vector of all 
  *    nodes in each household, hashed on the household id
- * igraph_vector_t* edges_to_delete
+ * igraph_vector_int_t* edges_to_delete
  *  - pointer to vector that contains the edges to delete,
  *    stored as adjacent edge end points
  * int node_id
@@ -45,7 +45,7 @@
 
 void disconnect_hh(igraph_t* g,
         unordered_map<int, vector<int>> &hhid_lookup,
-        igraph_vector_t* edges_to_delete,
+        igraph_vector_int_t* edges_to_delete,
         int node_id) {
 
     int hhid = VAN(g, "hhid", node_id);
@@ -66,7 +66,7 @@ void disconnect_hh(igraph_t* g,
         igraph_get_eid(g, &eid, node_id, node_id2, false, false);
 
         if (eid != -1) {
-            igraph_vector_push_back(edges_to_delete, eid);
+            igraph_vector_int_push_back(edges_to_delete, eid);
         }
     }
 }
@@ -180,12 +180,6 @@ void set_duration(igraph_t* g,
     igraph_vector_t duration;
     igraph_vector_init(&duration, 0);
     EANV(g, "duration", &duration);
-    cout << endl;
-    cout << " Trying! " << endl;
-    printf("%ld\n", igraph_vector_size(&type));
-    SETEANV(g, "duration", &duration);
-    cout << "Worked!" << endl;
-
 
     /*
      * Loop over edges, doing random draws and modifying
@@ -195,8 +189,6 @@ void set_duration(igraph_t* g,
     int draw; 
 
 
-    cout << "N_edges " <<  igraph_ecount(g) << " type vector size" <<  n_edges << endl;
- 
     for (int i = 0; i < n_edges; i++) {
 
         /* Random choices are 0-3; recode to
@@ -266,20 +258,24 @@ unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
     unordered_map<int, vector<edgeinfo>> ret;
 
     /* Pull the information from the graph */
-    igraph_vector_t stubs_count;
-    igraph_vector_init(&stubs_count, igraph_vcount(g));
-    VANV(g, "num_cc_nonhh", &stubs_count);
+    igraph_vector_t num_cc_nonhh;
+    igraph_vector_init(&num_cc_nonhh, igraph_vcount(g));
+    VANV(g, "num_cc_nonhh", &num_cc_nonhh);
 
     igraph_vector_t ds_vec;
     igraph_vector_init(&ds_vec, igraph_vcount(g));
     VANV(g, "disease_status", &ds_vec);
 
+    igraph_vector_int_t stubs_count;
+    igraph_vector_int_init(&stubs_count, igraph_vcount(g));
     /* See if node is in isolation */
     for (int i = igraph_vcount(g); i--; ) {
         if (VECTOR(ds_vec)[i] == _Ic){ 
             // Trick for rounding becuase float -> int cast truncates
-            VECTOR(stubs_count)[i] = round(VECTOR(stubs_count)[i] * isolation_multiplier);
-        } 
+            VECTOR(stubs_count)[i] = (int) round(VECTOR(num_cc_nonhh)[i] * isolation_multiplier);
+        }  else {
+            VECTOR(stubs_count)[i] = (int) round(VECTOR(num_cc_nonhh)[i]);
+        }
     }
 
     /* 
@@ -287,13 +283,13 @@ unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
      *
      * */
 
-    int sum = igraph_vector_sum(&stubs_count);
+    int sum = igraph_vector_int_sum(&stubs_count);
     if (sum % 2 == 1) { 
         // Pick a random index
         int tries = 0;
         int randomIndex;
         while (tries < 1000) {
-            randomIndex = rand() % igraph_vector_size(&stubs_count);
+            randomIndex = rand() % igraph_vector_int_size(&stubs_count);
 
             if (VECTOR(stubs_count)[randomIndex] > 1) {
                 VECTOR(stubs_count)[randomIndex] -= 1;
@@ -305,8 +301,8 @@ unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
 
     /* Draw random graph */
     igraph_t new_graph;
-    igraph_empty(&new_graph, 0, IGRAPH_UNDIRECTED);
-    igraph_degree_sequence_game(&new_graph, &stubs_count, NULL, IGRAPH_DEGSEQ_SIMPLE); 
+    // igraph_empty(&new_graph, 0, IGRAPH_UNDIRECTED);
+    igraph_degree_sequence_game(&new_graph, &stubs_count, NULL, IGRAPH_DEGSEQ_CONFIGURATION); 
     // IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE); //IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE ); // IGRAPH_DEGSEQ_CONFIGURATION);
     /* Simplify graph */
     // igraph_simplify(&new_graph, true, true, NULL);
@@ -345,7 +341,8 @@ unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
     igraph_es_destroy(&es);
     igraph_eit_destroy(&eit);
     // DELALL(&new_graph); // New graph doesn't have any attributes
-    igraph_vector_destroy(&stubs_count);
+    igraph_vector_int_destroy(&stubs_count);
+    igraph_vector_destroy(&num_cc_nonhh);
     igraph_vector_destroy(&ds_vec);
     igraph_destroy(&new_graph);
 
@@ -360,7 +357,7 @@ unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
  */
 
 void random_contacts(igraph_t *g, 
-        igraph_vector_t *regular_contacts_el,
+        igraph_vector_int_t *regular_contacts_el,
         igraph_vector_t *regular_contacts_type,
         float isolation_multiplier,
         mt19937 &generator) {
@@ -395,8 +392,8 @@ void random_contacts(igraph_t *g,
     bernoulli_distribution ber; int p_ber;
     poisson_distribution pois; int p_pois;
 
-    igraph_vector_t stubs_count;
-    igraph_vector_init(&stubs_count, vcount);
+    igraph_vector_int_t stubs_count;
+    igraph_vector_int_init(&stubs_count, vcount);
 
     igraph_vector_t ds_vec;
     igraph_vector_init(&ds_vec, vcount);
@@ -460,13 +457,13 @@ void random_contacts(igraph_t *g,
      *
      * */
 
-    int sum = igraph_vector_sum(&stubs_count);
+    int sum = igraph_vector_int_sum(&stubs_count);
     if (sum % 2 == 1) { 
         // Pick a random index
         int tries = 0;
         int randomIndex;
         while (tries < 1000) {
-            randomIndex = rand() % igraph_vector_size(&stubs_count);
+            randomIndex = rand() % igraph_vector_int_size(&stubs_count);
 
             if (VECTOR(stubs_count)[randomIndex] > 1) {
                 VECTOR(stubs_count)[randomIndex] -= 1;
@@ -481,22 +478,22 @@ void random_contacts(igraph_t *g,
      * */
 
     // igraph_es_t temp_es; // Temporary edge selector
-    igraph_vector_t elist_to_remove;
-    igraph_vector_init(&elist_to_remove, 0);
-    igraph_vector_t temp_elist;
-    igraph_vector_init(&temp_elist, 0);
+    igraph_vector_int_t elist_to_remove;
+    igraph_vector_int_init(&elist_to_remove, 0);
+    igraph_vector_int_t temp_elist;
+    igraph_vector_int_init(&temp_elist, 0);
     
     for (int i = 0; i < igraph_vcount(g); i++) {
         if (VECTOR(stubs_count)[i] > 0) {
             igraph_incident(g, &temp_elist, i, IGRAPH_ALL);
-            igraph_vector_append(&elist_to_remove, &temp_elist);
+            igraph_vector_int_append(&elist_to_remove, &temp_elist);
         }
     }
 
     igraph_delete_edges(g, igraph_ess_vector(&elist_to_remove));
 
-    igraph_vector_destroy(&temp_elist);
-    igraph_vector_destroy(&elist_to_remove);
+    igraph_vector_int_destroy(&temp_elist);
+    igraph_vector_int_destroy(&elist_to_remove);
 
     /* 
      * Create a new graph with this random draw and
@@ -504,12 +501,12 @@ void random_contacts(igraph_t *g,
      * save the edge list as random_edgelist
      *
      * */
-    igraph_vector_t random_edgelist;
-    igraph_degree_sequence_game(&new_graph, &stubs_count, NULL, IGRAPH_DEGSEQ_SIMPLE); // IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE); //IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE ); // IGRAPH_DEGSEQ_CONFIGURATION);
+    igraph_vector_int_t random_edgelist;
+    igraph_degree_sequence_game(&new_graph, &stubs_count, NULL, IGRAPH_DEGSEQ_CONFIGURATION); // IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE); //IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE ); // IGRAPH_DEGSEQ_CONFIGURATION);
     //  igraph_realize_degree_sequence(&new_graph, &stubs_count, NULL, IGRAPH_MULTI_SW, IGRAPH_REALIZE_DEGSEQ_SMALLEST);
     /* Simplify graph */
     igraph_simplify(&new_graph, true, true, NULL);
-    igraph_vector_init(&random_edgelist, igraph_vcount(&new_graph));
+    igraph_vector_int_init(&random_edgelist, igraph_vcount(&new_graph));
     igraph_get_edgelist(&new_graph, &random_edgelist, false);
 
     /* 
@@ -552,8 +549,8 @@ void random_contacts(igraph_t *g,
      * */
     //DELALL(&new_graph);
     igraph_destroy(&new_graph);
-    igraph_vector_destroy(&stubs_count);
-    igraph_vector_destroy(&random_edgelist);
+    igraph_vector_int_destroy(&stubs_count);
+    igraph_vector_int_destroy(&random_edgelist);
     igraph_vector_destroy(&edges_type);
 
 }
@@ -567,14 +564,14 @@ void random_contacts(igraph_t *g,
  * value is an igraph vector of the vertices in that 
  * household
  * */
-void gen_hh_edges(igraph_t *graph, igraph_vector_t *hhedges){
+void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges){
     unordered_map<int, vector<int> > hhids;
     for (int i = 0; i < igraph_vcount(graph); i++) {
         hhids[VAN(graph, "hhid", i)].push_back(i);
     }
 
     // Create a household edge list
-    igraph_vector_init(hhedges, 0);
+    igraph_vector_int_init(hhedges, 0);
     for (auto h : hhids) {
 
         // Create all combinations within the hh by nested loop
@@ -584,15 +581,15 @@ void gen_hh_edges(igraph_t *graph, igraph_vector_t *hhedges){
                     continue;
                 }
                 else{
-                    igraph_vector_push_back(hhedges, h.second[k]);
-                    igraph_vector_push_back(hhedges, h.second[l]);
+                    igraph_vector_int_push_back(hhedges, h.second[k]);
+                    igraph_vector_int_push_back(hhedges, h.second[l]);
                 }
             }
         }
     }
 
     cout << "N households: " << hhids.size() << endl;
-    cout << "N household edges " << igraph_vector_size(hhedges) / 2 << endl;
+    cout << "N household edges " << igraph_vector_int_size(hhedges) / 2 << endl;
 }
 
 

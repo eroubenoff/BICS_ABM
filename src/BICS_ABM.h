@@ -172,7 +172,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history);
 
 
 void random_contacts(igraph_t *g, 
-        igraph_vector_t *regular_contacts_el,
+        igraph_vector_int_t *regular_contacts_el,
         igraph_vector_t *regular_contacts_type,
         float isolation_multiplier,
         mt19937 &generator) ;
@@ -202,7 +202,7 @@ unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
         float isolation_multiplier,
         mt19937 &generator) ;
 
-void gen_hh_edges(igraph_t *graph, igraph_vector_t *hhedges);
+void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges);
 /*
 void gen_daytime_edges(const igraph_t *graph, 
         const igraph_vector_int_t *hh_edges, 
@@ -221,10 +221,16 @@ void reconnect_hh(igraph_t* g,
         int node_id);
 void disconnect_hh(igraph_t* g,
         unordered_map<int, vector<int>> &hhid_lookup,
-        igraph_vector_t* edges_to_delete,
+        igraph_vector_int_t* edges_to_delete,
         int node_id);
 
 void set_duration(igraph_t* g,
         discrete_distribution<float> &dist,
         mt19937 &generator
         ) ;
+
+
+
+
+void figure_out_bug(igraph_t *g) ;
+void test_routine(igraph_t* graph) ;
