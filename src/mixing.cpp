@@ -188,7 +188,6 @@ void set_duration(igraph_t* g,
     int n_edges = igraph_vector_size(&type);
     int draw; 
 
-
     for (int i = 0; i < n_edges; i++) {
 
         /* Random choices are 0-3; recode to
@@ -198,7 +197,9 @@ void set_duration(igraph_t* g,
             3: _dur_mt1hr 2.0
         */ 
 
-        if ((VECTOR(type)[i] == _Random) & (VECTOR(duration)[i] == 0) ) {
+        // cout << "Type: " << VECTOR(type)[i]  << "  duration: " << VECTOR(duration)[i] << endl;
+
+        if ((VECTOR(type)[i] == _Random) & isnan(VECTOR(duration)[i]) ) {
             draw = dist(generator);
             
             switch(draw){
