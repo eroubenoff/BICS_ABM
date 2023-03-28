@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 # add_compile_options(-Wall -Wextra -Werror)
 # add_link_options(-shared -undefined dynamic_lookup -fPIC)
-add_compile_options(-pg -g)
+# add_compile_options(-pg -g)
 set (CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 project(BICS_ABM)

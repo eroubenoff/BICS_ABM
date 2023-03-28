@@ -276,22 +276,23 @@ void set_duration(igraph_t* g,
  * 
  */
 
-unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
+void random_contacts_duration(const igraph_t *g,
+        unordered_map<int, vector<edgeinfo>> &ret,
         float isolation_multiplier,
         mt19937 &generator) {
 
     /* Create return object */
-    unordered_map<int, vector<edgeinfo>> ret;
+    ret.clear();
 
     /* Pull the information from the graph */
     igraph_vector_t num_cc_nonhh;
     igraph_vector_init(&num_cc_nonhh, igraph_vcount(g));
     VANV(g, "num_cc_nonhh", &num_cc_nonhh);
-
     igraph_vector_t ds_vec;
     igraph_vector_init(&ds_vec, igraph_vcount(g));
     VANV(g, "disease_status", &ds_vec);
 
+    /* Create a vector of stubs count */
     igraph_vector_int_t stubs_count;
     igraph_vector_int_init(&stubs_count, igraph_vcount(g));
     /* See if node is in isolation */
@@ -308,7 +309,6 @@ unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
      * Make sure sum is an even number; otherwise decrease a random stub until it is 
      *
      * */
-
     int sum = igraph_vector_int_sum(&stubs_count);
     if (sum % 2 == 1) { 
         // Pick a random index
@@ -354,9 +354,7 @@ unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
         /* Extract FROM and TO */
         ei = edgeinfo(
             IGRAPH_FROM(&new_graph, current_edge),
-            IGRAPH_TO(&new_graph, current_edge),
-            /* For now, set all contacts to be 1 hour */
-            _dur_lt1hr
+            IGRAPH_TO(&new_graph, current_edge)
         );
 
         /* Append to return object */
@@ -366,13 +364,11 @@ unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
     }
     igraph_es_destroy(&es);
     igraph_eit_destroy(&eit);
-    // DELALL(&new_graph); // New graph doesn't have any attributes
     igraph_vector_int_destroy(&stubs_count);
     igraph_vector_destroy(&num_cc_nonhh);
     igraph_vector_destroy(&ds_vec);
     igraph_destroy(&new_graph);
 
-    return ret;
 }
 
 

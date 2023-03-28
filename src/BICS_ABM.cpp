@@ -241,7 +241,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
         bool vboost = (day % 365) >= params->BOOSTER_DAY;
         distribute_vax(graph, params->N_VAX_DAILY, 25*24, params->T_REINFECTION, vboost);
-        daily_contacts = random_contacts_duration(graph, params->ISOLATION_MULTIPLIER, generator);
+        random_contacts_duration(graph, daily_contacts, params->ISOLATION_MULTIPLIER, generator);
 
         // Hours 8-16
         for (hr = 8; hr < 18; hr++){

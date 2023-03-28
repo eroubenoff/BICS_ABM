@@ -176,15 +176,13 @@ void random_contacts(igraph_t *g,
         igraph_vector_t *regular_contacts_type,
         float isolation_multiplier,
         mt19937 &generator) ;
-class edgeinfo {
+class edgeinfo{
     public:
         int node1; 
         int node2; 
-        float duration;
-        edgeinfo(int n1, int n2, float d){
+        edgeinfo(int n1, int n2){
             node1=n1;
             node2=n2;
-            duration=d;
         };
         edgeinfo(){};
 };
@@ -198,7 +196,8 @@ class edgeinfo {
  * 
  */
 
-unordered_map<int, vector<edgeinfo>> random_contacts_duration(const igraph_t *g,
+void random_contacts_duration(const igraph_t *g,
+        unordered_map<int, vector<edgeinfo>> &ret,
         float isolation_multiplier,
         mt19937 &generator) ;
 
@@ -233,5 +232,3 @@ void set_duration(igraph_t* g,
 
 
 
-void figure_out_bug(igraph_t *g) ;
-void test_routine(igraph_t* graph) ;
