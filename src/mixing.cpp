@@ -57,12 +57,13 @@ void disconnect_hh(igraph_t* g,
      */
 
     igraph_bool_t are_connected;
-    int hhsize = hhid_lookup[hhid].size();
+    vector<int> *hh = &hhid_lookup[hhid];
+    int hhsize = hh->size();
     int node_id2;
     igraph_integer_t eid;
     for (int i = 0; i < hhsize; i++) {
 
-        node_id2 = hhid_lookup[hhid][i];
+        node_id2 = hh->at(i);
         igraph_get_eid(g, &eid, node_id, node_id2, false, false);
 
         if (eid != -1) {
@@ -137,11 +138,13 @@ void reconnect_hh(igraph_t* g,
     SETVAN(g, "home_status", node_id, _In);
 
     igraph_bool_t are_connected;
-    int hhsize = hhid_lookup[hhid].size();
+    vector<int> *hh = &hhid_lookup[hhid];
+    int hhsize = hh->size();
+
     int node_id2;
     for (int i = 0; i < hhsize; i++){
 
-        node_id2 = hhid_lookup[hhid][i];
+        node_id2 = hh->at(i);
 
         igraph_are_connected(g, node_id, node_id2, &are_connected);
 

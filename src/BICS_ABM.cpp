@@ -247,9 +247,9 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         for (hr = 8; hr < 18; hr++){
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             
-            igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
-            igraph_add_edges(graph, &hhedges, NULL);
-            set_edge_attribute(graph, &hhedges, "type", _Household, false);
+            //igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
+            //igraph_add_edges(graph, &hhedges, NULL);
+            //set_edge_attribute(graph, &hhedges, "type", _Household, false);
 
             /* 
              * Retrieve the corresponding vector of edges we should connect at each hour,
@@ -303,12 +303,11 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
             for (int i = 0; i < igraph_ecount(graph); i++) {
                 if ((EAN(graph, "type", i) == _Random ) & (EAN(graph, "duration", i) == -1)) {
                     /* Sever those connections */
-                    igraph_vector_int_push_back(&edges_to_delete, IGRAPH_FROM(graph, i)); 
-                    igraph_vector_int_push_back(&edges_to_delete, IGRAPH_TO(graph, i)); 
+                    igraph_vector_int_push_back(&edges_to_delete, i); 
                 }
             }
 
-            // igraph_delete_edges(graph, igraph_ess_vector(&edges_to_delete));
+            igraph_delete_edges(graph, igraph_ess_vector(&edges_to_delete));
 
             /* Reconnect with households */
             for (int i = 0; i < igraph_ecount(graph); i++) {
@@ -320,7 +319,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
                 }
             }
 
-            //igraph_add_edges(graph, &hourly_edges, NULL);
+            igraph_add_edges(graph, &hourly_edges, NULL);
         }
 
         igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
