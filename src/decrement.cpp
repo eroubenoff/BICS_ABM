@@ -318,21 +318,6 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     igraph_vector_destroy(&durations);
 
 
-
-    /*
-    SETGAN(g, "S_count", S_count);
-    SETGAN(g, "E_count", E_count);
-    SETGAN(g, "Ic_count", Ic_count);
-    SETGAN(g, "Isc_count", Isc_count);
-    SETGAN(g, "R_count", R_count);
-    SETGAN(g, "D_count", D_count);
-    SETGAN(g, "V1_count", V1_count);
-    SETGAN(g, "V2_count", V2_count);
-    SETGAN(g, "VW_count", VW_count);
-    SETGAN(g, "VBoost_count", VBoost_count);
-    SETGAN(g, "n_edges", hh_count + random_count);
-    */
-
     h->add_history(S_count, E_count, Ic_count, Cc, Isc_count, Csc, R_count, D_count, V1_count, V2_count, VW_count, VBoost_count, hh_count + random_count);
 
     if (print) {
