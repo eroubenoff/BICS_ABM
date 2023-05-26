@@ -230,5 +230,10 @@ void set_duration(igraph_t* g,
         ) ;
 
 
+void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_cols);
 
-
+void set_edge_attribute(igraph_t *g, 
+        igraph_vector_int_t *end_points,
+        string attribute_name,
+        igraph_real_t attribute_value,
+        bool force = false) ;

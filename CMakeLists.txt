@@ -26,25 +26,27 @@ add_executable(BICS_ABM
     src/sample_pop.h
     )
 
-# add_executable(BICS_ABM_tests
+add_executable(BICS_ABM_tests
+    src/tests/tests.h
+    src/tests/graph_diff.cpp
     # src/tests/pop_tests.cpp
-    # src/tests/tests_main.cpp
+    src/tests/tests_main.cpp
     # src/tests/data_tests.cpp
-    # src/tests/decrement_tests.cpp
-    # )
+    src/tests/decrement_tests.cpp
+    )
 
 file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(BICS_ABM_lib PUBLIC igraph::igraph)
 target_link_libraries(BICS_ABM PUBLIC BICS_ABM_lib igraph::igraph)
-# target_link_libraries(BICS_ABM_tests PUBLIC BICS_ABM_lib PRIVATE gtest gtest_main )
+target_link_libraries(BICS_ABM_tests PUBLIC BICS_ABM_lib igraph::igraph PRIVATE gtest gtest_main )
 
 # include(GoogleTest)
 # gtest_discover_tests(BICS_ABM DISCOVERY_TIMEOUT 6000)
 # add_test(src/tests/test.cpp BICS_ABM)
 # add_test(Vax_tests BICS_ABM)
 # add_test(DataTests BICS_ABM)
-# add_test(DecrementTests BICS_ABM)
+add_test(DecrementTests BICS_ABM)
 
 # Install headers
 

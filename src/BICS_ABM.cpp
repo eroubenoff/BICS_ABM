@@ -29,7 +29,7 @@ void set_edge_attribute(igraph_t *g,
         igraph_vector_int_t *end_points,
         string attribute_name,
         igraph_real_t attribute_value,
-        bool force = false) {
+        bool force) {
 
     // Pull edge attribute vector
 
