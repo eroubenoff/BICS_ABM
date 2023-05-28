@@ -82,7 +82,7 @@ class DiffList {
         }
 
         // Default constructor
-        DiffList();
+        DiffList(){};
 
         // Add a single diff
         void add_diff(Diff diff) {

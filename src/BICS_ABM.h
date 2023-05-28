@@ -237,3 +237,128 @@ void set_edge_attribute(igraph_t *g,
         string attribute_name,
         igraph_real_t attribute_value,
         bool force = false) ;
+
+
+
+
+/* Update function declarations */
+// Base class
+class Update {};
+
+class UpdateGraphAttribute: public Update {
+    protected:
+        string _attr;
+        int _value;
+    public:
+        UpdateGraphAttribute() {};
+        UpdateGraphAttribute(string attr, int value);
+        string get_attr(); 
+        int get_value();
+};
+
+/*
+ * Creating an edge: needs both end points, cannot include attributes.
+ * To add attributes, call CreateEdge followed by UpdateEdgeAttributes.
+ * Similar process for DelteEdge.
+ *
+ */ 
+class CreateEdge: public Update {
+    protected:
+        int _v1;
+        int _v2;
+        unordered_map <string, int> _attr;
+    public: 
+        CreateEdge() {};
+        CreateEdge(int v1, int v2);
+        int get_v1();
+        int get_v2(); 
+};
+
+class DeleteEdge: public Update {
+    protected:
+        int _v1;
+        int _v2;
+        int _eid;
+        bool _eid_or_vpair;
+    public: 
+        DeleteEdge() {};
+        DeleteEdge(int v1, int v2);
+        DeleteEdge(int eid);
+        void retrieve_eid(igraph_t* g);
+        void retrieve_endpoints(igraph_t* g);
+        int get_v1(); 
+        int get_v2(); 
+        int get_eid(); 
+};
+/* 
+ * Update an edge attribute: be defined for either a pair of
+ * end points, or an edge id.
+ * 
+ * Can either include a single attribute to update or 
+ * dict of attributes, in string-int pairs.
+ */
+class UpdateEdgeAttribute: public Update {
+    protected:
+        int _v1;
+        int _v2;
+        int _eid;
+        bool _eid_or_vpair; 
+        unordered_map <string, int> _attr;
+    public: 
+        UpdateEdgeAttribute() {};
+        UpdateEdgeAttribute(int eid, unordered_map <string, int> attr);
+        UpdateEdgeAttribute(int v1, int v2, unordered_map <string, int> attr);
+        UpdateEdgeAttribute(int eid, string attr, int value);
+        UpdateEdgeAttribute(int v1, int v2, string attr, int value);
+        void retrieve_eid(igraph_t* g);
+        void retrieve_endpoints(igraph_t* g);
+        int get_v1(); 
+        int get_v2(); 
+        int get_eid(); 
+        unordered_map<string, int> get_attrs(); 
+};
+
+
+/* 
+ * Update a vertex attribute:
+ * 
+ * Can either include a single attribute to update or 
+ * dict of attributes, in string-int pairs.
+ */
+class UpdateVertexAttribute: public Update {
+    protected:
+        int _vid;
+        unordered_map <string, int> _attr;
+    public: 
+        UpdateVertexAttribute() {};
+        UpdateVertexAttribute(int vid, unordered_map<string, int> attr);
+        UpdateVertexAttribute(int vid, string attr, int value);
+        int get_vid(); 
+        unordered_map<string, int> get_attrs(); 
+};
+
+/*
+ * List of updates
+ *
+ * Needs to be grown one at a time using the
+ * overloaded add_update() function
+ *
+ */
+class UpdateList {
+    protected: 
+        vector<UpdateGraphAttribute> _update_graph_attribute_v;
+        vector<CreateEdge> _create_edge_v;
+        vector<DeleteEdge> _delete_edge_v;
+        vector<UpdateEdgeAttribute> _update_edge_attribute_v;
+        vector<UpdateVertexAttribute> _update_vertex_attribute_v;
+
+    public:
+        UpdateList(){};
+        void add_update(UpdateGraphAttribute update) ;
+        void add_update(CreateEdge update) ;
+        void add_update(DeleteEdge update) ;
+        void add_update(UpdateEdgeAttribute update) ;
+        void add_update(UpdateVertexAttribute update) ;
+        void clear_updates() ;
+        void add_updates_to_graph(igraph_t *g) ;
+};

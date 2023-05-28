@@ -610,8 +610,8 @@ void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges){
         }
     }
 
-    cout << "N households: " << hhids.size() << endl;
-    cout << "N household edges " << igraph_vector_int_size(hhedges) / 2 << endl;
+    // cout << "N households: " << hhids.size() << endl;
+    // cout << "N household edges " << igraph_vector_int_size(hhedges) / 2 << endl;
 }
 
 

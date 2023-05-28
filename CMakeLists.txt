@@ -19,6 +19,7 @@ add_library(BICS_ABM_lib SHARED
     src/py_defs.cpp
     src/params.cpp
     src/mixing.cpp
+    src/update.cpp
     )
 
 add_executable(BICS_ABM 
@@ -33,6 +34,7 @@ add_executable(BICS_ABM_tests
     src/tests/tests_main.cpp
     # src/tests/data_tests.cpp
     src/tests/decrement_tests.cpp
+    src/tests/update_tests.cpp
     )
 
 file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
@@ -47,6 +49,7 @@ target_link_libraries(BICS_ABM_tests PUBLIC BICS_ABM_lib igraph::igraph PRIVATE 
 # add_test(Vax_tests BICS_ABM)
 # add_test(DataTests BICS_ABM)
 add_test(DecrementTests BICS_ABM)
+add_test(UpdateTests BICS_ABM)
 
 # Install headers
 

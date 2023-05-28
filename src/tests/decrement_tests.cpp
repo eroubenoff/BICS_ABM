@@ -72,9 +72,11 @@ TEST(DecrementTests, GeneralTest) {
 
     DiffList diffs = graph_diff(&g0, &graph);
 
+    /*
     for (auto i: diffs.get()) {
         cout << i.print() << endl;
     }
+    */
 
     
     // Begin tests
