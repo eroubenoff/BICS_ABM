@@ -6,7 +6,7 @@
 
 using namespace std;
 
-TEST(DecrementTests, GeneralTest) {
+TEST(Decrement2Tests, GeneralTest) {
     History h;
     igraph_t graph;
     igraph_set_attribute_table(&igraph_cattribute_table);
@@ -67,7 +67,8 @@ TEST(DecrementTests, GeneralTest) {
     SETVAN(&graph, "time_until_vw", 2, 30);
 
     for (int i = 0; i < 10; i++) {
-        decrement(&graph, &history, 0, 0, 0);
+        // print_attributes(&graph);
+        decrement2(&graph, &history, 0, 0, 0);
     }
 
     DiffList diffs = graph_diff(&g0, &graph);

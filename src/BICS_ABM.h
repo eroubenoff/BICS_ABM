@@ -159,6 +159,7 @@ void set_sick(igraph_t *g, int n, int rde, int rds, bool mu, int t_reinfection, 
    Decrements each node's progression through disease time
    */
 void decrement(igraph_t *g, History *h, int Cc=0, int Csc=0, bool print = true);
+void decrement2(igraph_t *g, History *h, int Cc=0, int Csc=0, bool print = true);
 
 
 

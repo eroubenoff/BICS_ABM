@@ -279,8 +279,9 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
                 // Pull the vector
                 EANV(g, a.first.c_str(), &eattr_v);
             } else {
-                igraph_vector_resize(&eattr_v, igraph_ecount(g));
-                igraph_vector_null(&eattr_v);
+                throw invalid_argument("Vertex attribute " + a.first + " is not present in graph and must be added before update handlers");  
+                // igraph_vector_resize(&eattr_v, igraph_ecount(g));
+                // igraph_vector_null(&eattr_v);
             }
             // Make the changes
             for (auto &i: a.second) {
@@ -310,6 +311,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         }
 
         for (auto &a: vattrs) {
+            //cout << "a.first" <<  a.first << endl;
             // Pull the vector
             // Check to see if attribute exists; if it does,
             // pull it, else create an empty vector
@@ -317,15 +319,17 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
                 // Pull the vector
                 VANV(g, a.first.c_str(), &vattr_v);
             } else {
-                igraph_vector_resize(&vattr_v, igraph_vcount(g));
-                igraph_vector_null(&vattr_v);
+                throw invalid_argument("Vertex attribute " + a.first + " is not present in graph and must be added before update handlers");  
+                // igraph_vector_resize(&vattr_v, igraph_vcount(g));
+                // igraph_vector_null(&vattr_v);
             }
             // Make the changes
             for (auto &i: a.second) {
+                // cout << "i.first " << i.first << " i.second " << i.second << endl;
                 VECTOR(vattr_v)[i.first] = i.second;
             }
             // Push back to graph
-            SETEANV(g, a.first.c_str(), &vattr_v);
+            SETVANV(g, a.first.c_str(), &vattr_v);
         }
     }
 
