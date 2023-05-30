@@ -12,11 +12,11 @@
 #include <random>
 using namespace std;
 
-void set_sick(igraph_t *g, int n, int rde, int rds, bool mu, int t_reinfection, int is_symptomatic) {
-  SETVAN(g, "disease_status", n, _E);
-  SETVAN(g, "remaining_days_exposed", n, rde);
-  SETVAN(g, "remaining_days_sick", n, rds);
-  SETVAN(g, "mu", n, mu);
-  SETVAN(g, "time_until_susceptible", n, t_reinfection);
-  SETVAN(g, "symptomatic", n, is_symptomatic);
+void set_sick(UpdateList &ul, int n, int rde, int rds, bool mu, int t_reinfection, int is_symptomatic) {
+    ul.add_update(UpdateVertexAttribute(n, "disease_status", _E));
+    ul.add_update(UpdateVertexAttribute(n, "remaining_days_exposed", rde));
+    ul.add_update(UpdateVertexAttribute(n, "remaining_days_sick", rds));
+    ul.add_update(UpdateVertexAttribute(n, "mu", mu));
+    ul.add_update(UpdateVertexAttribute(n, "time_until_susceptible", t_reinfection));
+    ul.add_update(UpdateVertexAttribute(n, "symptomatic", is_symptomatic));
 }

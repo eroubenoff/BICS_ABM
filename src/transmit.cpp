@@ -56,6 +56,8 @@ tuple<int, int> transmit(igraph_t *g,
     igraph_integer_t eid;
     double duration;
 
+    UpdateList ul;
+
     for (int i = vcount; i--; ) {
         ds = VECTOR(ds_vec)[i]; 
 
@@ -110,12 +112,14 @@ tuple<int, int> transmit(igraph_t *g,
 
                     if (rho) Cc++; else Csc++;
 
-                    set_sick(g, n2, gamma, sigma, mu, params->T_REINFECTION, rho ? _Ic : _Isc);
+                    set_sick(ul, n2, gamma, sigma, mu, params->T_REINFECTION, rho ? _Ic : _Isc);
                 }
             }
         }
         else continue;
     }
+
+    ul.add_updates_to_graph(g);
 
     igraph_vector_destroy(&ds_vec);
     igraph_vector_destroy(&vs_vec);

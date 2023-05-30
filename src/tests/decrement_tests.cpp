@@ -47,12 +47,15 @@ TEST(DecrementTests, GeneralTest) {
     // void set_sick(igraph_t *g, int n, int rde, int rds, bool mu, int t_reinfection, int is_symptomatic);
     //
     // After 10 periods, this person should be dead
-    set_sick(&graph, 4, 1, 3, 1, 100, _Ic);
-    EXPECT_EQ(VAN(&graph, "mu", 4), 1);
+    UpdateList ul;
+    set_sick(ul, 4, 1, 3, 1, 100, _Ic);
     // After 10 periods, this person should be susceptible again
-    set_sick(&graph, 10, 2, 3, 0, 1, _Isc);
+    set_sick(ul, 10, 2, 3, 0, 1, _Isc);
     // After 10 periods, this person should be recovered
-    set_sick(&graph, 20, 10, 2, 0, 100, _Isc);
+    set_sick(ul, 20, 10, 2, 0, 100, _Isc);
+    ul.add_updates_to_graph(&graph);
+    ul.clear_updates();
+    EXPECT_EQ(VAN(&graph, "mu", 4), 1);
 
     // Distribute vaccines (Just doing this by hand for now-- will have to test the 
     // vax function separately 

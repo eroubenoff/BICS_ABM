@@ -159,11 +159,14 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     uniform_int_distribution<int> distribution(0,igraph_vcount(graph) - 1);
     cout << "\r";
     cout << "Index cases: " ;
+    UpdateList ul;
     for (int i = 0; i < params->INDEX_CASES; i++) {
         int index_case = distribution(generator);
         cout << index_case << "  " ;
-        set_sick(graph, index_case, 3*24, 5*24, false, params->T_REINFECTION, _Ic);
+        set_sick(ul, index_case, 3*24, 5*24, false, params->T_REINFECTION, _Ic);
     }
+    ul.add_updates_to_graph(graph);
+    ul.clear_updates();
 
     cout << endl;
 
@@ -224,7 +227,9 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
                 for (int i = 0; i < params->IMPORT_CASES_VEC[day % 365]; i++) {
                     uniform_int_distribution<int> sus_distr(0, susceptibles.size() - 1);
                     int import_case = susceptibles[sus_distr(generator)];
-                    set_sick(graph, import_case, 3*24, 5*24, false, params->T_REINFECTION, _Ic);
+                    set_sick(ul, import_case, 3*24, 5*24, false, params->T_REINFECTION, _Ic);
+                    ul.add_updates_to_graph(graph);
+                    ul.clear_updates();
                 }
             }
         }

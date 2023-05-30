@@ -55,6 +55,7 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
     SETVANV(g, "time_until_vw", &col);
     SETVANV(g, "time_until_vboost", &col);
     SETVANV(g, "time_until_susceptible", &col);
+    SETVANV(g, "symptomatic", &col);
 
 
     igraph_vector_fill(&col, 0);

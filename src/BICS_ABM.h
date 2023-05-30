@@ -114,134 +114,6 @@ class History {
 
 
 
-
-
-/*
- * Prints attributes from graph. Borrowed from the igraph documentation
- * 
- * @param igraph_t *g pointer to graph 
- * @return void
- */
-
-void print_attributes(const igraph_t *g, bool nodes_only = false);
-
-/* 
-   Loops through all edges and transmits if a susceptible node is in contact
-   with an infectious node
-
-   @param CyclingVector *gamma_vec, *sigma_vec: 
-    - pointers to vectors that contain random draws of latent and infectious
-    periods. CyclingVector has method .next() which returns the next value
-    and loops to the beginning when exhausted.
-   @return none
-   */
-
-tuple<int, int> transmit(igraph_t *g,
-        float BETA,
-        const Params *params,
-        mt19937 &generator);
-
-
-/*
-   Sets a node to be sick, parameterized with all conditions needed for the 
-   rest of the node's lifecycle.
-
-   @param int n: index of node to set sick
-   @param int rde: time the node will spend exposed
-   @param int rds: time the node will spend sick
-   @param bool mu: if, at the end of rds, the node will die
-   @return none 
-   */
-void set_sick(igraph_t *g, int n, int rde, int rds, bool mu, int t_reinfection, int is_symptomatic);
-
-
-/* 
-   Decrements each node's progression through disease time
-   */
-void decrement(igraph_t *g, History *h, int Cc=0, int Csc=0, bool print = true);
-void decrement2(igraph_t *g, History *h, int Cc=0, int Csc=0, bool print = true);
-
-
-
-void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_vw, /*int time_until_vboost, */ bool vboost) ;
-
-
-
-
-
-void BICS_ABM(igraph_t *graph, Params *params, History *history);
-
-
-void random_contacts(igraph_t *g, 
-        igraph_vector_int_t *regular_contacts_el,
-        igraph_vector_t *regular_contacts_type,
-        float isolation_multiplier,
-        mt19937 &generator) ;
-class edgeinfo{
-    public:
-        int node1; 
-        int node2; 
-        edgeinfo(int n1, int n2){
-            node1=n1;
-            node2=n2;
-        };
-        edgeinfo(){};
-};
-/* Generates a single random graph of contacts,
- * accounting for isolation
- *
- * unordered_map<int start_time, tuple<int node1, int node2, int duration>>
- * Start time
- * duration
- * start node, end node
- * 
- */
-
-void random_contacts_duration(const igraph_t *g,
-        unordered_map<int, vector<edgeinfo>> &ret,
-        float isolation_multiplier,
-        mt19937 &generator) ;
-
-void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges);
-/*
-void gen_daytime_edges(const igraph_t *graph, 
-        const igraph_vector_int_t *hh_edges, 
-        igraph_vector_int_t *daytime_edges,
-        igraph_strvector_t *daytime_edges_type
-    );
-*/
-
-void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_cols)  ;
-
-
-/* Functions to re/disconnect a node from 
- * their household members */
-void reconnect_hh(igraph_t* g, 
-        unordered_map<int, vector<int>> &hhid_lookup,
-        igraph_vector_int_t* edges_to_add,
-        int node_id) ;
-void disconnect_hh(igraph_t* g,
-        unordered_map<int, vector<int>> &hhid_lookup,
-        igraph_vector_int_t* edges_to_delete,
-        int node_id);
-
-void set_duration(igraph_t* g,
-        discrete_distribution<float> &dist,
-        mt19937 &generator
-        ) ;
-
-
-void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_cols);
-
-void set_edge_attribute(igraph_t *g, 
-        igraph_vector_int_t *end_points,
-        string attribute_name,
-        igraph_real_t attribute_value,
-        bool force = false) ;
-
-
-
-
 /* Update function declarations */
 // Base class
 class Update {};
@@ -364,3 +236,131 @@ class UpdateList {
         void clear_updates() ;
         void add_updates_to_graph(igraph_t *g) ;
 };
+
+
+/*
+ * Prints attributes from graph. Borrowed from the igraph documentation
+ * 
+ * @param igraph_t *g pointer to graph 
+ * @return void
+ */
+
+void print_attributes(const igraph_t *g, bool nodes_only = false);
+
+/* 
+   Loops through all edges and transmits if a susceptible node is in contact
+   with an infectious node
+
+   @param CyclingVector *gamma_vec, *sigma_vec: 
+    - pointers to vectors that contain random draws of latent and infectious
+    periods. CyclingVector has method .next() which returns the next value
+    and loops to the beginning when exhausted.
+   @return none
+   */
+
+tuple<int, int> transmit(igraph_t *g,
+        float BETA,
+        const Params *params,
+        mt19937 &generator);
+
+
+/*
+   Sets a node to be sick, parameterized with all conditions needed for the 
+   rest of the node's lifecycle.
+
+   @param int n: index of node to set sick
+   @param int rde: time the node will spend exposed
+   @param int rds: time the node will spend sick
+   @param bool mu: if, at the end of rds, the node will die
+   @return none 
+   */
+void set_sick(UpdateList &ul, int n, int rde, int rds, bool mu, int t_reinfection, int is_symptomatic);
+
+
+/* 
+   Decrements each node's progression through disease time
+   */
+void decrement(igraph_t *g, History *h, int Cc=0, int Csc=0, bool print = true);
+void decrement2(igraph_t *g, History *h, int Cc=0, int Csc=0, bool print = true);
+
+
+
+void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_vw, /*int time_until_vboost, */ bool vboost) ;
+
+
+
+
+
+void BICS_ABM(igraph_t *graph, Params *params, History *history);
+
+
+void random_contacts(igraph_t *g, 
+        igraph_vector_int_t *regular_contacts_el,
+        igraph_vector_t *regular_contacts_type,
+        float isolation_multiplier,
+        mt19937 &generator) ;
+class edgeinfo{
+    public:
+        int node1; 
+        int node2; 
+        edgeinfo(int n1, int n2){
+            node1=n1;
+            node2=n2;
+        };
+        edgeinfo(){};
+};
+/* Generates a single random graph of contacts,
+ * accounting for isolation
+ *
+ * unordered_map<int start_time, tuple<int node1, int node2, int duration>>
+ * Start time
+ * duration
+ * start node, end node
+ * 
+ */
+
+void random_contacts_duration(const igraph_t *g,
+        unordered_map<int, vector<edgeinfo>> &ret,
+        float isolation_multiplier,
+        mt19937 &generator) ;
+
+void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges);
+/*
+void gen_daytime_edges(const igraph_t *graph, 
+        const igraph_vector_int_t *hh_edges, 
+        igraph_vector_int_t *daytime_edges,
+        igraph_strvector_t *daytime_edges_type
+    );
+*/
+
+void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_cols)  ;
+
+
+/* Functions to re/disconnect a node from 
+ * their household members */
+void reconnect_hh(igraph_t* g, 
+        unordered_map<int, vector<int>> &hhid_lookup,
+        igraph_vector_int_t* edges_to_add,
+        int node_id) ;
+void disconnect_hh(igraph_t* g,
+        unordered_map<int, vector<int>> &hhid_lookup,
+        igraph_vector_int_t* edges_to_delete,
+        int node_id);
+
+void set_duration(igraph_t* g,
+        discrete_distribution<float> &dist,
+        mt19937 &generator
+        ) ;
+
+
+void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_cols);
+
+void set_edge_attribute(igraph_t *g, 
+        igraph_vector_int_t *end_points,
+        string attribute_name,
+        igraph_real_t attribute_value,
+        bool force = false) ;
+
+
+
+
