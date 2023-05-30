@@ -34,13 +34,15 @@ inline void decrement_E(UpdateList &ul, int i, int &E_count, igraph_vector_t &rd
     double rde = VECTOR(rde_vec)[i]; 
     if (rde == 0) {
         if (VAN(g, "symptomatic", i) == _Ic) {
-            ul.add_update(UpdateVertexAttribute(i, {{"disease_status", _Ic}, {"remaining_days_exposed", -1}}));
+            ul.add_update(UpdateVertexAttribute(i, "disease_status", _Ic));
+            ul.add_update(UpdateVertexAttribute(i, "remaining_days_exposed", -1));
         } 
         else if (VAN(g, "symptomatic", i) == _Isc) {
-            ul.add_update(UpdateVertexAttribute(i, {{"disease_status", _Isc}, {"remaining_days_exposed", -1}}));
+            ul.add_update(UpdateVertexAttribute(i, "disease_status", _Isc));
+            ul.add_update(UpdateVertexAttribute(i, "remaining_days_exposed", -1));
         }
     } else {
-        ul.add_update(UpdateVertexAttribute(i, {{"remaining_days_exposed", rde - 1}}));
+        ul.add_update(UpdateVertexAttribute(i, "remaining_days_exposed", rde - 1));
     }
 }
 
@@ -54,14 +56,16 @@ inline void decrement_Ic(UpdateList &ul, int i, int &Ic_count, igraph_vector_t &
     double rds = VECTOR(rds_vec)[i]; 
     double mu = VECTOR(mu_vec)[i]; 
     if ((rds == 0.0) & (mu == 0.0)) {
-        ul.add_update(UpdateVertexAttribute(i, {{"disease_status", _R}, {"remaining_days_sick", -1}}));
+        ul.add_update(UpdateVertexAttribute(i, "disease_status", _R));
+        ul.add_update(UpdateVertexAttribute(i, "remaining_days_sick", -1));
 
     } else if ((rds == 0.0 ) & (mu == 1.0) ) {
-        ul.add_update(UpdateVertexAttribute(i, {{"disease_status", _D}, {"remaining_days_sick", -1}}));
+        ul.add_update(UpdateVertexAttribute(i, "disease_status", _D));
+        ul.add_update(UpdateVertexAttribute(i, "remaining_days_sick", -1));
 
     } else {
-            ul.add_update(UpdateVertexAttribute(i, {{"remaining_days_sick", rds - 1}}));
-        }
+        ul.add_update(UpdateVertexAttribute(i, "remaining_days_sick", rds - 1));
+    }
 }
 
 inline void decrement_Isc(UpdateList &ul, int i, int &Isc_count, igraph_vector_t &rds_vec, igraph_vector_t &mu_vec, igraph_vector_t &ds_vec) {
@@ -69,13 +73,13 @@ inline void decrement_Isc(UpdateList &ul, int i, int &Isc_count, igraph_vector_t
     double rds = VECTOR(rds_vec)[i]; 
     double mu = VECTOR(mu_vec)[i]; 
     if ((rds == 0.0) & (mu == 0.0)) {
-        ul.add_update(UpdateVertexAttribute(i, {{"disease_status", _R}, {"remaining_days_sick", -1}}));
+        ul.add_update(UpdateVertexAttribute(i, "disease_status", _R));
 
     } else if ((rds == 0.0 ) & (mu == 1.0) ) {
-        ul.add_update(UpdateVertexAttribute(i, {{"disease_status", _R}, {"remaining_days_sick", -1}}));
+        ul.add_update(UpdateVertexAttribute(i, "remaining_days_sick", -1));
 
     } else {
-        ul.add_update(UpdateVertexAttribute(i, {{"remaining_days_sick", rds - 1}}));
+        ul.add_update(UpdateVertexAttribute(i, "remaining_days_sick", rds - 1));
     }
 
 }
@@ -86,10 +90,11 @@ inline void decrement_Isc(UpdateList &ul, int i, int &Isc_count, igraph_vector_t
 inline void decrement_R(UpdateList &ul, int i, int &R_count, igraph_vector_t &tsus_vec, igraph_vector_t &ds_vec) {
     ++R_count;
     if (VECTOR(tsus_vec)[i] == 0 ) {
-        ul.add_update(UpdateVertexAttribute(i, {{"disease_status", _S}, {"time_until_susceptible", -1}}));
+        ul.add_update(UpdateVertexAttribute(i, "disease_status", _S));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_susceptible", -1));
     }
     else {
-        ul.add_update(UpdateVertexAttribute(i, {{"time_until_susceptible", VECTOR(tsus_vec)[i] - 1}}));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_susceptible", VECTOR(tsus_vec)[i] - 1));
     }
 
 }
@@ -107,7 +112,7 @@ inline void decrement_V1(UpdateList &ul, int i, int &V1_count, igraph_vector_t &
     ++V1_count;
     double tv2 = VECTOR(tv2_vec)[i];
     if (tv2 > 0.0) {
-        ul.add_update(UpdateVertexAttribute(i, {{"time_until_v2", VECTOR(tv2_vec)[i] - 1}}));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_v2", VECTOR(tv2_vec)[i] - 1));
     }
 }
 
@@ -120,10 +125,10 @@ inline void decrement_V2(UpdateList &ul, int i, int &V2_count, igraph_vector_t &
     ++V2_count;
     double tvw = VECTOR(tvw_vec)[i];            
     if (tvw > 0.0) {
-        ul.add_update(UpdateVertexAttribute(i, {{"time_until_vw", VECTOR(tvw_vec)[i] - 1}}));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_vw", VECTOR(tvw_vec)[i] - 1));
     }
     else {
-        ul.add_update(UpdateVertexAttribute(i, {{"time_until_vw", _VW}}));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_vw", _VW));
     }
 
 }
@@ -143,10 +148,10 @@ inline void decrement_VBoost(UpdateList &ul, int i, int &VBoost_count, igraph_ve
 
     double tvw = VECTOR(tvw_vec)[i];            
     if (tvw > 0.0) {
-        ul.add_update(UpdateVertexAttribute(i, {{"time_until_vw", -1}}));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_vw", -1));
     }
     else {
-        ul.add_update(UpdateVertexAttribute(i, {{"time_until_vw", _VW}}));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_vw", _VW));
     }
 }
 

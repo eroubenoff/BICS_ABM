@@ -83,7 +83,7 @@ TEST(DecrementTests, GeneralTest) {
     // Begin tests
 
     Diff tmp_diff;
-    EXPECT_EQ(diffs.get().size(), 13);
+    EXPECT_EQ(diffs.get().size(), 14);
     EXPECT_EQ(diffs.get("v", 2).size(), 3);
     tmp_diff = diffs.get("v", "time_until_v2", 2);
     EXPECT_EQ(tmp_diff.v0(), -1);

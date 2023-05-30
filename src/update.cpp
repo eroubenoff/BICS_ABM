@@ -147,20 +147,20 @@ unordered_map<string, int> UpdateEdgeAttribute::get_attrs() {
  * Can either include a single attribute to update or 
  * dict of attributes, in string-int pairs.
  */
-UpdateVertexAttribute::UpdateVertexAttribute(int vid, unordered_map<string, int> attr) {
-    _vid = vid;
-    _attr = attr;
-}
 UpdateVertexAttribute::UpdateVertexAttribute(int vid, string attr, int value) {
     _vid = vid;
-    _attr[attr] = value;
+    _attr = attr;
+    _value = value;
 }
-int UpdateVertexAttribute::get_vid(){
+int& UpdateVertexAttribute::get_vid() {
     return _vid;
 } 
-unordered_map<string, int> UpdateVertexAttribute::get_attrs() {
+string& UpdateVertexAttribute::get_attr() {
     return _attr;
 } 
+int& UpdateVertexAttribute::get_value() {
+    return _value;
+}
 
 
 /*
@@ -170,6 +170,13 @@ unordered_map<string, int> UpdateVertexAttribute::get_attrs() {
  * overloaded add_update() function
  *
  */
+UpdateList::UpdateList() {
+        _update_graph_attribute_v.reserve(100);
+        _create_edge_v.reserve(100);
+        _delete_edge_v.reserve(100);
+        _update_edge_attribute_v.reserve(100);
+        _update_vertex_attribute_v.reserve(100);
+}
 void UpdateList::add_update(UpdateGraphAttribute update) {
     _update_graph_attribute_v.push_back(update);
 }
@@ -301,13 +308,10 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
 
         
         // Keys are attribute and eid
-        unordered_map<string, unordered_map<int, int>> vattrs;
+        unordered_map<string, vector<tuple<int, int>>> vattrs;
 
         for (auto &u: _update_vertex_attribute_v) {
-            for (auto a: u.get_attrs()) {
-                // Then collect the attributes by name 
-                vattrs[a.first][u.get_vid()] = a.second;
-            }
+            vattrs[u.get_attr()].push_back(make_tuple(u.get_vid(),  u.get_value()));
         }
 
         for (auto &a: vattrs) {
@@ -326,7 +330,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
             // Make the changes
             for (auto &i: a.second) {
                 // cout << "i.first " << i.first << " i.second " << i.second << endl;
-                VECTOR(vattr_v)[i.first] = i.second;
+                VECTOR(vattr_v)[get<0>(i)] = get<1>(i);
             }
             // Push back to graph
             SETVANV(g, a.first.c_str(), &vattr_v);

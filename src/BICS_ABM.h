@@ -329,13 +329,14 @@ class UpdateEdgeAttribute: public Update {
 class UpdateVertexAttribute: public Update {
     protected:
         int _vid;
-        unordered_map <string, int> _attr;
+        string _attr;
+        int _value;
     public: 
         UpdateVertexAttribute() {};
-        UpdateVertexAttribute(int vid, unordered_map<string, int> attr);
         UpdateVertexAttribute(int vid, string attr, int value);
-        int get_vid(); 
-        unordered_map<string, int> get_attrs(); 
+        int& get_vid() ; 
+        string& get_attr() ; 
+        int& get_value() ; 
 };
 
 /*
@@ -354,7 +355,7 @@ class UpdateList {
         vector<UpdateVertexAttribute> _update_vertex_attribute_v;
 
     public:
-        UpdateList(){};
+        UpdateList();
         void add_update(UpdateGraphAttribute update) ;
         void add_update(CreateEdge update) ;
         void add_update(DeleteEdge update) ;
