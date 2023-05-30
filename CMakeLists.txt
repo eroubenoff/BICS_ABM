@@ -11,7 +11,6 @@ add_library(BICS_ABM_lib SHARED
     src/BICS_ABM.h 
     src/print_attributes.cpp
     src/decrement.cpp
-    src/decrement2.cpp
     src/set_sick.cpp
     src/transmit.cpp
     src/distribute_vax.cpp
@@ -35,7 +34,6 @@ add_executable(BICS_ABM_tests
     src/tests/tests_main.cpp
     # src/tests/data_tests.cpp
     src/tests/decrement_tests.cpp
-    src/tests/decrement2_tests.cpp
     src/tests/update_tests.cpp
     )
 

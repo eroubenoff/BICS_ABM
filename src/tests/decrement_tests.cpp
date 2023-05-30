@@ -67,6 +67,7 @@ TEST(DecrementTests, GeneralTest) {
     SETVAN(&graph, "time_until_vw", 2, 30);
 
     for (int i = 0; i < 10; i++) {
+        // print_attributes(&graph);
         decrement(&graph, &history, 0, 0, 0);
     }
 
