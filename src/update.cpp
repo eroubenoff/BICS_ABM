@@ -88,28 +88,18 @@ int DeleteEdge::get_eid() {
  * Can either include a single attribute to update or 
  * dict of attributes, in string-int pairs.
  */
-UpdateEdgeAttribute::UpdateEdgeAttribute(int eid, unordered_map <string, int> attr) {
-    _eid = eid;
-    _attr = attr;
-    _eid_or_vpair = 0;
-}
-UpdateEdgeAttribute::UpdateEdgeAttribute(int v1, int v2, unordered_map <string, int> attr) {
-    if (v2 < v1) {swap(v1, v2);}
-    _v1 = v1;
-    _v2 = v2;
-    _attr = attr;
-    _eid_or_vpair = 1;
-}
 UpdateEdgeAttribute::UpdateEdgeAttribute(int eid, string attr, int value) {
     _eid = eid;
-    _attr[attr] = value;
+    _attr = attr;
+    _value = value;
     _eid_or_vpair = 0;
 }
 UpdateEdgeAttribute::UpdateEdgeAttribute(int v1, int v2, string attr, int value) {
     if (v2 < v1) {swap(v1, v2);}
     _v1 = v1;
     _v2 = v2;
-    _attr[attr] = value;
+    _attr = attr;
+    _value = value;
     _eid_or_vpair = 1;
 }
 void UpdateEdgeAttribute::retrieve_eid(igraph_t* g) {
@@ -126,17 +116,20 @@ void UpdateEdgeAttribute::retrieve_endpoints(igraph_t* g) {
         if (_v2 < _v1) {swap(_v1, _v2);}
     }
 }
-int UpdateEdgeAttribute::get_v1() {
+int& UpdateEdgeAttribute::get_v1() {
     return _v1;
 }
-int UpdateEdgeAttribute::get_v2() {
+int& UpdateEdgeAttribute::get_v2() {
     return _v2;
 }
-int UpdateEdgeAttribute::get_eid() {
+int& UpdateEdgeAttribute::get_eid() {
     return _eid;
 }
-unordered_map<string, int> UpdateEdgeAttribute::get_attrs() {
+string& UpdateEdgeAttribute::get_attr() {
     return _attr;
+}
+int& UpdateEdgeAttribute::get_value() {
+    return _value;
 }
 
 
@@ -269,14 +262,10 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
 
         
         // Keys are attribute and eid
-        unordered_map<string, unordered_map<int, int>> eattrs;
+        unordered_map<string, vector<tuple<int, int>>> eattrs;
 
         for (auto &u: _update_edge_attribute_v) {
-            for (auto a: u.get_attrs()) {
-                // Then collect the attributes by name 
-                eattrs[a.first][u.get_eid()] = a.second;
-            }
-
+            eattrs[u.get_attr()].push_back(make_tuple(u.get_eid(),  u.get_value()));
         }
 
         for (auto &a: eattrs) {
@@ -292,7 +281,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
             }
             // Make the changes
             for (auto &i: a.second) {
-                VECTOR(eattr_v)[i.first] = i.second;
+                VECTOR(eattr_v)[get<0>(i)] = get<1>(i);
             }
             // Push back to graph
             SETEANV(g, a.first.c_str(), &eattr_v);

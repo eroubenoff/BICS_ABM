@@ -139,7 +139,6 @@ class CreateEdge: public Update {
     protected:
         int _v1;
         int _v2;
-        unordered_map <string, int> _attr;
     public: 
         CreateEdge() {};
         CreateEdge(int v1, int v2);
@@ -176,19 +175,19 @@ class UpdateEdgeAttribute: public Update {
         int _v2;
         int _eid;
         bool _eid_or_vpair; 
-        unordered_map <string, int> _attr;
+        string _attr;
+        int _value;
     public: 
         UpdateEdgeAttribute() {};
-        UpdateEdgeAttribute(int eid, unordered_map <string, int> attr);
-        UpdateEdgeAttribute(int v1, int v2, unordered_map <string, int> attr);
         UpdateEdgeAttribute(int eid, string attr, int value);
         UpdateEdgeAttribute(int v1, int v2, string attr, int value);
         void retrieve_eid(igraph_t* g);
         void retrieve_endpoints(igraph_t* g);
-        int get_v1(); 
-        int get_v2(); 
-        int get_eid(); 
-        unordered_map<string, int> get_attrs(); 
+        int& get_v1(); 
+        int& get_v2(); 
+        int& get_eid(); 
+        string& get_attr();
+        int& get_value();
 };
 
 
