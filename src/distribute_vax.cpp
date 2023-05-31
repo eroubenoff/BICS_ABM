@@ -8,10 +8,12 @@
 #include <algorithm>
 
 void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_vw, /*int time_until_vboost, */ bool vboost) {
+    UpdateList ul; 
     int n_remaining_v1 = n_daily / 2;
     int n_remaining_v2 = n_daily / 2;
     int n_remaining_vboost = n_daily;
     default_random_engine gen;
+
     /* 
      * Get the list of highest priority people
      */
@@ -55,10 +57,18 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_
         node_to_vax = priorities_v1[max_prior][priorities_v1[max_prior].size() - 1];
         priorities_v1[max_prior].pop_back();
         
+        ul.add_update(UpdateVertexAttribute(node_to_vax, "vaccine_priority", -1));
+        ul.add_update(UpdateVertexAttribute(node_to_vax, "vaccine_status", _V1));
+        ul.add_update(UpdateVertexAttribute(node_to_vax, "time_until_v2", time_until_v2));
+        ul.add_update(UpdateVertexAttribute(node_to_vax, "time_until_vw", time_until_vw));
+        ul.add_updates_to_graph(g);
+        ul.clear_updates();
+        /*
         SETVAN(g, "vaccine_priority", node_to_vax, -1);
         SETVAN(g, "vaccine_status", node_to_vax, _V1);
         SETVAN(g, "time_until_v2", node_to_vax, time_until_v2);
         SETVAN(g, "time_until_vw", node_to_vax, time_until_vw);
+        */
         // SETVAN(g, "time_until_vboost", node_to_vax, time_until_vboost);
 
         n_remaining_v1--;
@@ -74,8 +84,14 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_
         node_to_vax = priorities_v2[priorities_v2.size() - 1];
         priorities_v2.pop_back();
 
+        ul.add_update(UpdateVertexAttribute(node_to_vax, "vaccine_status", _V2));
+        ul.add_update(UpdateVertexAttribute(node_to_vax, "time_until_v2", -1));
+        ul.add_updates_to_graph(g);
+        ul.clear_updates();
+        /*
         SETVAN(g, "vaccine_status", node_to_vax, _V2);
         SETVAN(g, "time_until_v2", node_to_vax, -1);
+        */
 
         n_remaining_v2--;
     }
@@ -90,14 +106,23 @@ void distribute_vax(igraph_t *g, int n_daily, int time_until_v2, int time_until_
             node_to_vax = priorities_vboost[priorities_vboost.size() - 1];
             priorities_vboost.pop_back();
 
+            ul.add_update(UpdateVertexAttribute(node_to_vax, "vaccine_status", _VBoost));
+            ul.add_update(UpdateVertexAttribute(node_to_vax, "time_until_vw", time_until_vw));
+            ul.add_updates_to_graph(g);
+            ul.clear_updates();
+            /*
             SETVAN(g, "vaccine_status", node_to_vax, _VBoost);
             // SETVAN(g, "time_until_vboost", node_to_vax, time_until_vboost);
             SETVAN(g, "time_until_vw", node_to_vax, time_until_vw);
+            */
 
             n_remaining_vboost--;
         }
 
     }
+
+    ul.add_updates_to_graph(g);
+    ul.clear_updates();
 
     
 

@@ -125,10 +125,11 @@ inline void decrement_V2(UpdateList &ul, int i, int &V2_count, igraph_vector_t &
     ++V2_count;
     double tvw = VECTOR(tvw_vec)[i];            
     if (tvw > 0.0) {
-        ul.add_update(UpdateVertexAttribute(i, "time_until_vw", VECTOR(tvw_vec)[i] - 1));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_vw", tvw - 1));
     }
     else {
-        ul.add_update(UpdateVertexAttribute(i, "time_until_vw", _VW));
+        ul.add_update(UpdateVertexAttribute(i, "vaccine_status", _VW));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_vw", -1));
     }
 
 }
@@ -148,10 +149,11 @@ inline void decrement_VBoost(UpdateList &ul, int i, int &VBoost_count, igraph_ve
 
     double tvw = VECTOR(tvw_vec)[i];            
     if (tvw > 0.0) {
-        ul.add_update(UpdateVertexAttribute(i, "time_until_vw", -1));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_vw", tvw -1));
     }
     else {
-        ul.add_update(UpdateVertexAttribute(i, "time_until_vw", _VW));
+        ul.add_update(UpdateVertexAttribute(i, "vaccine_status", _VW));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_vw", -1));
     }
 }
 
