@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <unordered_set>
 
 using namespace std;
 
@@ -260,69 +261,68 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         // all of the attribute updates into a map
         // Can do this step by eid
 
-        
-        // Keys are attribute and eid
-        unordered_map<string, vector<tuple<int, int>>> eattrs;
-
-        for (auto &u: _update_edge_attribute_v) {
-            eattrs[u.get_attr()].push_back(make_tuple(u.get_eid(),  u.get_value()));
+        unordered_set<string> eattrs;
+        for (auto &i: _update_vertex_attribute_v) {
+            eattrs.insert(i.get_attr());
         }
 
         for (auto &a: eattrs) {
             // Check to see if attribute exists; if it does,
             // pull it, else create an empty vector
-            if (igraph_cattribute_has_attr(g, IGRAPH_ATTRIBUTE_EDGE, a.first.c_str())) {
+            if (igraph_cattribute_has_attr(g, IGRAPH_ATTRIBUTE_EDGE, a.c_str())) {
                 // Pull the vector
-                EANV(g, a.first.c_str(), &eattr_v);
+                EANV(g, a.c_str(), &eattr_v);
             } else {
-                throw invalid_argument("Vertex attribute " + a.first + " is not present in graph and must be added before update handlers");  
+                throw invalid_argument("Vertex attribute " + a+ " is not present in graph and must be added before update handlers");  
                 // igraph_vector_resize(&eattr_v, igraph_ecount(g));
                 // igraph_vector_null(&eattr_v);
             }
             // Make the changes
-            for (auto &i: a.second) {
-                VECTOR(eattr_v)[get<0>(i)] = get<1>(i);
+            for (auto &i: _update_edge_attribute_v) {
+                VECTOR(eattr_v)[i.get_eid()] = i.get_value();
             }
             // Push back to graph
-            SETEANV(g, a.first.c_str(), &eattr_v);
+            SETEANV(g, a.c_str(), &eattr_v);
         }
 
     }
+
 
     // Update vertex attributes
     if (_update_vertex_attribute_v.size() > 0) {
         // To do this we first need to collect 
         // all of the attribute updates into a map
-        // Can do this step by eid
 
-        
-        // Keys are attribute and eid
-        unordered_map<string, vector<tuple<int, int>>> vattrs;
+        // First step: iterate over all vattrs
+        // and create a set of attribute names 
+        // with positions corresponding to _update_vertex_attributes_v
 
-        for (auto &u: _update_vertex_attribute_v) {
-            vattrs[u.get_attr()].push_back(make_tuple(u.get_vid(),  u.get_value()));
+        unordered_set<string> vattrs;
+        for (auto &i: _update_vertex_attribute_v) {
+            vattrs.insert(i.get_attr());
         }
-
+        
         for (auto &a: vattrs) {
-            //cout << "a.first" <<  a.first << endl;
+
             // Pull the vector
             // Check to see if attribute exists; if it does,
             // pull it, else create an empty vector
-            if (igraph_cattribute_has_attr(g, IGRAPH_ATTRIBUTE_VERTEX, a.first.c_str())) {
+            if (igraph_cattribute_has_attr(g, IGRAPH_ATTRIBUTE_VERTEX, a.c_str())) {
                 // Pull the vector
-                VANV(g, a.first.c_str(), &vattr_v);
+                VANV(g, a.c_str(), &vattr_v);
             } else {
-                throw invalid_argument("Vertex attribute " + a.first + " is not present in graph and must be added before update handlers");  
+                throw invalid_argument("Vertex attribute " + a + " is not present in graph and must be added before update handlers");  
                 // igraph_vector_resize(&vattr_v, igraph_vcount(g));
                 // igraph_vector_null(&vattr_v);
             }
             // Make the changes
-            for (auto &i: a.second) {
-                // cout << "i.first " << i.first << " i.second " << i.second << endl;
-                VECTOR(vattr_v)[get<0>(i)] = get<1>(i);
+            for (auto &i: _update_vertex_attribute_v) {
+                if (i.get_attr() == a) {
+                    VECTOR(vattr_v)[i.get_vid()] = i.get_value();
+                }
             }
             // Push back to graph
-            SETVANV(g, a.first.c_str(), &vattr_v);
+            SETVANV(g, a.c_str(), &vattr_v);
         }
     }
 
