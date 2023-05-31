@@ -21,23 +21,21 @@ using namespace std;
 /* 
  * If susceptible do nothing
  */
-inline void decrement_S(int i, int &S_count) {
-    ++S_count;
+inline void decrement_S(int i) {
+    return;
 }
 
 /*
  * If exposed and RDE = 0, set to infectious,
  * otherwise decrement RDE
  */
-inline void decrement_E(UpdateList &ul, int i, int &E_count, igraph_vector_t &rde_vec, igraph_t *g, igraph_vector_t &ds_vec) {
-    ++E_count;
-    double rde = VECTOR(rde_vec)[i]; 
+inline void decrement_E(UpdateList &ul, int i, double rde, int symptomatic) {
     if (rde == 0) {
-        if (VAN(g, "symptomatic", i) == _Ic) {
+        if (symptomatic == _Ic) {
             ul.add_update(UpdateVertexAttribute(i, "disease_status", _Ic));
             ul.add_update(UpdateVertexAttribute(i, "remaining_days_exposed", -1));
         } 
-        else if (VAN(g, "symptomatic", i) == _Isc) {
+        else if (symptomatic == _Isc) {
             ul.add_update(UpdateVertexAttribute(i, "disease_status", _Isc));
             ul.add_update(UpdateVertexAttribute(i, "remaining_days_exposed", -1));
         }
@@ -51,10 +49,7 @@ inline void decrement_E(UpdateList &ul, int i, int &E_count, igraph_vector_t &rd
  * depending on mu
  * Otherwise decrement RDS
  */
-inline void decrement_Ic(UpdateList &ul, int i, int &Ic_count, igraph_vector_t &rds_vec, igraph_vector_t &mu_vec, igraph_vector_t &ds_vec) {
-    ++Ic_count;
-    double rds = VECTOR(rds_vec)[i]; 
-    double mu = VECTOR(mu_vec)[i]; 
+inline void decrement_Ic(UpdateList &ul, int i, double rds, double mu) {
     if ((rds == 0.0) & (mu == 0.0)) {
         ul.add_update(UpdateVertexAttribute(i, "disease_status", _R));
         ul.add_update(UpdateVertexAttribute(i, "remaining_days_sick", -1));
@@ -68,16 +63,9 @@ inline void decrement_Ic(UpdateList &ul, int i, int &Ic_count, igraph_vector_t &
     }
 }
 
-inline void decrement_Isc(UpdateList &ul, int i, int &Isc_count, igraph_vector_t &rds_vec, igraph_vector_t &mu_vec, igraph_vector_t &ds_vec) {
-    ++Isc_count;
-    double rds = VECTOR(rds_vec)[i]; 
-    double mu = VECTOR(mu_vec)[i]; 
-    if ((rds == 0.0) & (mu == 0.0)) {
+inline void decrement_Isc(UpdateList &ul, int i, double rds) {
+    if (rds == 0.0) {
         ul.add_update(UpdateVertexAttribute(i, "disease_status", _R));
-
-    } else if ((rds == 0.0 ) & (mu == 1.0) ) {
-        ul.add_update(UpdateVertexAttribute(i, "remaining_days_sick", -1));
-
     } else {
         ul.add_update(UpdateVertexAttribute(i, "remaining_days_sick", rds - 1));
     }
@@ -87,32 +75,29 @@ inline void decrement_Isc(UpdateList &ul, int i, int &Isc_count, igraph_vector_t
 /*
  * If recovered, do nothing
  */
-inline void decrement_R(UpdateList &ul, int i, int &R_count, igraph_vector_t &tsus_vec, igraph_vector_t &ds_vec) {
-    ++R_count;
-    if (VECTOR(tsus_vec)[i] == 0 ) {
+inline void decrement_R(UpdateList &ul, int i, double tsus) {
+    if (tsus == 0 ) {
         ul.add_update(UpdateVertexAttribute(i, "disease_status", _S));
         ul.add_update(UpdateVertexAttribute(i, "time_until_susceptible", -1));
     }
     else {
-        ul.add_update(UpdateVertexAttribute(i, "time_until_susceptible", VECTOR(tsus_vec)[i] - 1));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_susceptible", tsus - 1));
     }
 
 }
 
 /* If dead, do nothing */
-inline void decrement_D(int i, int &D_count) {
-    ++D_count;
+inline void decrement_D(int i) {
+    return;
 }
 
 /*
  * If vaccine status is V1, then decrement tv2
  * and wait until the next vaccine distribution
  */
-inline void decrement_V1(UpdateList &ul, int i, int &V1_count, igraph_vector_t &tv2_vec){
-    ++V1_count;
-    double tv2 = VECTOR(tv2_vec)[i];
+inline void decrement_V1(UpdateList &ul, int i, double tv2){
     if (tv2 > 0.0) {
-        ul.add_update(UpdateVertexAttribute(i, "time_until_v2", VECTOR(tv2_vec)[i] - 1));
+        ul.add_update(UpdateVertexAttribute(i, "time_until_v2", tv2 -1)); 
     }
 }
 
@@ -121,9 +106,7 @@ inline void decrement_V1(UpdateList &ul, int i, int &V1_count, igraph_vector_t &
  * until 0
  * If tvw == 0, set vaccine status to VW
  */
-inline void decrement_V2(UpdateList &ul, int i, int &V2_count, igraph_vector_t &tvw_vec, igraph_vector_t &vs_vec) {
-    ++V2_count;
-    double tvw = VECTOR(tvw_vec)[i];            
+inline void decrement_V2(UpdateList &ul, int i, double tvw) {
     if (tvw > 0.0) {
         ul.add_update(UpdateVertexAttribute(i, "time_until_vw", tvw - 1));
     }
@@ -139,15 +122,11 @@ inline void decrement_V2(UpdateList &ul, int i, int &V2_count, igraph_vector_t &
  * If tvboost == 0, wait
  * until next vaccine distribution.
  */
-inline void decrement_VW(int i, int &VW_count) {
-    ++VW_count;
+inline void decrement_VW(int i) {
+    return;
 }
 
-inline void decrement_VBoost(UpdateList &ul, int i, int &VBoost_count, igraph_vector_t &tvw_vec, igraph_vector_t &vs_vec){
-
-    ++VBoost_count;
-
-    double tvw = VECTOR(tvw_vec)[i];            
+inline void decrement_VBoost(UpdateList &ul, int i, double tvw){
     if (tvw > 0.0) {
         ul.add_update(UpdateVertexAttribute(i, "time_until_vw", tvw -1));
     }
@@ -157,13 +136,11 @@ inline void decrement_VBoost(UpdateList &ul, int i, int &VBoost_count, igraph_ve
     }
 }
 
-inline void decrement_hh(int i, int &hh_count){
-    hh_count++; 
+inline void decrement_hh(int i){
+    return;
 }
 
-inline void decrement_random(int i, int &random_count, igraph_vector_t &durations) {
-
-    random_count++;
+inline void decrement_random(int i, igraph_vector_t &durations) {
 
     if (VECTOR(durations)[i] > 1) {
         VECTOR(durations)[i] = VECTOR(durations)[i] - 1;
@@ -234,36 +211,46 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
         vs = VECTOR(vs_vec)[i];
 
         if (ds == _S){
-            decrement_S(i, S_count);
+            S_count++;
+            decrement_S(i);
         }
         else if (ds == _E) {
-            decrement_E(ul, i, E_count, rde_vec, g, ds_vec);
+            E_count++;
+            decrement_E(ul, i, VECTOR(rde_vec)[i], VAN(g, "symptomatic", i));
         }
         else if (ds == _Ic) {  
-            decrement_Ic(ul, i, Ic_count, rds_vec, mu_vec, ds_vec); 
+            Ic_count++;
+            decrement_Ic(ul, i, VECTOR(rds_vec)[i], VECTOR(mu_vec)[i]); 
         }
         else if (ds == _Isc) {  
-            decrement_Isc(ul, i, Isc_count, rds_vec, mu_vec, ds_vec); 
+            Isc_count++;
+            decrement_Isc(ul, i, VECTOR(rds_vec)[i]); 
         }
         else if (ds == _R) {
-            decrement_R(ul, i, R_count, tsus_vec, ds_vec);
+            R_count++;
+            decrement_R(ul, i, VECTOR(tsus_vec)[i]);
         }
         else if (ds == _D) {
-            decrement_D(i, D_count);
+            D_count++;
+            decrement_D(i);
         }
         
 
         if (vs == _V1) {
-            decrement_V1(ul, i, V1_count, tv2_vec);
+            V1_count++;
+            decrement_V1(ul, i, VECTOR(tv2_vec)[i]);
         } 
         else if (vs == _V2) {
-            decrement_V2(ul, i, V2_count, tvw_vec, vs_vec);
+            V2_count++;
+            decrement_V2(ul, i, VECTOR(tvw_vec)[i]);
         } 
         else if (vs == _VW){
-            decrement_VW(i, VW_count);
+            VW_count++;
+            decrement_VW(i);
         }
         else if (vs == _VBoost) {
-            decrement_VBoost(ul, i, VBoost_count, tvw_vec, vs_vec);
+            VBoost_count++;
+            decrement_VBoost(ul, i, VECTOR(tvw_vec)[i]);
         }
         
     }
@@ -306,10 +293,12 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
 
     for (int i = igraph_ecount(g); i--; ) {
         if (VECTOR(etypes)[i] == _Household) {
-            decrement_hh(i, hh_count);
+            hh_count++;
+            decrement_hh(i);
         }
         if (VECTOR(etypes)[i] == _Random) {
-            decrement_random(i, random_count, durations);
+            random_count++;
+            decrement_random(i, durations);
         }
     }
 
