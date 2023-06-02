@@ -23,23 +23,18 @@ TEST(UpdateTests, GeneralTest) {
     create_test_graphs(&graph);
 
     // Create hh edges
-    igraph_vector_int_t hhedges;
-    gen_hh_edges(&graph, &hhedges);
+    UpdateList hh_ul;
+    unordered_map<int, vector<int>> hh_lookup;
+    gen_hh_edges(&graph, hh_ul, hh_lookup);
+    hh_ul.add_updates_to_graph(&graph);
 
-    for (int i = 0; i < igraph_vector_int_size(&hhedges); i+=2) {
-        update_list.add_update(
-                CreateEdge(
-                VECTOR(hhedges)[i], 
-                VECTOR(hhedges)[i+1]
-                )
-                );
-    }
-
-    // Add the updates to the graph
-    update_list.add_updates_to_graph(&graph);
 
     // Check that the correct number of edges added
-    EXPECT_EQ(igraph_ecount(&graph), igraph_vector_int_size(&hhedges) / 2);
+    int n_edges = 0;
+    for (auto i: hh_lookup) {
+        n_edges += i.second.size();
+    }
+    EXPECT_EQ(igraph_ecount(&graph), n_edges);
 
     // Check another way
     //  diffs = graph_diff(&graph, &g0);
@@ -56,20 +51,6 @@ TEST(UpdateTests, GeneralTest) {
     SETEAN(&graph, "duration", 0, 67890);
     igraph_copy(&g0, &graph);
 
-
-    // Adding edge attributes
-    // Adding by end points
-    for (int i = 0; i < igraph_vector_int_size(&hhedges); i += 2) {
-        update_list.add_update(
-                UpdateEdgeAttribute(
-                    VECTOR(hhedges)[i],
-                    VECTOR(hhedges)[i+1],
-                    "type",
-                    _Household)
-        );
-    }
-    update_list.add_updates_to_graph(&graph);
-    update_list.clear_updates();
 
     // Adding by eid
     for (int i = 0; i < igraph_ecount(&graph); i++) {
@@ -129,7 +110,6 @@ TEST(UpdateTests, GeneralTest) {
 
 
     DELALL(&graph);
-    igraph_vector_int_destroy(&hhedges);
     igraph_destroy(&graph);
     igraph_destroy(&g0);
 

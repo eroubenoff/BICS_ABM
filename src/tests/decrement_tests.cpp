@@ -17,26 +17,10 @@ TEST(DecrementTests, GeneralTest) {
     History history;
 
     // Create hh edges
-    igraph_vector_int_t hhedges;
-    gen_hh_edges(&graph, &hhedges);
-    igraph_add_edges(&graph, &hhedges, NULL);
-
-    // Get all hhs into a dict 
+    UpdateList hh_ul;
     unordered_map<int, vector<int>> hh_lookup;
-    int hhid;
-    for (int i = igraph_vcount(&graph); i--; ) {
-        hhid = VAN(&graph, "hhid", i);
-        if (hh_lookup.count(i) == 0) {
-            hh_lookup[hhid] = vector<int>{i};
-        } else {
-            hh_lookup[hhid].push_back(i);
-        }
-    }
-
-    // Set edges types 
-    set_edge_attribute(&graph, &hhedges, "type", _Household, true);
-    set_edge_attribute(&graph, &hhedges, "duration", 0, true);
-
+    gen_hh_edges(&graph, hh_ul, hh_lookup);
+    hh_ul.add_updates_to_graph(&graph);
 
     // Create a deep copy of the graph
     // Confirmed that this does deep copy attributes
@@ -137,7 +121,6 @@ TEST(DecrementTests, GeneralTest) {
 
 
     DELALL(&graph);
-    igraph_vector_int_destroy(&hhedges);
     igraph_destroy(&graph);
     igraph_destroy(&g0);
 

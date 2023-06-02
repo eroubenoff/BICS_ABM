@@ -140,14 +140,17 @@ inline void decrement_hh(int i){
     return;
 }
 
-inline void decrement_random(int i, igraph_vector_t &durations) {
+inline void decrement_random(UpdateList &ul, int i, double dur) {
 
-    if (VECTOR(durations)[i] > 1) {
-        VECTOR(durations)[i] = VECTOR(durations)[i] - 1;
+    if (dur <= _dur_lt1hr) {
+        ul.add_update(DeleteEdge(i));
+    }
+
+    if (dur > _dur_lt1hr) {
+        ul.add_update(UpdateEdgeAttribute(i, "duration", dur - 1));
 
     } else {
-        VECTOR(durations)[i] = -1;
-
+        ul.add_update(UpdateEdgeAttribute(i, "duration", -1));
     }
 
 }
@@ -273,6 +276,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     igraph_vector_destroy(&tsus_vec); 
 
     ul.add_updates_to_graph(g);
+    ul.clear_updates();
 
 
     /* Tally edge counts
@@ -298,11 +302,13 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
         }
         if (VECTOR(etypes)[i] == _Random) {
             random_count++;
-            decrement_random(i, durations);
+            decrement_random(ul, i, VECTOR(durations)[i]);
         }
     }
 
-    SETEANV(g, "duration", &durations);
+    ul.add_updates_to_graph(g);
+    ul.clear_updates();
+
     igraph_vector_destroy(&etypes);
     igraph_vector_destroy(&durations);
 

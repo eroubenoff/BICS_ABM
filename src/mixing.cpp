@@ -43,31 +43,29 @@
  *  - adds pairs of vectors to edges_to_delete
  */
 
-void disconnect_hh(igraph_t* g,
+void disconnect_hh(igraph_t *g, UpdateList &ul,
         unordered_map<int, vector<int>> &hhid_lookup,
-        igraph_vector_int_t* edges_to_delete,
         int node_id) {
 
     int hhid = VAN(g, "hhid", node_id);
-    SETVAN(g, "home_status", node_id, _Out);
 
     /* 
      * Traverse household members; if there are any connections,
      * sever them.
      */
 
-    igraph_bool_t are_connected;
     vector<int> *hh = &hhid_lookup[hhid];
     int hhsize = hh->size();
     int node_id2;
-    igraph_integer_t eid;
+    igraph_bool_t are_connected;
     for (int i = 0; i < hhsize; i++) {
 
         node_id2 = hh->at(i);
-        igraph_get_eid(g, &eid, node_id, node_id2, false, false);
+        igraph_are_connected(g, node_id, node_id2, &are_connected);
 
-        if (eid != -1) {
-            igraph_vector_int_push_back(edges_to_delete, eid);
+        if (are_connected) {
+            // igraph_vector_int_push_back(edges_to_delete, eid);
+            ul.add_update(DeleteEdge(node_id, node_id2));
         }
     }
 }
@@ -105,12 +103,13 @@ void disconnect_hh(igraph_t* g,
  *
  *
  */
-void reconnect_hh(igraph_t* g, 
+void reconnect_hh(igraph_t* g, UpdateList &ul,
         unordered_map<int, vector<int>> &hhid_lookup,
-        igraph_vector_int_t* edges_to_add,
         int node_id) {
     
     int hhid = VAN(g, "hhid", node_id);
+    vector<int> *hh = &hhid_lookup[hhid];
+    int hhsize = hh->size();
 
     /* 
      * Check if node has any other random edges;
@@ -121,6 +120,7 @@ void reconnect_hh(igraph_t* g,
     igraph_vector_t type;
     igraph_vector_init(&type, 0);
     igraph_cattribute_EANV(g, "type", es, &type);
+    igraph_bool_t are_connected;
 
 
     for (int i = 0; i < igraph_vector_size(&type); i++) {
@@ -131,15 +131,6 @@ void reconnect_hh(igraph_t* g,
         }
     }
 
-    igraph_vector_destroy(&type);
-    igraph_es_destroy(&es);
-
-
-    SETVAN(g, "home_status", node_id, _In);
-
-    igraph_bool_t are_connected;
-    vector<int> *hh = &hhid_lookup[hhid];
-    int hhsize = hh->size();
 
     int node_id2;
     for (int i = 0; i < hhsize; i++){
@@ -149,10 +140,14 @@ void reconnect_hh(igraph_t* g,
         igraph_are_connected(g, node_id, node_id2, &are_connected);
 
         if ((!are_connected) & (VAN(g, "home_status", node_id2) == _In)){
-            igraph_vector_int_push_back(edges_to_add, node_id);
-            igraph_vector_int_push_back(edges_to_add, node_id2);
+            ul.add_update(CreateEdge(node_id, node_id2));
+            ul.add_update(UpdateEdgeAttribute(node_id, node_id2, "type", _Household));
+            ul.add_update(UpdateEdgeAttribute(node_id, node_id2, "duration", -1));
         }
     }
+
+    igraph_vector_destroy(&type);
+    igraph_es_destroy(&es);
 }
 
 
@@ -194,6 +189,7 @@ void set_duration(igraph_t* g,
         mt19937 &generator
         ) {
 
+    throw runtime_error("Function set_duration is obsolete!");
     /* 
      * Get edge type and duration
      * */
@@ -586,15 +582,14 @@ void random_contacts(igraph_t *g,
  * value is an igraph vector of the vertices in that 
  * household
  * */
-void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges){
-    unordered_map<int, vector<int> > hhids;
+void gen_hh_edges(igraph_t *graph, UpdateList &hh_ul, unordered_map<int, vector<int>> &hh_lookup){
+
     for (int i = 0; i < igraph_vcount(graph); i++) {
-        hhids[VAN(graph, "hhid", i)].push_back(i);
+        hh_lookup[VAN(graph, "hhid", i)].push_back(i);
     }
 
     // Create a household edge list
-    igraph_vector_int_init(hhedges, 0);
-    for (auto h : hhids) {
+    for (auto h : hh_lookup) {
 
         // Create all combinations within the hh by nested loop
         for (int k=0; k < h.second.size(); k++) {
@@ -603,15 +598,14 @@ void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges){
                     continue;
                 }
                 else{
-                    igraph_vector_int_push_back(hhedges, h.second[k]);
-                    igraph_vector_int_push_back(hhedges, h.second[l]);
+                    hh_ul.add_update(CreateEdge(h.second[k], h.second[l]));
+                    hh_ul.add_update(UpdateEdgeAttribute(h.second[k], h.second[l], "type", _Household));
+                    hh_ul.add_update(UpdateEdgeAttribute(h.second[k], h.second[l], "duration", 0));
                 }
             }
         }
     }
 
-    // cout << "N households: " << hhids.size() << endl;
-    // cout << "N household edges " << igraph_vector_int_size(hhedges) / 2 << endl;
 }
 
 

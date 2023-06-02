@@ -107,7 +107,8 @@ class History {
         int counter;
         int length;
         History(int initial_length = 2000);
-        void add_history(int S_count, int E_count, int Ic_count, int Cc_count, int Isc_count, int Csc_count, int R_count, int D_count, int V1_count, int V2_count, int VW_count, int VBoost_count, int n_edges_count); 
+        void add_history(int S_count, int E_count, int Ic_count, int Cc_count, int Isc_count, int Csc_count, 
+                int R_count, int D_count, int V1_count, int V2_count, int VW_count, int VBoost_count, int n_edges_count); 
         void save(string path = "history.csv");
         void plot_trajectory(string path = "plot.png") ;
 };
@@ -115,18 +116,57 @@ class History {
 
 
 /* Update function declarations */
-// Base class
+// Base classes
 class Update {};
 
-class UpdateGraphAttribute: public Update {
+class VertexUpdate: public Update {
+    protected:
+        int _vid;
+    public: 
+        VertexUpdate(){};
+        int get_vid(); 
+};
+
+class EdgeUpdate: public Update {
+    protected:
+        int _v1;
+        int _v2;
+        int _eid;
+        bool _eid_or_vpair;
+        bool _break_on_failure;
+    public:
+        EdgeUpdate(){};
+        int get_v1(); 
+        int get_v2(); 
+        int get_eid(); 
+        bool eid_or_vpair();
+        bool break_on_failure();
+        void retrieve_eid(igraph_t* g);
+        void retrieve_endpoints(igraph_t* g);
+};
+
+class AttributeUpdate: public Update {
     protected:
         string _attr;
         int _value;
+    public: 
+        AttributeUpdate(){};
+        string get_attr();
+        int get_value();
+};
+
+
+// Derived classes
+
+/* 
+ * Class for graph update 
+ * 
+ * */ 
+
+class UpdateGraphAttribute: public AttributeUpdate {
     public:
         UpdateGraphAttribute() {};
         UpdateGraphAttribute(string attr, int value);
-        string get_attr(); 
-        int get_value();
 };
 
 /*
@@ -135,79 +175,51 @@ class UpdateGraphAttribute: public Update {
  * Similar process for DelteEdge.
  *
  */ 
-class CreateEdge: public Update {
-    protected:
-        int _v1;
-        int _v2;
+
+class CreateEdge: public EdgeUpdate {
     public: 
         CreateEdge() {};
         CreateEdge(int v1, int v2);
-        int get_v1();
-        int get_v2(); 
 };
 
-class DeleteEdge: public Update {
-    protected:
-        int _v1;
-        int _v2;
-        int _eid;
-        bool _eid_or_vpair;
+/* 
+ * Deleting an edge: can take either the end points
+ * or the eid. Default behavior is to fail silently
+ * deleteing an edge by end points that don't connect, but to raise an
+ * exception if passed a bad eid.
+ * 
+ */
+
+class DeleteEdge: public EdgeUpdate {
     public: 
         DeleteEdge() {};
-        DeleteEdge(int v1, int v2);
-        DeleteEdge(int eid);
-        void retrieve_eid(igraph_t* g);
-        void retrieve_endpoints(igraph_t* g);
-        int get_v1(); 
-        int get_v2(); 
-        int get_eid(); 
+        DeleteEdge(int v1, int v2, bool break_on_failure = false);
+        DeleteEdge(int eid, bool break_on_failure = true);
 };
+
 /* 
  * Update an edge attribute: be defined for either a pair of
  * end points, or an edge id.
  * 
- * Can either include a single attribute to update or 
- * dict of attributes, in string-int pairs.
+ * Single attributes only
  */
-class UpdateEdgeAttribute: public Update {
-    protected:
-        int _v1;
-        int _v2;
-        int _eid;
-        bool _eid_or_vpair; 
-        string _attr;
-        int _value;
+class UpdateEdgeAttribute: public EdgeUpdate, public AttributeUpdate {
     public: 
         UpdateEdgeAttribute() {};
         UpdateEdgeAttribute(int eid, string attr, int value);
         UpdateEdgeAttribute(int v1, int v2, string attr, int value);
-        void retrieve_eid(igraph_t* g);
-        void retrieve_endpoints(igraph_t* g);
-        int& get_v1(); 
-        int& get_v2(); 
-        int& get_eid(); 
-        string& get_attr();
-        int& get_value();
 };
 
 
 /* 
  * Update a vertex attribute:
  * 
- * Can either include a single attribute to update or 
- * dict of attributes, in string-int pairs.
+ * Single attribute update only
  */
-class UpdateVertexAttribute: public Update {
-    protected:
-        int _vid;
-        string _attr;
-        int _value;
+class UpdateVertexAttribute: public VertexUpdate, public AttributeUpdate {
     public: 
         UpdateVertexAttribute() {};
         UpdateVertexAttribute(int vid, string attr, int value);
-        int& get_vid() ; 
-        string& get_attr() ; 
-        int& get_value() ; 
 };
 
 /*
@@ -234,6 +246,7 @@ class UpdateList {
         void add_update(UpdateVertexAttribute update) ;
         void clear_updates() ;
         void add_updates_to_graph(igraph_t *g) ;
+        string print_updates();
 };
 
 
@@ -323,7 +336,7 @@ void random_contacts_duration(const igraph_t *g,
         float isolation_multiplier,
         mt19937 &generator) ;
 
-void gen_hh_edges(igraph_t *graph, igraph_vector_int_t *hhedges);
+void gen_hh_edges(igraph_t *graph, UpdateList &hh_ul, unordered_map<int, vector<int>> &hh_lookup);
 /*
 void gen_daytime_edges(const igraph_t *graph, 
         const igraph_vector_int_t *hh_edges, 
@@ -337,13 +350,11 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
 
 /* Functions to re/disconnect a node from 
  * their household members */
-void reconnect_hh(igraph_t* g, 
+void reconnect_hh(igraph_t* g, UpdateList &ul,
         unordered_map<int, vector<int>> &hhid_lookup,
-        igraph_vector_int_t* edges_to_add,
         int node_id) ;
-void disconnect_hh(igraph_t* g,
+void disconnect_hh(igraph_t* g, UpdateList &ul,
         unordered_map<int, vector<int>> &hhid_lookup,
-        igraph_vector_int_t* edges_to_delete,
         int node_id);
 
 void set_duration(igraph_t* g,

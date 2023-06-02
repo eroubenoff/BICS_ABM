@@ -103,36 +103,22 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         _dur_mt1hr 2.0
     */
 
-    discrete_distribution<float> duration_dist{0.171, 0.452, 0.187, 0.189};
+    discrete_distribution<int> duration_dist{0.171, 0.452, 0.187, 0.189};
 
 
     /* 
-     * Generate household edges and add to g 
+     * Generate household edges and add to g,
+     * including type and duration
      * */
-    igraph_vector_int_t hhedges;
-    gen_hh_edges(graph, &hhedges);
-    igraph_add_edges(graph, &hhedges, NULL);
-
-    /* Get all hhs into a dict */
+    UpdateList hh_ul;
     unordered_map<int, vector<int>> hh_lookup;
-    for (int i = igraph_vcount(graph); i--; ) {
-        hhid = VAN(graph, "hhid", i);
-        if (hh_lookup.count(i) == 0) {
-            hh_lookup[hhid] = vector<int>{i};
-        } else {
-            hh_lookup[hhid].push_back(i);
-        }
-    }
+
+    gen_hh_edges(graph, hh_ul, hh_lookup);
+
+    hh_ul.add_updates_to_graph(graph);
 
 
 
-    /* 
-     * Vector containing the type of edges (all are household) 
-     * Set type attribute 
-     * */
-
-    set_edge_attribute(graph, &hhedges, "type", _Household, true);
-    set_edge_attribute(graph, &hhedges, "duration", 0, true);
 
     decrement(graph, history);
 
@@ -201,7 +187,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
         /* Reset all edges */
         igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
-        igraph_add_edges(graph, &hhedges, NULL);
+        hh_ul.add_updates_to_graph(graph);
 
         /* 
          * If there is a daily seasonal forcing of Beta, 
@@ -252,9 +238,9 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         for (hr = 8; hr < 18; hr++){
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             
-            //igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
-            //igraph_add_edges(graph, &hhedges, NULL);
-            //set_edge_attribute(graph, &hhedges, "type", _Household, false);
+            // igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
+            // igraph_add_edges(graph, &hhedges, NULL);
+            // set_edge_attribute(graph, &hhedges, "type", _Household, false);
 
             /* 
              * Retrieve the corresponding vector of edges we should connect at each hour,
@@ -262,12 +248,10 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
              * connect the edges.
              */
 
+            ul.clear_updates();
 
             vector<edgeinfo> hourly_contacts = daily_contacts[hr];
 
-            /* Need to turn the vector of edgeinfo into vectors of endpoints */
-            igraph_vector_int_resize(&edges_to_delete, 0);
-            igraph_vector_int_resize(&hourly_edges, 0);
 
             for (auto c: hourly_contacts) {
                 // Confirm that nodes 1 and 2 are valid
@@ -278,58 +262,89 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
                     throw runtime_error("Node 2 out of range");
                 }
 
-                igraph_vector_int_push_back(&hourly_edges, c.node1);
-                igraph_vector_int_push_back(&hourly_edges, c.node2);
+                ul.add_update(CreateEdge(c.node1, c.node2));
+                ul.add_update(UpdateEdgeAttribute(c.node1, c.node2, "type", _Random));
+                ul.add_update(UpdateVertexAttribute(c.node1, "home_status", _Out));
+                ul.add_update(UpdateVertexAttribute(c.node1, "home_status", _Out));
+
+                // TODO: Fix duration
+                switch(duration_dist(generator)){
+                    case 0:
+                        ul.add_update(UpdateEdgeAttribute(c.node1, c.node2, "duration", _dur_lt1m));
+                        break;
+
+                    case 1:
+                        ul.add_update(UpdateEdgeAttribute(c.node1, c.node2, "duration", _dur_lt15m));
+                        break;
+
+                    case 2:
+                        ul.add_update(UpdateEdgeAttribute(c.node1, c.node2, "duration", _dur_lt1hr));
+                        break;
+
+                    case 3:
+                        ul.add_update(UpdateEdgeAttribute(c.node1, c.node2, "duration", _dur_mt1hr));
+                        break;
+
+                    default:
+                        ul.add_update(UpdateEdgeAttribute(c.node1, c.node2, "duration", 0));
+                        break;
+                }
+
 
                 // Disconnect node1 and 2 from hh edges /
-                disconnect_hh(graph, hh_lookup, &edges_to_delete, c.node1);
-                disconnect_hh(graph, hh_lookup, &edges_to_delete, c.node2);
+                disconnect_hh(graph, ul, hh_lookup, c.node1);
+                disconnect_hh(graph, ul, hh_lookup, c.node2);
+
             }
 
-
-            /* Delete HH Edges */
-            igraph_delete_edges(graph, igraph_ess_vector(&edges_to_delete));
-
-            /* Add new hourly random edges */
-            igraph_add_edges(graph, &hourly_edges, 0);
-
-            /* Add edge type and duration */
-            set_edge_attribute(graph, &hourly_edges, "type", _Random, false);
-            set_duration(graph, duration_dist, generator);
+            ul.add_updates_to_graph(graph);
+            ul.clear_updates();
 
             /* Transmit and decrement */
             tie(Cc, Csc) = transmit(graph, BETA, params, generator);
             decrement(graph, history, Cc, Csc);
 
-            /* Sever any connections that were under an hour */
-            igraph_vector_int_resize(&edges_to_delete, 0);
-            igraph_vector_int_resize(&hourly_edges, 0);
-
-            for (int i = 0; i < igraph_ecount(graph); i++) {
-                if ((EAN(graph, "type", i) == _Random ) & (EAN(graph, "duration", i) == -1)) {
-                    /* Sever those connections */
-                    igraph_vector_int_push_back(&edges_to_delete, i); 
+            /*
+             * Reconnect nodes finished with their contacts
+             * with their houseold members, provided those household
+             * members do not have any additional nonhh-contacts.
+             *
+             * To do this, need to loop through each node and evalutate
+             * if they still have any contacts; if they don't set home 
+             * status to "In". Collect these such nodes in a vector to 
+             * then reconnect to household. 
+             */
+            /* Reconnect everybody */
+            igraph_integer_t degree; 
+            vector<int> reconnect_hhs; 
+            reconnect_hhs.reserve(igraph_vcount(graph));
+            for (int i = igraph_vcount(graph); i--; ) {
+                if (VAN(graph, "home_status", i) == _Out) {
+                    igraph_degree_1(graph, &degree, i, IGRAPH_ALL, false);
+                    if (degree == 0) {
+                        ul.add_update(UpdateVertexAttribute(i, "home_status", _In));
+                        reconnect_hhs.push_back(i);
+                    }
                 }
             }
 
-            igraph_delete_edges(graph, igraph_ess_vector(&edges_to_delete));
+            ul.add_updates_to_graph(graph);
+            ul.clear_updates();
 
-            /* Reconnect with households */
-            for (int i = 0; i < igraph_ecount(graph); i++) {
-                if ((EAN(graph, "type", i) == _Random ) & (EAN(graph, "duration", i) == -1)) {
-                    /* Reconnect with household */
-                    reconnect_hh(graph, hh_lookup, &hourly_edges, IGRAPH_FROM(graph, i));
-                    reconnect_hh(graph, hh_lookup, &hourly_edges, IGRAPH_TO(graph, i));
-
-                }
+            for (auto i: reconnect_hhs) {
+                reconnect_hh(graph, ul, hh_lookup, i);
             }
 
-            igraph_add_edges(graph, &hourly_edges, NULL);
+            ul.add_updates_to_graph(graph);
+            ul.clear_updates();
+
+
+
+
         }
 
         igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
-        igraph_add_edges(graph, &hhedges, 0);
-        set_edge_attribute(graph, &hhedges, "type", _Household, false);
+        hh_ul.add_updates_to_graph(graph);
 
         // Hours 18-24
         for (hr = 19; hr < 24; hr++ ) {
@@ -369,7 +384,6 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
 
     /* Garbage collect */
-    igraph_vector_int_destroy(&hhedges);
     igraph_vector_int_destroy(&hourly_edges);
     igraph_vector_int_destroy(&edges_to_delete);
 
