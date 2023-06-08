@@ -336,6 +336,7 @@ class edgeinfo{
 void random_contacts_duration(const igraph_t *g,
         unordered_map<int, vector<edgeinfo>> &ret,
         float isolation_multiplier,
+        float contact_multiplier,
         mt19937 &generator) ;
 
 void gen_hh_edges(igraph_t *graph, UpdateList &hh_ul, unordered_map<int, vector<int>> &hh_lookup);

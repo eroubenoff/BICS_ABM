@@ -29,6 +29,7 @@ int main(int argc, char **argv) {
     sample_params.SIGMA_MIN = 3*24;
     sample_params.SIGMA_MAX = 7*24;
     std::fill(sample_params.BETA_VEC, sample_params.BETA_VEC + 365, 0.05 ); 
+    std::fill(sample_params.CONTACT_MULT_VEC, sample_params.CONTACT_MULT_VEC+ 365, 1 ); 
     std::copy(std::begin(mu), std::end(mu), std::begin(sample_params.MU_VEC));
     // sample_params.MU_VEC = mu;
     sample_params.INDEX_CASES = 5;
