@@ -584,19 +584,19 @@ class BICS_ABM:
 
 if __name__ == "__main__" :
     result = BICS_ABM(
-        # N_HH = 1000,
-        # SEED = 4949,
-        # RHO = 0.5,
+        N_HH = 1000,
+        SEED = 4949,
+        RHO = 0.5,
         ALPHA = 0.25,
         BETA0 =0.5,
         BETA1 = 1,
-        # T0 = 60,
-        # ISOLATION_MULTIPLIER = 1, #0.5,
-        # N_VAX_DAILY = 1500,
-        # T_REINFECTION = 24*180,
-        # IMPORT_CASES_VEC = [1 if i%7 == 0 else 0 for i in range(365)],
-        # vax_rules = [VaccineRule(general=True, hesitancy=.5)],
-        # VEBoost = 1,
+        T0 = 60,
+        ISOLATION_MULTIPLIER = 1, #0.5,
+        N_VAX_DAILY = 1500,
+        T_REINFECTION = 24*180,
+        IMPORT_CASES_VEC = [1 if i%7 == 0 else 0 for i in range(365)],
+        vax_rules = [VaccineRule(general=True, hesitancy=.5)],
+        VEBoost = 1,
 
 #         vax_rules = [
 #             VaccineRule("age > 80"),
@@ -609,8 +609,7 @@ if __name__ == "__main__" :
 #         ],
         silent = False,
         BOOSTER_DAY = 90,
-        # MAX_DAYS = 1*180
-        )
+        MAX_DAYS = 1*365)
     """
     b0 = BICS_ABM()
     BICS_ABM(**{'N_HH': 1000,

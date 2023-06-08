@@ -218,6 +218,21 @@ void UpdateList::clear_updates() {
     _update_vertex_attribute_v.clear();
 }
 void UpdateList::add_updates_to_graph(igraph_t *g) {
+    igraph_vector_int_t gtypes, vtypes, etypes;
+    igraph_strvector_t gnames, vnames, enames;
+    igraph_vector_int_init(&gtypes, 0);
+    igraph_vector_int_init(&vtypes, 0);
+    igraph_vector_int_init(&etypes, 0);
+    igraph_strvector_init(&gnames, 0);
+    igraph_strvector_init(&vnames, 0);
+    igraph_strvector_init(&enames, 0);
+
+    igraph_cattribute_list(g,
+            &gnames, &gtypes,
+            &vnames, &vtypes,
+            &enames, &etypes);
+
+
 
     igraph_vector_t eattr_v;
     igraph_vector_init(&eattr_v, 0);
@@ -326,53 +341,77 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
     if (_update_vertex_attribute_v.size() > 0) {
         // To do this we first need to collect 
         // all of the attribute updates into a map
+        //
 
-        // First step: iterate over all vattrs
-        // and create a set of attribute names 
-        // with positions corresponding to _update_vertex_attributes_v
+        // New method: create a vector of the edge attribute names
 
-        /*
-        unordered_set<string> vattrs;
+        vector<string> vupdate_types;
+        vupdate_types.reserve(_update_vertex_attribute_v.size());
         for (auto &i: _update_vertex_attribute_v) {
-            vattrs.insert(i.get_attr());
-        }
-        */
-
-        map<string, vector<UpdateVertexAttribute*>> vattr_map;
-        for (auto &i: _update_vertex_attribute_v) {
-            vattr_map[i.get_attr()].push_back(&i);
+            vupdate_types.push_back(i.get_attr());
         }
 
-        for (auto &a: vattr_map) {
+        // Create hash of vnames
+        map<string,int> vnames_map;
+        for (int i = 0; i < igraph_strvector_size(&vnames); i++) {
+            vnames_map[STR(vnames, i)] = i;
+        }
+
+        // Then hash the location of each type. This is done in parallel
+        // with the vnames vector pulled from the graph
+        vector<vector<int>> vattr_lookup(igraph_strvector_size(&vnames), vector<int>(0));
+
+
+        for (int j = 0; j < vupdate_types.size(); j++) {
+            vattr_lookup[vnames_map[vupdate_types[j]]].push_back(j);
+            /*
+            for (int i = 0; i < igraph_strvector_size(&vnames); i++) {
+                // Small optimization to avoid having to call strcmp and c_str, which are slow
+                if (vupdate_types[j][0] == STR(vnames,i)[0] && strcmp(vupdate_types[j].c_str(), STR(vnames,i))==0) {
+                    vattr_lookup[i].push_back(j);
+                    continue;
+                }
+            }
+            */
+        }
+
+
+        // for (auto &a: vattr_map) {
+        string vname;
+        for (int i=0; i < igraph_strvector_size(&vnames); i++) {
+            vname = STR(vnames,i);
+
+            // Check if there are any updates for that attribute name
+
+            if (vattr_lookup[i].size() == 0) {
+                continue;
+            }
 
             // Pull the vector
-            // Check to see if attribute exists; if it does,
-            // pull it, else create an empty vector
-            if (igraph_cattribute_has_attr(g, IGRAPH_ATTRIBUTE_VERTEX, a.first.c_str())) {
-                // Pull the vector
-                VANV(g, a.first.c_str(), &vattr_v);
-            } else {
-                igraph_vector_resize(&vattr_v, igraph_vcount(g));
-                // throw invalid_argument("Vertex attribute " + a + " is not present in graph and must be added before update handlers");  
-                // igraph_vector_resize(&vattr_v, igraph_vcount(g));
-                igraph_vector_null(&vattr_v);
-            }
+            VANV(g, vname.c_str(), &vattr_v);
+
             // Make the changes
-            for (auto &i: a.second) {
-                VECTOR(vattr_v)[i ->get_vid()] = i ->get_value();
+            for (auto &j: vattr_lookup[i]) {
+                VECTOR(vattr_v)[_update_vertex_attribute_v[j].get_vid()] = _update_vertex_attribute_v[j].get_value();
             }
             // Push back to graph
-            SETVANV(g, a.first.c_str(), &vattr_v);
+            SETVANV(g, vname.c_str(), &vattr_v);
         }
     }
 
 
 
-        igraph_vector_destroy(&eattr_v);
-        igraph_vector_destroy(&vattr_v);
-        igraph_vector_int_destroy(&new_edges);
-        igraph_vector_int_destroy(&edges_v);
-        igraph_es_destroy(&edges_es);
+    igraph_strvector_destroy(&enames);
+    igraph_strvector_destroy(&vnames);
+    igraph_strvector_destroy(&gnames);
+    igraph_vector_int_destroy(&etypes);
+    igraph_vector_int_destroy(&vtypes);
+    igraph_vector_int_destroy(&gtypes);
+    igraph_vector_destroy(&eattr_v);
+    igraph_vector_destroy(&vattr_v);
+    igraph_vector_int_destroy(&new_edges);
+    igraph_vector_int_destroy(&edges_v);
+    igraph_es_destroy(&edges_es);
 
 }
 
