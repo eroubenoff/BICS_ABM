@@ -306,6 +306,21 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
         }
     }
 
+    // Add graph attributes
+    ul.add_update(UpdateGraphAttribute("S_count", S_count));
+    ul.add_update(UpdateGraphAttribute("E_count", E_count));
+    ul.add_update(UpdateGraphAttribute("Ic_count", Ic_count));
+    ul.add_update(UpdateGraphAttribute("Isc_count", Isc_count));
+    ul.add_update(UpdateGraphAttribute("R_count", R_count));
+    ul.add_update(UpdateGraphAttribute("D_count", D_count));
+    ul.add_update(UpdateGraphAttribute("V1_count", V1_count));
+    ul.add_update(UpdateGraphAttribute("V2_count", V2_count));
+    ul.add_update(UpdateGraphAttribute("VW_count", VW_count));
+    ul.add_update(UpdateGraphAttribute("VBoost_count", VBoost_count));
+    ul.add_update(UpdateGraphAttribute("hh_ecount", hh_count));
+    // ul.add_update(UpdateGraphAttribute("work_ecount", work_count));
+    ul.add_update(UpdateGraphAttribute("random_ecount", random_count));
+
     ul.add_updates_to_graph(g);
     ul.clear_updates();
 

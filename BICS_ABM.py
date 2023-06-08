@@ -6,6 +6,7 @@ from numpy.ctypeslib import ndpointer
 from copy import deepcopy
 import matplotlib.pyplot as plt
 from threading import Thread
+import pdb
 
 
 path = os.getcwd()
@@ -22,7 +23,7 @@ _BICS_ABM = ctypes.CDLL(path)
 
 def recode_age(age):
 
-    if np.isnan(age):
+    if pd.isna(age):
         return -1
 
     if (age < 18):
@@ -48,8 +49,9 @@ def recode_age(age):
         raise ValueError("Invalid age: "  + str(age))
 
 def recode_gender(gender):
+    
     try:
-        if np.isnan(gender):
+        if pd.isna(gender):
             return -1
     except:
         pass
@@ -80,9 +82,76 @@ def sum_to_1(v):
     return v/sum(v)
 
 
+def load_POLYMOD(path="data/POLYMOD/"):
+    # Read in the participants file
+    POLYMOD_participant = pd.read_csv(path + "2008_Mossong_POLYMOD_participant_common.csv",
+            dtype={'part_id': 'Int64', 'hh_id': str, 'part_age': 'Int64', 'part_gender': str},
+            na_values=['none', -1, 'NA'])
+     
+    # Recode age into same bins as BICS
+    POLYMOD_participant['agecat'] = POLYMOD_participant['part_age'].apply(recode_age)
+    POLYMOD_participant['gender'] = POLYMOD_participant['part_gender'].apply(recode_gender)
+
+
+    # Read in the households files
+    POLYMOD_hh = pd.read_csv(path + "2008_Mossong_POLYMOD_hh_common.csv", dtype = {'hh_id': str,
+        'country': 'category', 'hh_size': 'Int64'}, dtype_backend="numpy_nullable")
+    POLYMOD_hh['hhsize'] = POLYMOD_hh['hh_size']
+
+    
+
+    # Read in the contacts and also re-gorup age
+    POLYMOD_contact = pd.read_csv(path + "2008_Mossong_POLYMOD_contact_common.csv",
+            dtype={'part_id': 'Int64', 'cont_id': 'Int64', 'cnt_age_exact': 'Int64', 'cnt_age_est_min': 'Int64',
+                'cnt_age_est_max': 'Int64', 'cnt_gender': 'category', 'cnt_home': 'boolean', 'cnt_work': 'boolean',
+                'cnt_school': 'boolean', 'cnt_transport': 'boolean', 'cnt_leisure': 'boolean', 'cnt_otherplace': 'boolean',
+                'frequency_multi': 'Int64', 'phys_contact': 'Int64', 'duration_multi': 'Int64'},
+            na_values=['none', -1, 'NA'])
+    POLYMOD_contact["cnt_agecat"] = POLYMOD_contact["cnt_age_exact"].apply(recode_age)
+
+    # Tally up the number of contacts for each participant
+    POLYMOD_contact = POLYMOD_contact.groupby('part_id').agg({
+        'cnt_home': sum, 'cnt_work': sum, 
+        'cnt_school': sum, 'cnt_transport': sum, 
+        'cnt_leisure': sum, 'cnt_otherplace': sum
+    })
+
+    POLYMOD_contact['num_cc_nonhh'] = POLYMOD_contact[[col for col in POLYMOD_contact if col.startswith('cnt_')]].sum(axis=1)
+
+    # Join the contacts to the participants
+    POLYMOD = POLYMOD_participant.join(POLYMOD_contact, on = 'part_id')
+
+    # Join the participants to the households
+    POLYMOD = POLYMOD.set_index('hh_id').join(POLYMOD_hh.set_index('hh_id')).reset_index()
+
+    # drop NA
+    POLYMOD = POLYMOD.dropna()
+
+    # Fill num_lefthome
+    POLYMOD["lefthome_num"] = 1
+    POLYMOD["weight_pooled"] = 1
+    POLYMOD["NPI"] = False
+    POLYMOD["resp_hh_roster#1_1_1"]  = -1
+    POLYMOD["resp_hh_roster#1_2_1"] = -1
+    POLYMOD["resp_hh_roster#1_3_1"] = -1
+    POLYMOD["resp_hh_roster#1_4_1"] = -1
+    POLYMOD["resp_hh_roster#1_5_1"] = -1
+    POLYMOD["resp_hh_roster#2_1"] = -1
+    POLYMOD["resp_hh_roster#2_2"] = -1
+    POLYMOD["resp_hh_roster#2_3"] = -1
+    POLYMOD["resp_hh_roster#2_4"] = -1
+    POLYMOD["resp_hh_roster#2_5"] = -1
+
+    # Reset index
+    POLYMOD = POLYMOD.reset_index(drop=True).sort_index()
+
+
+    return POLYMOD
+
+
 
 def load_data(path="data/df_all_waves.csv"):
-    BICS = pd.read_csv("data/df_all_waves.csv")
+    BICS = pd.read_csv("data/df_all_waves.csv", dtype_backend="numpy_nullable")
 
     # Need to recode all age and gender columns
     BICS["agecat"] = BICS["age"].apply(recode_age)
@@ -104,6 +173,7 @@ def load_data(path="data/df_all_waves.csv"):
     BICS["lefthome_num"] = BICS["lefthome_num"].apply(recode_lefthome)
 
 
+
     # Set index for efficient querying
     BICS = BICS.reset_index(drop=True).sort_index()
 
@@ -115,12 +185,14 @@ BICS_global =  load_data()
 
 
 
+
 # @profile
-def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6, seed = 49) -> np.ndarray:
+def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6, seed = 49, polymod: np.ndarray = None) -> np.ndarray:
 
     np.random.seed(seed)
 
     colnames = {k:v for v, k in enumerate(colnames)}
+
 
     pop_list = list()
 
@@ -149,8 +221,11 @@ def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6,
                 hhmember_gender = hhead[colnames["resp_hh_roster#2_" + str(hhmember)]]
 
                 if hhmember_age == 0:
-                    # TODO: go to POLYMOD
-                    hhmember = pop
+                    if polymod is not None:
+                        hhmember = polymod[(polymod[:, colnames['agecat']] == hhmember_age) & (polymod[:, colnames['gender']] == hhmember_gender),:]
+
+                    else:
+                        hhmember = pop
                 elif hhmember_age == -1 or hhmember_gender == -1:
                     hhmember = pop
 
@@ -282,6 +357,8 @@ class Params(ctypes.Structure):
             ('SIGMA_MIN', ctypes.c_int),
             ('SIGMA_MAX', ctypes.c_int),
             ('BETA_VEC', ctypes.c_float*365),
+            ('CONTACT_MULT_VEC', ctypes.c_float*365),
+            ('SCHOOL_CONTACTS', ctypes.c_bool),
             ('MU_VEC', ctypes.c_float*9),
             ('INDEX_CASES', ctypes.c_int),
             ('IMPORT_CASES_VEC', ctypes.c_int*365),
@@ -311,6 +388,9 @@ class Params(ctypes.Structure):
         self.SIGMA_MAX = 7*24
         beta_vec = [0] * 365
         self.BETA_VEC = (ctypes.c_float * 365)(*beta_vec)
+        contact_mult_vec = [1] * 365
+        self.CONTACT_MULT_VEC = (ctypes.c_float * 365)(*contact_mult_vec)
+        self.SCHOOL_CONTACTS = 0
         mu = [0.00001, 0.0001, 0.0001, 0.001, 0.001, 0.001, 0.01, 0.1, 0.1]
         self.MU_VEC = (ctypes.c_float * 9)(*mu)
         self.INDEX_CASES = 5
@@ -379,7 +459,7 @@ class BICS_ABM:
 
     def __init__(self, n_hh = 1000, wave = 6,
             vax_rules = [VaccineRule(general=True, hesitancy = 0.5)], silent = False,
-            pop = None, **kwargs):
+            pop = None, POLYMOD = True, **kwargs):
 
         kwargs = {k.upper():v for k,v in kwargs.items()}
 
@@ -431,11 +511,16 @@ class BICS_ABM:
 
         self.seed = self._params.SEED
 
+        if POLYMOD:
+            self._POLYMOD = load_POLYMOD()
+            self._POLYMOD = create_vax_priority(self._POLYMOD, vax_rules, seed=self.seed)
+            _, self._POLYMOD = pop_to_np(self._POLYMOD)
+
         if pop is None:
             self._pop = BICS_global.loc[BICS_global.wave == self._params.WAVE,:].copy(deep=True)
             self._pop = create_vax_priority(self._pop, vax_rules, seed=self.seed)
             self._colnames, self._pop = pop_to_np(self._pop)
-            self._pop = create_pop(self._colnames, self._pop, n_hh = self._params.N_HH, seed=self.seed)
+            self._pop = create_pop(self._colnames, self._pop, n_hh = self._params.N_HH, seed=self.seed, polymod = self._POLYMOD)
 
         else:
             self._pop = pop
@@ -498,6 +583,34 @@ class BICS_ABM:
 
 
 if __name__ == "__main__" :
+    result = BICS_ABM(
+        # N_HH = 1000,
+        # SEED = 4949,
+        # RHO = 0.5,
+        ALPHA = 0.25,
+        BETA0 =0.5,
+        BETA1 = 1,
+        # T0 = 60,
+        # ISOLATION_MULTIPLIER = 1, #0.5,
+        # N_VAX_DAILY = 1500,
+        # T_REINFECTION = 24*180,
+        # IMPORT_CASES_VEC = [1 if i%7 == 0 else 0 for i in range(365)],
+        # vax_rules = [VaccineRule(general=True, hesitancy=.5)],
+        # VEBoost = 1,
+
+#         vax_rules = [
+#             VaccineRule("age > 80"),
+#             VaccineRule("age > 70"),
+#             VaccineRule("age > 60"),
+#             VaccineRule("age > 50", hesitancy = 0.5),
+#             VaccineRule("age > 40", hesitancy = 0.5),
+#             VaccineRule("age > 30", hesitancy = 0.5),
+#             VaccineRule(general = True, hesitancy = 0.5),
+#         ],
+        silent = False,
+        BOOSTER_DAY = 90,
+        # MAX_DAYS = 1*180
+        )
     """
     b0 = BICS_ABM()
     BICS_ABM(**{'N_HH': 1000,

@@ -55,6 +55,8 @@ extern "C" typedef struct Params {
     int SIGMA_MIN;
     int SIGMA_MAX;
     float BETA_VEC[365];
+    float CONTACT_MULT_VEC[365];
+    bool SCHOOL_CONTACTS;
     float MU_VEC[9];
     int INDEX_CASES;
     int IMPORT_CASES_VEC[365];

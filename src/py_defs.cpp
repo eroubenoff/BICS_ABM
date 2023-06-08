@@ -103,6 +103,7 @@ extern "C" /*struct Trajectory*/ void BICS_ABM(double *pop, size_t pop_size, siz
      * */
     // gen_pop_from_survey_csv(::database[params.WAVE], &graph, &params);
     create_graph_from_pop(&graph, pop, pop_size, n_cols);
+    print_attributes(&graph);
 
     /*
      * Run sim

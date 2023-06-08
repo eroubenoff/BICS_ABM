@@ -43,7 +43,12 @@ void print_params(const Params *params) {
     for (auto i: params->BETA_VEC) {
         cout << i << "  ";
     };
+    cout << "CONTACT_MULT_VEC:            ";
+    for (auto i: params->CONTACT_MULT_VEC) {
+        cout << i << "  ";
+    };
     cout << endl;
+    cout << "SCHOOL_CONTACTS:            " << params->SCHOOL_CONTACTS<< endl;
     cout << "MU_VEC:          ";
     for (auto i: params->MU_VEC) {
         cout << i << "  ";
