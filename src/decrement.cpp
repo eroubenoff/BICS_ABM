@@ -330,6 +330,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
 
     h->add_history(S_count, E_count, Ic_count, Cc, Isc_count, Csc, R_count, D_count, V1_count, V2_count, VW_count, VBoost_count, hh_count + random_count);
 
+
     if (print) {
         cout << "S: " << std::setw(5) << S_count << " | ";
         cout << "E: " << std::setw(5) << E_count << " | ";

@@ -506,6 +506,12 @@ class BICS_ABM:
                     v = (ctypes.c_int * 365)(* v)
                     setattr(self._params, k, v)
 
+                elif k == "CONTACT_MULT_VEC":
+                    if len(v) != 365:
+                        raise ValueError("Daily contact multipliers must be 365 element list of int")
+                    v = (ctypes.c_float * 365)(* v)
+                    setattr(self._params, k, v)
+
                 else:
                     setattr(self._params, k, v)
 
@@ -584,6 +590,15 @@ class BICS_ABM:
 
 if __name__ == "__main__" :
     result = BICS_ABM(
+        BETA0 = 0.1,
+        BETA1 = 0.5,
+        IMPORT_CASES_VEC = [1 if i%7 == 0 else 0 for i in range(365)],
+        CONTACT_MULT_VEC = [1+np.cos(2*i/365*np.pi) for i in range(365)],
+        MAX_DAYS = 365,
+        silent = False
+    )   
+    """
+    result = BICS_ABM(
         N_HH = 1000,
         SEED = 4949,
         RHO = 0.5,
@@ -610,6 +625,7 @@ if __name__ == "__main__" :
         silent = False,
         BOOSTER_DAY = 90,
         MAX_DAYS = 1*365)
+    """
     """
     b0 = BICS_ABM()
     BICS_ABM(**{'N_HH': 1000,

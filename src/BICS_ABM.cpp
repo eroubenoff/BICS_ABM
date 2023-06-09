@@ -69,6 +69,7 @@ void set_edge_attribute(igraph_t *g,
 void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
 
+
     int day; 
     int hr;
     igraph_bool_t connected;
@@ -131,6 +132,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             decrement(graph, history);
         }
+
         distribute_vax(graph, params->N_VAX_DAILY, 25*24, params->T_REINFECTION, false);
         for (hr = 8; hr < 24; hr++) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
@@ -181,6 +183,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
      * Run main sim 
      * */
 
+    cout << "Here! " << endl;
     while (run) {
         Cc = 0;
         Csc = 0;
@@ -252,14 +255,13 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
             vector<edgeinfo> hourly_contacts = daily_contacts[hr];
 
-
             for (auto c: hourly_contacts) {
                 // Confirm that nodes 1 and 2 are valid
                 if ((c.node1 < 0) | (c.node1 > igraph_vcount(graph))){
-                    throw runtime_error("Node 1 out of range");
+                    throw runtime_error("Node 1: " + to_string(c.node1) + " out of range");
                 }
                 if ((c.node2 < 0) | (c.node2 > igraph_vcount(graph))){
-                    throw runtime_error("Node 2 out of range");
+                    throw runtime_error("Node 2: " + to_string(c.node2) + " out of range");
                 }
 
                 ul.add_update(CreateEdge(c.node1, c.node2));
@@ -381,6 +383,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     }
 
     cout << endl;
+
 
 
     /* Garbage collect */

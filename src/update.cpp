@@ -242,7 +242,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
     igraph_vector_int_init(&new_edges, 0);
     igraph_vector_int_t edges_v;
     igraph_vector_int_init(&edges_v, 0);
-    igraph_es_t edges_es;
+
 
     // Begin with graph attributes
     // Don't bother with pulling the vectors of attributes
@@ -276,6 +276,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         _delete_edge_v[i].retrieve_eid(g);
     }
     if (_delete_edge_v.size() > 0 ) {
+        igraph_es_t edges_es;
 
         for (auto &u: _delete_edge_v) {
             // cout << "vid1: " << to_string(u.get_v1()) << " vid2: " << to_string(u.get_v2()) << " eid: " << to_string(u.get_eid()) << endl;
@@ -293,6 +294,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
 
         igraph_es_vector(&edges_es, &edges_v);
         igraph_delete_edges(g, edges_es);
+        igraph_es_destroy(&edges_es);
 
     }
 
@@ -411,7 +413,6 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
     igraph_vector_destroy(&vattr_v);
     igraph_vector_int_destroy(&new_edges);
     igraph_vector_int_destroy(&edges_v);
-    igraph_es_destroy(&edges_es);
 
 }
 

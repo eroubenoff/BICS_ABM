@@ -278,6 +278,8 @@ void random_contacts_duration(const igraph_t *g,
         float contact_multiplier,
         mt19937 &generator) {
 
+    int vcount = igraph_vcount(g);
+
     /* Create return object */
     ret.clear();
 
@@ -307,26 +309,40 @@ void random_contacts_duration(const igraph_t *g,
      *
      * */
     int sum = igraph_vector_int_sum(&stubs_count);
+    // Make a vector of nonzero counts
+    vector<int> nonzero_stubs; 
+    nonzero_stubs.reserve(igraph_vcount(g));
+    for (int i = 0; i < igraph_vector_int_size(&stubs_count); i++) {
+        if (VECTOR(stubs_count)[i] > 0) {
+            nonzero_stubs.push_back(i);
+        }
+    }
+
     if (sum % 2 == 1) { 
         // Pick a random index
         int tries = 0;
         int randomIndex;
         while (tries < 1000) {
-            randomIndex = rand() % igraph_vector_int_size(&stubs_count);
+            randomIndex = rand() % nonzero_stubs.size();
 
-            if (VECTOR(stubs_count)[randomIndex] > 1) {
-                VECTOR(stubs_count)[randomIndex] -= 1;
+            if (VECTOR(stubs_count)[nonzero_stubs[randomIndex] ] >= 1) {
+                VECTOR(stubs_count)[nonzero_stubs[randomIndex] ] -= 1;
                 break;
             }
             tries++;
         }
+
+        if (tries == 1000) {throw runtime_error("Max tries exceeded");}
     }
+
+    if (igraph_vector_int_sum(&stubs_count) == 0) {return;}
 
     /* Draw random graph */
     igraph_t new_graph;
-    // igraph_empty(&new_graph, 0, IGRAPH_UNDIRECTED);
-    igraph_degree_sequence_game(&new_graph, &stubs_count, NULL, IGRAPH_DEGSEQ_CONFIGURATION); 
+    igraph_empty(&new_graph, 0, IGRAPH_UNDIRECTED);
+    igraph_degree_sequence_game(&new_graph, &stubs_count, NULL, IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE); 
     // IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE); //IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE ); // IGRAPH_DEGSEQ_CONFIGURATION);
+    // igraph_realize_degree_sequence(&new_graph, &stubs_count, NULL, IGRAPH_SIMPLE_SW, IGRAPH_REALIZE_DEGSEQ_SMALLEST);
     /* Simplify graph */
     // igraph_simplify(&new_graph, true, true, NULL);
 
@@ -338,33 +354,46 @@ void random_contacts_duration(const igraph_t *g,
 
     /* Loop over each edge and extract the relevant information */
     edgeinfo ei;
-    igraph_es_t es;
-    igraph_es_all(&es, IGRAPH_EDGEORDER_ID);
-    igraph_eit_t eit;
-    igraph_eit_create(g, es, &eit);
     int current_edge;
-    while(!IGRAPH_EIT_END(eit)) {
-        current_edge = IGRAPH_EIT_GET(eit);
+    int from, to; 
+
+    // igraph_vector_int_t degree;
+    // igraph_vector_int_init(&degree, 0);
+    // igraph_degree(&new_graph, &degree, igraph_vss_all(), IGRAPH_ALL, IGRAPH_NO_LOOPS);
+
+    for (current_edge = 0; current_edge < igraph_ecount(&new_graph); current_edge++) {    
 
         int time = ToD(generator);
 
-        /* Extract FROM and TO */
-        ei = edgeinfo(
-            IGRAPH_FROM(&new_graph, current_edge),
-            IGRAPH_TO(&new_graph, current_edge)
-        );
+        // cout << "Edge ID: " << current_edge << endl;
+        from = IGRAPH_FROM(&new_graph, current_edge);
+        to = IGRAPH_TO(&new_graph, current_edge);
 
-        /* Append to return object */
-        ret[time].push_back(ei);
 
-        IGRAPH_EIT_NEXT(eit);
+        if ((from >= vcount ) || (to >= vcount) || (from < 0) || (to < 0) || (from == to)) {
+            continue;
+        } else {
+            ei = edgeinfo(from, to);
+            /*
+            cout << ei.print();
+            cout << " num_cc_nonhh of " << from << ": " << VAN(g, "num_cc_nonhh", from);
+            cout << " degree of " << from << ": " << VECTOR(degree)[from];
+            cout << " num_cc_nonhh of " << to << ": " << VAN(g, "num_cc_nonhh", to);
+            cout << " degreeof " << from << ": " << VECTOR(degree)[to];
+            cout << endl;
+            */
+            ret[time].push_back(ei);
+
+        }
+
     }
-    igraph_es_destroy(&es);
-    igraph_eit_destroy(&eit);
     igraph_vector_int_destroy(&stubs_count);
     igraph_vector_destroy(&num_cc_nonhh);
     igraph_vector_destroy(&ds_vec);
     igraph_destroy(&new_graph);
+
+    // igraph_vector_int_destroy(&degree);
+
 
 }
 

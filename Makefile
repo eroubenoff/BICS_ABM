@@ -5,6 +5,12 @@ run: CMakeLists.txt build/
 	# python BICS_ABM.py
 	./build/BICS_ABM
 
+py: CMakeLists.txt build/
+	clear
+	cmake . -B build/ 
+	cmake --build build/ 
+	python BICS_ABM.py
+
 xcode: CMakeLists.txt build/
 	clear
 	cmake . -B build/ 

@@ -88,7 +88,7 @@ extern "C" typedef struct Params {
  */
 // extern "C" Params init_params(); 
 void print_params(const Params *params); 
-extern "C" Params destroy_params(); 
+// extern "C" Params destroy_params(); 
 
 
 class History {
@@ -322,6 +322,7 @@ class edgeinfo{
             node2=n2;
         };
         edgeinfo(){};
+        string print(){return "Edge between: " + to_string(node1) + " and " + to_string(node2); }
 };
 /* Generates a single random graph of contacts,
  * accounting for isolation
