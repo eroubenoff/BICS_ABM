@@ -136,9 +136,6 @@ inline void decrement_VBoost(UpdateList &ul, int i, double tvw){
     }
 }
 
-inline void decrement_hh(int i){
-    return;
-}
 
 inline void decrement_random(UpdateList &ul, int i, double dur) {
 
@@ -287,6 +284,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
      * */
     int hh_count = 0; 
     int random_count = 0;
+    int school_count = 0;
     
     igraph_vector_t etypes;
     igraph_vector_init(&etypes, 0);
@@ -295,16 +293,22 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     igraph_vector_init(&durations, 0);
     EANV(g, "duration", &durations);
 
+
     for (int i = igraph_ecount(g); i--; ) {
+
+        //cout << VECTOR(etypes)[i];
         if (VECTOR(etypes)[i] == _Household) {
             hh_count++;
-            decrement_hh(i);
         }
         if (VECTOR(etypes)[i] == _Random) {
             random_count++;
             decrement_random(ul, i, VECTOR(durations)[i]);
         }
+        if (VECTOR(etypes)[i] == _School) {
+            school_count++;
+        }
     }
+    // cout<< endl;
 
     // Add graph attributes
     ul.add_update(UpdateGraphAttribute("S_count", S_count));
@@ -318,7 +322,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     ul.add_update(UpdateGraphAttribute("VW_count", VW_count));
     ul.add_update(UpdateGraphAttribute("VBoost_count", VBoost_count));
     ul.add_update(UpdateGraphAttribute("hh_ecount", hh_count));
-    // ul.add_update(UpdateGraphAttribute("work_ecount", work_count));
+    ul.add_update(UpdateGraphAttribute("school_ecount", school_count));
     ul.add_update(UpdateGraphAttribute("random_ecount", random_count));
 
     ul.add_updates_to_graph(g);
@@ -328,7 +332,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     igraph_vector_destroy(&durations);
 
 
-    h->add_history(S_count, E_count, Ic_count, Cc, Isc_count, Csc, R_count, D_count, V1_count, V2_count, VW_count, VBoost_count, hh_count + random_count);
+    h->add_history(S_count, E_count, Ic_count, Cc, Isc_count, Csc, R_count, D_count, V1_count, V2_count, VW_count, VBoost_count, hh_count + random_count + school_count);
 
 
     if (print) {
@@ -342,7 +346,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
         cout << "V2: " << std::setw(5) << V2_count << " | ";
         cout << "VW: " << std::setw(5) << VW_count << " | ";
         cout << "VBoost: " << std::setw(5) << VBoost_count << " | ";
-        cout << "Edge counts: " << "Household: " <<  setw(5) << hh_count << " Work " << setw(5) << " Random  " << setw(5) <<  random_count;
+        cout << "Edge counts: " << "Household: " <<  setw(5) << hh_count << " School" << setw(5) << school_count << " Random  " << setw(5) <<  random_count;
         cout << flush;
     }
 

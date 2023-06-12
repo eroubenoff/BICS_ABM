@@ -116,6 +116,8 @@ def load_POLYMOD(path="data/POLYMOD/"):
         'cnt_leisure': sum, 'cnt_otherplace': sum
     })
 
+    POLYMOD_contact['num_cc_school'] = POLYMOD_contact['cnt_school']
+    del POLYMOD_contact['cnt_school']
     POLYMOD_contact['num_cc_nonhh'] = POLYMOD_contact[[col for col in POLYMOD_contact if col.startswith('cnt_')]].sum(axis=1)
 
     # Join the contacts to the participants
@@ -172,6 +174,7 @@ def load_data(path="data/df_all_waves.csv"):
 
     BICS["lefthome_num"] = BICS["lefthome_num"].apply(recode_lefthome)
 
+    BICS["num_cc_school"] = 0
 
 
     # Set index for efficient querying
@@ -244,7 +247,7 @@ def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6,
     # Pull out the columns relevant and put everybody in a COLUMN-MAJOR (fortran-style) matrix!
     ret = np.stack(pop_list, axis = 0)
 
-    ret = ret[:, [colnames[x] for x in ["hhid", "agecat", "gender", "num_cc_nonhh", "lefthome_num", "vaccine_priority", "NPI"]]]
+    ret = ret[:, [colnames[x] for x in ["hhid", "agecat", "gender", "num_cc_nonhh", "num_cc_school", "lefthome_num", "vaccine_priority", "NPI"]]]
     ret = np.asfortranarray(ret)
 
     return ret
@@ -324,7 +327,7 @@ def pop_to_np(pop: pd.DataFrame):
     # All data types are numeric
 
     pop.loc[:,"hhid"] = 0
-    colnames = ["hhid", "agecat", "gender", "num_cc_nonhh",
+    colnames = ["hhid", "agecat", "gender", "num_cc_nonhh", "num_cc_school",
             "lefthome_num", "vaccine_priority", "weight_pooled", "hhsize", "NPI",
             "resp_hh_roster#1_1_1",
             "resp_hh_roster#1_2_1",
@@ -530,6 +533,9 @@ class BICS_ABM:
 
         else:
             self._pop = pop
+
+        pdb.set_trace()
+
 
         self._trajectory = Trajectory()
         # self._instance = _BICS_ABM.BICS_ABM(self._pop, *self._pop.shape, self._params, silent)

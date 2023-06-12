@@ -25,6 +25,9 @@ using namespace std;
 
 
 // VertexUpdate functions
+VertexUpdate::VertexUpdate(int vid) {
+    _vid = vid;
+}
 int VertexUpdate::get_vid() {
     return _vid;
 } 
@@ -77,6 +80,10 @@ void EdgeUpdate::retrieve_endpoints(igraph_t* g) {
 
 
 // AttributeUpdate functions
+AttributeUpdate::AttributeUpdate(string attr, int value) {
+    _attr = attr;
+    _value = value;
+}
 string AttributeUpdate::get_attr() {
     return _attr;
 } 
@@ -88,12 +95,30 @@ int AttributeUpdate::get_value() {
 // Derived classes
 //
 // GraphUpdate functions
+/*
 UpdateGraphAttribute::UpdateGraphAttribute(string attr, int value) {
     _attr = attr;
     _value = value;
 }
 
+*/
 // Edge functions
+EdgeUpdate::EdgeUpdate(int v1, int v2, bool break_on_failure){
+    if (v2 < v1) {swap(v1, v2);}
+    _v1 = v1;
+    _v2 = v2;
+    _eid = -1;
+    _eid_or_vpair = 1;
+    _break_on_failure = break_on_failure;
+}
+EdgeUpdate::EdgeUpdate(int eid, bool break_on_failure){
+    _v1 = -1;
+    _v2 = -1;
+    _eid = eid;
+    _eid_or_vpair = 0;
+    _break_on_failure = break_on_failure;
+}
+/*
 CreateEdge::CreateEdge(int v1, int v2) {
     if (v2 < v1) {swap(v1, v2);}
     _v1 = v1;
@@ -118,7 +143,9 @@ DeleteEdge::DeleteEdge(int eid, bool break_on_failure) {
     _eid_or_vpair = 0;
     _break_on_failure = break_on_failure;
 }
+*/
 
+/*
 UpdateEdgeAttribute::UpdateEdgeAttribute(int eid, string attr, int value) {
     _v1 = -1;
     _v2 = -1;
@@ -128,16 +155,18 @@ UpdateEdgeAttribute::UpdateEdgeAttribute(int eid, string attr, int value) {
     _attr = attr;
     _value = _value;
 }
-UpdateEdgeAttribute::UpdateEdgeAttribute(int v1, int v2, string attr, int value) {
+UpdateEdgeAttribute::UpdateEdgeAttribute(int v1, int v2, string attr, int value): EdgeUpdate(v1, v2), AttributeUpdate(attr, value){
     if (v2 < v1) {swap(v1, v2);}
     _v1 = v1;
     _v2 = v2;
     _eid = -1;
     _eid_or_vpair = 1;
     _break_on_failure = 1;
-    _attr = attr;
-    _value = _value;
+    // _attr = attr;
+    // _value = _value;
+    cout << "Edge between: " << v1 << " and " << v2 << ". Attr: " << _attr << " value: " << _value << endl;
 }
+*/
 
 /*
 void UpdateEdgeAttribute::retrieve_eid(igraph_t* g) {
@@ -174,11 +203,14 @@ void UpdateEdgeAttribute::retrieve_endpoints(igraph_t* g) {
 */
 
 // Vertex attribute
+// 
+/*
 UpdateVertexAttribute::UpdateVertexAttribute(int vid, string attr, int value) {
     _vid = vid;
     _attr = attr;
     _value = value;
 }
+*/
 
 
 /*
@@ -313,6 +345,8 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         unordered_set<string> eattrs;
         for (auto &i: _update_edge_attribute_v) {
             eattrs.insert(i.get_attr());
+
+            // cout << "eid: " <<  i.get_eid() << " attr: " << i.get_attr() << " val:  " << i.get_value() << endl;
         }
 
         for (auto &a: eattrs) {
@@ -323,7 +357,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
                 EANV(g, a.c_str(), &eattr_v);
             } else {
                 igraph_vector_resize(&eattr_v, igraph_ecount(g));
-                igraph_vector_null(&eattr_v);
+                igraph_vector_fill(&eattr_v, 0);
                 // throw invalid_argument("Edge attribute " + a+ " is not present in graph and must be added before update handlers");  
             }
             // Make the changes
@@ -332,6 +366,8 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
                     VECTOR(eattr_v)[i.get_eid()] = i.get_value();
                 }
             }
+
+            // for (int i = 0; i < igraph_vector_size(&eattr_v); i++) cout << VECTOR(eattr_v)[i]; cout << endl;
             // Push back to graph
             SETEANV(g, a.c_str(), &eattr_v);
         }

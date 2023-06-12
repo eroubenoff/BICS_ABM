@@ -83,6 +83,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     igraph_vector_int_init(&edges_to_delete, 0);
 
     print_params(params);
+    // print_attributes(graph);
     cout << "N vertices: " << igraph_vcount(graph) << endl;
 
     mt19937 generator(params->SEED);
@@ -119,9 +120,30 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     hh_ul.add_updates_to_graph(graph);
 
 
-
-
     decrement(graph, history);
+
+
+    /* 
+     * Generate school contacts 
+     * */ 
+    igraph_t school_contacts;
+    igraph_empty(&school_contacts, 0, IGRAPH_UNDIRECTED);
+    igraph_vector_t num_cc_school_;
+    igraph_vector_init(&num_cc_school_, igraph_vcount(graph));
+    VANV(graph, "num_cc_school", &num_cc_school_);
+    igraph_vector_int_t num_cc_school;
+    igraph_vector_int_init(&num_cc_school, igraph_vcount(graph));
+    for (int i = 0; i < igraph_vcount(graph); i++) {
+        VECTOR(num_cc_school)[i] = (int)VECTOR(num_cc_school_)[i];
+    }
+    make_stubcount_sum_even(num_cc_school);
+    igraph_degree_sequence_game(&school_contacts, &num_cc_school, NULL, IGRAPH_DEGSEQ_CONFIGURATION);
+    igraph_simplify(&school_contacts, true, true, NULL);
+    igraph_vector_destroy(&num_cc_school_);
+    igraph_vector_int_destroy(&num_cc_school);
+
+    UpdateList school_ul;
+
 
 
     /* 
@@ -183,7 +205,6 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
      * Run main sim 
      * */
 
-    cout << "Here! " << endl;
     while (run) {
         Cc = 0;
         Csc = 0;
@@ -236,6 +257,12 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         bool vboost = (day % 365) >= params->BOOSTER_DAY;
         distribute_vax(graph, params->N_VAX_DAILY, 25*24, params->T_REINFECTION, vboost);
         random_contacts_duration(graph, daily_contacts, params->ISOLATION_MULTIPLIER, params->CONTACT_MULT_VEC[day%365], generator);
+
+        // Connect school contacts
+        if (params->SCHOOL_CONTACTS) {
+            gen_school_contacts(graph, &school_contacts, school_ul, hh_lookup);
+            school_ul.add_updates_to_graph(graph);
+        }
 
         // Hours 8-16
         for (hr = 8; hr < 18; hr++){
@@ -300,6 +327,11 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
             }
 
             ul.add_updates_to_graph(graph);
+
+            /*
+            for (int i = 0; i < igraph_vcount(graph); i++) cout << EAN(graph, "type",i) << "  ";
+            cout << endl;
+            */
             ul.clear_updates();
 
             /* Transmit and decrement */
@@ -389,5 +421,6 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     /* Garbage collect */
     igraph_vector_int_destroy(&hourly_edges);
     igraph_vector_int_destroy(&edges_to_delete);
+    igraph_destroy(&school_contacts);
 
 }

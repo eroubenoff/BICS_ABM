@@ -259,6 +259,36 @@ void set_duration(igraph_t* g,
 
 
 
+void make_stubcount_sum_even(igraph_vector_int_t& stubs_count) {
+
+    int sum = igraph_vector_int_sum(&stubs_count);
+    // Make a vector of nonzero counts
+    vector<int> nonzero_stubs; 
+    nonzero_stubs.reserve(igraph_vector_int_size(&stubs_count));
+    for (int i = 0; i < igraph_vector_int_size(&stubs_count); i++) {
+        if (VECTOR(stubs_count)[i] > 0) {
+            nonzero_stubs.push_back(i);
+        }
+    }
+
+    if (sum % 2 == 1) { 
+        // Pick a random index
+        int tries = 0;
+        int randomIndex;
+        while (tries < 1000) {
+            randomIndex = rand() % nonzero_stubs.size();
+
+            if (VECTOR(stubs_count)[nonzero_stubs[randomIndex] ] >= 1) {
+                VECTOR(stubs_count)[nonzero_stubs[randomIndex] ] -= 1;
+                break;
+            }
+            tries++;
+        }
+
+        if (tries == 1000) {throw runtime_error("Max tries exceeded");}
+    }
+
+}
 
 
 
@@ -291,6 +321,7 @@ void random_contacts_duration(const igraph_t *g,
     igraph_vector_init(&ds_vec, igraph_vcount(g));
     VANV(g, "disease_status", &ds_vec);
 
+
     /* Create a vector of stubs count */
     igraph_vector_int_t stubs_count;
     igraph_vector_int_init(&stubs_count, igraph_vcount(g));
@@ -308,43 +339,18 @@ void random_contacts_duration(const igraph_t *g,
      * Make sure sum is an even number; otherwise decrease a random stub until it is 
      *
      * */
-    int sum = igraph_vector_int_sum(&stubs_count);
-    // Make a vector of nonzero counts
-    vector<int> nonzero_stubs; 
-    nonzero_stubs.reserve(igraph_vcount(g));
-    for (int i = 0; i < igraph_vector_int_size(&stubs_count); i++) {
-        if (VECTOR(stubs_count)[i] > 0) {
-            nonzero_stubs.push_back(i);
-        }
-    }
-
-    if (sum % 2 == 1) { 
-        // Pick a random index
-        int tries = 0;
-        int randomIndex;
-        while (tries < 1000) {
-            randomIndex = rand() % nonzero_stubs.size();
-
-            if (VECTOR(stubs_count)[nonzero_stubs[randomIndex] ] >= 1) {
-                VECTOR(stubs_count)[nonzero_stubs[randomIndex] ] -= 1;
-                break;
-            }
-            tries++;
-        }
-
-        if (tries == 1000) {throw runtime_error("Max tries exceeded");}
-    }
+    make_stubcount_sum_even(stubs_count);
 
     if (igraph_vector_int_sum(&stubs_count) == 0) {return;}
 
     /* Draw random graph */
     igraph_t new_graph;
     igraph_empty(&new_graph, 0, IGRAPH_UNDIRECTED);
-    igraph_degree_sequence_game(&new_graph, &stubs_count, NULL, IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE); 
+    igraph_degree_sequence_game(&new_graph, &stubs_count, NULL, IGRAPH_DEGSEQ_CONFIGURATION); 
     // IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE); //IGRAPH_DEGSEQ_FAST_HEUR_SIMPLE ); // IGRAPH_DEGSEQ_CONFIGURATION);
     // igraph_realize_degree_sequence(&new_graph, &stubs_count, NULL, IGRAPH_SIMPLE_SW, IGRAPH_REALIZE_DEGSEQ_SMALLEST);
     /* Simplify graph */
-    // igraph_simplify(&new_graph, true, true, NULL);
+    igraph_simplify(&new_graph, true, true, NULL);
 
     /* Time of day */
     uniform_int_distribution<int> ToD(8,18);
@@ -638,5 +644,34 @@ void gen_hh_edges(igraph_t *graph, UpdateList &hh_ul, unordered_map<int, vector<
 
 }
 
+
+void gen_school_contacts(
+        igraph_t* graph, 
+        igraph_t* school_contacts, 
+        UpdateList &school_ul, 
+        unordered_map<int, vector<int>>&hh_lookup) {
+
+    school_ul.clear_updates();
+
+    // Pull disease status
+    igraph_vector_t disease_status;
+    igraph_vector_init(&disease_status, 0);
+    VANV(graph, "disease_status", &disease_status);
+
+    for (int i = 0; i < igraph_ecount(school_contacts); i++) {
+        if (VECTOR(disease_status)[IGRAPH_FROM(school_contacts, i) ] == _Ic || 
+            VECTOR(disease_status)[IGRAPH_TO(school_contacts,i) ] == _Ic) {
+            continue;
+        }
+        else {
+            school_ul.add_update(CreateEdge(IGRAPH_FROM(school_contacts, i), IGRAPH_TO(school_contacts, i)));
+            school_ul.add_update(UpdateEdgeAttribute(IGRAPH_FROM(school_contacts, i), IGRAPH_TO(school_contacts, i), "type", _School));
+            disconnect_hh(graph, school_ul, hh_lookup, IGRAPH_FROM(school_contacts, i));
+            disconnect_hh(graph, school_ul, hh_lookup, IGRAPH_TO(school_contacts, i));
+        }
+    }
+
+    igraph_vector_destroy(&disease_status);
+}
 
 

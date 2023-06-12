@@ -31,9 +31,9 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
     igraph_add_vertices(g, pop_size, 0);
 
     igraph_vector_t col;
-    vector<string> colnames = {"hhid", "age", "gender", "num_cc_nonhh", "lefthome_num", "vaccine_priority", "NPI"};
+    vector<string> colnames = {"hhid", "age", "gender", "num_cc_nonhh", "num_cc_school", "lefthome_num", "vaccine_priority", "NPI"};
 
-    for (int c = 0; c < n_cols; c++){
+    for (int c = 0; c < colnames.size(); c++){
         // cout << colnames[c] << endl;
         igraph_vector_init_array(&col, &pop[c * pop_size], pop_size); // Might have to check the pointer arithmetic
 
@@ -68,6 +68,7 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
 
 
     igraph_vector_destroy(&col);
+
 }
 
 

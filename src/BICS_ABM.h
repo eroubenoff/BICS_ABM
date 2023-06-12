@@ -28,8 +28,9 @@ using namespace std;
 #define _V2 2
 #define _VW 3
 #define _VBoost 4
-#define _Random 2
 #define _Household 1
+#define _Random 2
+#define _School 3
 #define _In 0
 #define _Out 1
 #define _dur_lt1m 1/60
@@ -121,15 +122,16 @@ class History {
 // Base classes
 class Update {};
 
-class VertexUpdate: public Update {
+class VertexUpdate: virtual public Update {
     protected:
         int _vid;
     public: 
         VertexUpdate(){};
+        VertexUpdate(int vid);
         int get_vid(); 
 };
 
-class EdgeUpdate: public Update {
+class EdgeUpdate: virtual public Update {
     protected:
         int _v1;
         int _v2;
@@ -138,6 +140,8 @@ class EdgeUpdate: public Update {
         bool _break_on_failure;
     public:
         EdgeUpdate(){};
+        EdgeUpdate(int v1, int v2, bool break_on_failure = false);
+        EdgeUpdate(int eid, bool break_on_failure = true);
         int get_v1(); 
         int get_v2(); 
         int get_eid(); 
@@ -153,6 +157,7 @@ class AttributeUpdate: public Update {
         int _value;
     public: 
         AttributeUpdate(){};
+        AttributeUpdate(string attr, int value);
         string get_attr();
         int get_value();
 };
@@ -168,7 +173,7 @@ class AttributeUpdate: public Update {
 class UpdateGraphAttribute: public AttributeUpdate {
     public:
         UpdateGraphAttribute() {};
-        UpdateGraphAttribute(string attr, int value);
+        UpdateGraphAttribute(string attr, int value): AttributeUpdate(attr, value){};
 };
 
 /*
@@ -181,7 +186,7 @@ class UpdateGraphAttribute: public AttributeUpdate {
 class CreateEdge: public EdgeUpdate {
     public: 
         CreateEdge() {};
-        CreateEdge(int v1, int v2);
+        CreateEdge(int v1, int v2): EdgeUpdate(v1, v2){};
 };
 
 /* 
@@ -195,8 +200,8 @@ class CreateEdge: public EdgeUpdate {
 class DeleteEdge: public EdgeUpdate {
     public: 
         DeleteEdge() {};
-        DeleteEdge(int v1, int v2, bool break_on_failure = false);
-        DeleteEdge(int eid, bool break_on_failure = true);
+        DeleteEdge(int v1, int v2, bool break_on_failure = false): EdgeUpdate(v1, v2, break_on_failure){};
+        DeleteEdge(int eid, bool break_on_failure = true): EdgeUpdate(eid, break_on_failure){};
 };
 
 /* 
@@ -208,8 +213,8 @@ class DeleteEdge: public EdgeUpdate {
 class UpdateEdgeAttribute: public EdgeUpdate, public AttributeUpdate {
     public: 
         UpdateEdgeAttribute() {};
-        UpdateEdgeAttribute(int eid, string attr, int value);
-        UpdateEdgeAttribute(int v1, int v2, string attr, int value);
+        UpdateEdgeAttribute(int eid, string attr, int value): EdgeUpdate(eid), AttributeUpdate(attr, value){};
+        UpdateEdgeAttribute(int v1, int v2, string attr, int value): EdgeUpdate(v1, v2), AttributeUpdate(attr, value){};
 };
 
 
@@ -221,7 +226,7 @@ class UpdateEdgeAttribute: public EdgeUpdate, public AttributeUpdate {
 class UpdateVertexAttribute: public VertexUpdate, public AttributeUpdate {
     public: 
         UpdateVertexAttribute() {};
-        UpdateVertexAttribute(int vid, string attr, int value);
+        UpdateVertexAttribute(int vid, string attr, int value): VertexUpdate(vid), AttributeUpdate(attr, value){};
 };
 
 /*
@@ -377,4 +382,10 @@ void set_edge_attribute(igraph_t *g,
 
 
 
+void gen_school_contacts(
+        igraph_t* graph, 
+        igraph_t* school_contacts, 
+        UpdateList &school_ul, 
+        unordered_map<int, vector<int>>&hh_lookup);
 
+void make_stubcount_sum_even(igraph_vector_int_t& stubs_count); 
