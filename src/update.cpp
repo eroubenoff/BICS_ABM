@@ -49,45 +49,46 @@ bool EdgeUpdate::break_on_failure() {
     return _break_on_failure;
 }
 void EdgeUpdate::retrieve_eid(igraph_t* g) {
-    if (_eid_or_vpair == 1) {
-        igraph_integer_t eid;
-        igraph_get_eid(g, &eid, _v1, _v2, false, false);
-        _eid = eid;
-    }
+
+    if ((_v1 == -1 ) || (_v2 == -1)) return;
+
+    igraph_integer_t eid;
+    igraph_get_eid(g, &eid, _v1, _v2, false, false);
+    _eid = eid;
+
     if ((_eid == -1) & (_break_on_failure) ) {
-        print_attributes(g);
+        // print_attributes(g);
         throw invalid_argument("Error called from DeleteEdge::retrieve_eid: No edge between " + to_string(_v1) + ", " + to_string(_v2) + " present in graph");
     }
 }
 void EdgeUpdate::retrieve_endpoints(igraph_t* g) {
-    if (_eid_or_vpair == 0) {
-        if (_eid > igraph_ecount(g)) {
-            if (_break_on_failure) {
-                print_attributes(g);
-                throw invalid_argument("Error called from DeleteEdge::retrieve_endoints: Edge id " + to_string(_eid) + " not present in graph");
-            }
-            else {
-                _v1 = -1;
-                _v2 = -1;
-            }
-        } else {
-            _v1 = IGRAPH_FROM(g, _eid);
-            _v2 = IGRAPH_TO(g, _eid);
-            if (_v2 < _v1) {swap(_v1, _v2);}
+    if (_eid == -1) return; 
+    if (_eid > igraph_ecount(g)) {
+        if (_break_on_failure) {
+            // print_attributes(g);
+            throw invalid_argument("Error called from DeleteEdge::retrieve_endoints: Edge id " + to_string(_eid) + " not present in graph");
         }
+        else {
+            _v1 = -1;
+            _v2 = -1;
+        }
+    } else {
+        _v1 = IGRAPH_FROM(g, _eid);
+        _v2 = IGRAPH_TO(g, _eid);
+        if (_v2 < _v1) {swap(_v1, _v2);}
     }
 }
 
 
 // AttributeUpdate functions
-AttributeUpdate::AttributeUpdate(string attr, int value) {
+AttributeUpdate::AttributeUpdate(string attr, double value) {
     _attr = attr;
     _value = value;
 }
 string AttributeUpdate::get_attr() {
     return _attr;
 } 
-int AttributeUpdate::get_value() {
+double AttributeUpdate::get_value() {
     return _value;
 }
 
@@ -96,7 +97,7 @@ int AttributeUpdate::get_value() {
 //
 // GraphUpdate functions
 /*
-UpdateGraphAttribute::UpdateGraphAttribute(string attr, int value) {
+UpdateGraphAttribute::UpdateGraphAttribute(string attr, double value) {
     _attr = attr;
     _value = value;
 }
@@ -146,7 +147,7 @@ DeleteEdge::DeleteEdge(int eid, bool break_on_failure) {
 */
 
 /*
-UpdateEdgeAttribute::UpdateEdgeAttribute(int eid, string attr, int value) {
+UpdateEdgeAttribute::UpdateEdgeAttribute(int eid, string attr, double value) {
     _v1 = -1;
     _v2 = -1;
     _eid = eid;
@@ -155,7 +156,7 @@ UpdateEdgeAttribute::UpdateEdgeAttribute(int eid, string attr, int value) {
     _attr = attr;
     _value = _value;
 }
-UpdateEdgeAttribute::UpdateEdgeAttribute(int v1, int v2, string attr, int value): EdgeUpdate(v1, v2), AttributeUpdate(attr, value){
+UpdateEdgeAttribute::UpdateEdgeAttribute(int v1, int v2, string attr, double value): EdgeUpdate(v1, v2), AttributeUpdate(attr, value){
     if (v2 < v1) {swap(v1, v2);}
     _v1 = v1;
     _v2 = v2;
@@ -205,7 +206,7 @@ void UpdateEdgeAttribute::retrieve_endpoints(igraph_t* g) {
 // Vertex attribute
 // 
 /*
-UpdateVertexAttribute::UpdateVertexAttribute(int vid, string attr, int value) {
+UpdateVertexAttribute::UpdateVertexAttribute(int vid, string attr, double value) {
     _vid = vid;
     _attr = attr;
     _value = value;
@@ -248,8 +249,15 @@ void UpdateList::clear_updates() {
     _delete_edge_v.clear();
     _update_edge_attribute_v.clear();
     _update_vertex_attribute_v.clear();
+
+    _update_graph_attribute_v.reserve(100);
+    _create_edge_v.reserve(500);
+    _delete_edge_v.reserve(100);
+    _update_edge_attribute_v.reserve(100);
+    _update_vertex_attribute_v.reserve(500);
 }
 void UpdateList::add_updates_to_graph(igraph_t *g) {
+    // cout << _updates() << endl;
     igraph_vector_int_t gtypes, vtypes, etypes;
     igraph_strvector_t gnames, vnames, enames;
     igraph_vector_int_init(&gtypes, 0);
@@ -266,15 +274,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
 
 
 
-    igraph_vector_t eattr_v;
-    igraph_vector_init(&eattr_v, 0);
-    igraph_vector_t vattr_v;
-    igraph_vector_init(&vattr_v, 0);
-    igraph_vector_int_t new_edges;
-    igraph_vector_int_init(&new_edges, 0);
-    igraph_vector_int_t edges_v;
-    igraph_vector_int_init(&edges_v, 0);
-
+    // cout << "Adding graph updates" << endl;
 
     // Begin with graph attributes
     // Don't bother with pulling the vectors of attributes
@@ -286,56 +286,94 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         }
     }
 
-    // Create any needed edges
-    if (_create_edge_v.size() > 0) {
-
-        for (auto &u: _create_edge_v) {
-            igraph_vector_int_push_back(&new_edges, u.get_v1());
-            igraph_vector_int_push_back(&new_edges, u.get_v2());
-        }
-        
-        igraph_add_edges(g, &new_edges, NULL);
-
-    }
-
-    // Delete any edges (do this by EID instead of end points)
-    // First, for all edge updates, make sure we are working with 
-    // edge endpoints rather than edge ids. This makes it much
-    // more safe-- what if an edge gets deleted,etc. 
-
+    // cout << "Getting endpoints for delete edge vector" << endl;
     for (int i = 0; i < _delete_edge_v.size(); i++) {
         _delete_edge_v[i].retrieve_endpoints(g);
-        _delete_edge_v[i].retrieve_eid(g);
+        // _delete_edge_v[i].retrieve_eid(g);
     }
+    // cout << "Getting endpoints for update edge attribute vector" << endl;
+    for (int i = 0; i < _update_edge_attribute_v.size(); i++) {
+        _update_edge_attribute_v[i].retrieve_endpoints(g);
+        // _update_edge_attribute_v[i].retrieve_eid(g);
+    }
+
+    //  << "Deleting edges" << endl;
+    igraph_vector_int_t edges_to_delete_v;
+    igraph_vector_int_init(&edges_to_delete_v, 0);
+    igraph_vector_int_reserve(&edges_to_delete_v, 2*_delete_edge_v.size() + 100);
+    // Delete any edges (do this by end points)
     if (_delete_edge_v.size() > 0 ) {
         igraph_es_t edges_es;
 
-        for (auto &u: _delete_edge_v) {
+        for (auto u: _delete_edge_v) {
             // cout << "vid1: " << to_string(u.get_v1()) << " vid2: " << to_string(u.get_v2()) << " eid: " << to_string(u.get_eid()) << endl;
             if ((u.get_v1() == -1) | (u.get_v2() == -1) | (u.get_eid() == -1)) {
                 if (u.break_on_failure()) {
-                    print_attributes(g);
                     throw invalid_argument("Error called from UpdateList::add_updates_to_graph: No edge between " + 
                             to_string(u.get_v1() ) + ", " + to_string(u.get_v2()) + " present in graph");
                 }
-            } else {
 
-                igraph_vector_int_push_back(&edges_v, u.get_eid());
-            }
+            } else {
+                if (u.get_v1() == u.get_v2()) continue;
+
+                // cout << u.get_v1() << "  " << u.get_v2() << endl;
+
+                igraph_vector_int_push_back(&edges_to_delete_v, u.get_v1());
+
+                // cout << "Done..." << endl;
+                igraph_vector_int_push_back(&edges_to_delete_v, u.get_v2());
+
+                // cout << "Done!" << endl;
+           }
         }
 
-        igraph_es_vector(&edges_es, &edges_v);
+        // for (int i = 0; i < igraph_vector_int_size(&edges_to_delete_v); i++) cout << VECTOR(edges_to_delete_v)[i] << endl;
+
+        igraph_es_pairs(&edges_es, &edges_to_delete_v, false);
         igraph_delete_edges(g, edges_es);
         igraph_es_destroy(&edges_es);
 
     }
+    igraph_vector_int_destroy(&edges_to_delete_v);
+
+    // cout << "Creating edges" << endl;
+    igraph_vector_int_t new_edges;
+    igraph_vector_int_init(&new_edges, 0);
+    igraph_vector_int_reserve(&new_edges, 2*_create_edge_v.size()+100);
+
+    // Create any needed edges
+    if (_create_edge_v.size() > 0) {
+
+        for (auto &u: _create_edge_v) {
+            // cout << u.get_v1() << "  " << u.get_v2() << endl;
+            igraph_vector_int_push_back(&new_edges, u.get_v1());
+            igraph_vector_int_push_back(&new_edges, u.get_v2());
+        }
+        
+        // for (int i = 0; i < igraph_vector_int_size(&new_edges); i++) cout << VECTOR(new_edges)[i] << "  ";
+        // cout << endl;
+        
+        // cout << "Adding edges" << endl;
+        igraph_add_edges(g, &new_edges, NULL);
+        // cout << "Done" << endl;
+
+    }
+    igraph_vector_int_destroy(&new_edges);
 
     // Update edge attributes
-    // First retrieve all eids/end points
+    // First make sure we have all edge ids. This step
+    // has to be done by edge id, where the delete step can 
+    // be done by end points.
+    // cout << "Updating edge attributes: Getting eids" << endl;
     for (int i = 0; i < _update_edge_attribute_v.size(); i++) {
-        _update_edge_attribute_v[i].retrieve_endpoints(g);
+        // _update_edge_attribute_v[i].retrieve_endpoints(g);
         _update_edge_attribute_v[i].retrieve_eid(g);
     }
+    // cout << "Update edge attributes" << endl;
+
+    igraph_vector_t eattr_v;
+    igraph_vector_init(&eattr_v, 0);
+    igraph_vector_reserve(&eattr_v, _update_edge_attribute_v.size()+100);
 
     if (_update_edge_attribute_v.size() > 0) {
         // To do this we first need to collect 
@@ -363,7 +401,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
             // Make the changes
             for (auto &i: _update_edge_attribute_v) {
                 if (i.get_attr() == a) {
-                    VECTOR(eattr_v)[i.get_eid()] = i.get_value();
+                    VECTOR(eattr_v)[i.get_eid()] = (int) i.get_value();
                 }
             }
 
@@ -373,9 +411,15 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         }
 
     }
+    igraph_vector_destroy(&eattr_v);
 
 
+    // cout << "Updating Vertex Attributes" << endl;
     // Update vertex attributes
+    igraph_vector_t vattr_v;
+    igraph_vector_init(&vattr_v, 0);
+    igraph_vector_reserve(&vattr_v, _update_vertex_attribute_v.size()+100);
+
     if (_update_vertex_attribute_v.size() > 0) {
         // To do this we first need to collect 
         // all of the attribute updates into a map
@@ -383,11 +427,13 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
 
         // New method: create a vector of the edge attribute names
 
+        // cout << "Here 10.11" << endl;
         vector<string> vupdate_types;
         vupdate_types.reserve(_update_vertex_attribute_v.size());
         for (auto &i: _update_vertex_attribute_v) {
             vupdate_types.push_back(i.get_attr());
         }
+        // cout << "Here 10.12" << endl;
 
         // Create hash of vnames
         map<string,int> vnames_map;
@@ -395,25 +441,19 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
             vnames_map[STR(vnames, i)] = i;
         }
 
+        // cout << "Here 10.13" << endl;
         // Then hash the location of each type. This is done in parallel
         // with the vnames vector pulled from the graph
         vector<vector<int>> vattr_lookup(igraph_strvector_size(&vnames), vector<int>(0));
 
 
+        // cout << "Here 10.1" << endl;
         for (int j = 0; j < vupdate_types.size(); j++) {
             vattr_lookup[vnames_map[vupdate_types[j]]].push_back(j);
-            /*
-            for (int i = 0; i < igraph_strvector_size(&vnames); i++) {
-                // Small optimization to avoid having to call strcmp and c_str, which are slow
-                if (vupdate_types[j][0] == STR(vnames,i)[0] && strcmp(vupdate_types[j].c_str(), STR(vnames,i))==0) {
-                    vattr_lookup[i].push_back(j);
-                    continue;
-                }
-            }
-            */
         }
 
 
+        // cout << "Here 10.2" << endl;
         // for (auto &a: vattr_map) {
         string vname;
         for (int i=0; i < igraph_strvector_size(&vnames); i++) {
@@ -435,7 +475,9 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
             // Push back to graph
             SETVANV(g, vname.c_str(), &vattr_v);
         }
+        // cout << "Here 10.3" << endl;
     }
+    igraph_vector_destroy(&vattr_v);
 
 
 
@@ -445,10 +487,8 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
     igraph_vector_int_destroy(&etypes);
     igraph_vector_int_destroy(&vtypes);
     igraph_vector_int_destroy(&gtypes);
-    igraph_vector_destroy(&eattr_v);
-    igraph_vector_destroy(&vattr_v);
-    igraph_vector_int_destroy(&new_edges);
-    igraph_vector_int_destroy(&edges_v);
+
+    // cout << "Update completed" << endl;
 
 }
 

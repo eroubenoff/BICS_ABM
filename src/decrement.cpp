@@ -142,8 +142,7 @@ inline void decrement_random(UpdateList &ul, int i, double dur) {
     if (dur <= _dur_lt1hr) {
         ul.add_update(DeleteEdge(i));
     }
-
-    if (dur > _dur_lt1hr) {
+    else if (dur > _dur_lt1hr) {
         ul.add_update(UpdateEdgeAttribute(i, "duration", dur - 1));
 
     } else {
@@ -325,6 +324,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     ul.add_update(UpdateGraphAttribute("school_ecount", school_count));
     ul.add_update(UpdateGraphAttribute("random_ecount", random_count));
 
+    // cout << ul.print_updates() << endl;
     ul.add_updates_to_graph(g);
     ul.clear_updates();
 

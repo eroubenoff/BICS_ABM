@@ -117,6 +117,8 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
     gen_hh_edges(graph, hh_ul, hh_lookup);
 
+    cout << hh_ul.print_updates() << endl;
+
     hh_ul.add_updates_to_graph(graph);
 
 
@@ -183,6 +185,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     decrement(graph, history);
 
     
+    cout << "Here 2" << endl;
     /* 
      * Set flags indicating if there is a time series of 
      * index cases or not 
@@ -210,8 +213,8 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         Csc = 0;
 
         /* Reset all edges */
-        igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
-        hh_ul.add_updates_to_graph(graph);
+        // igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
+        // hh_ul.add_updates_to_graph(graph);
 
         /* 
          * If there is a daily seasonal forcing of Beta, 
@@ -259,7 +262,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         random_contacts_duration(graph, daily_contacts, params->ISOLATION_MULTIPLIER, params->CONTACT_MULT_VEC[day%365], generator);
 
         // Connect school contacts
-        if (params->SCHOOL_CONTACTS) {
+        if (params->SCHOOL_CONTACTS && ((day % 365 < 152 ) || (day % 365 > 244)) ) {
             gen_school_contacts(graph, &school_contacts, school_ul, hh_lookup);
             school_ul.add_updates_to_graph(graph);
         }
@@ -326,6 +329,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
             }
 
+
             ul.add_updates_to_graph(graph);
 
             /*
@@ -378,6 +382,8 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         }
 
         igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
+        // hh_ul.clear_updates();
+        // gen_hh_edges(graph, hh_ul, hh_lookup);
         hh_ul.add_updates_to_graph(graph);
 
         // Hours 18-24

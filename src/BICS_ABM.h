@@ -154,12 +154,12 @@ class EdgeUpdate: virtual public Update {
 class AttributeUpdate: public Update {
     protected:
         string _attr;
-        int _value;
+        double _value;
     public: 
         AttributeUpdate(){};
-        AttributeUpdate(string attr, int value);
+        AttributeUpdate(string attr, double );
         string get_attr();
-        int get_value();
+        double get_value();
 };
 
 
@@ -173,7 +173,7 @@ class AttributeUpdate: public Update {
 class UpdateGraphAttribute: public AttributeUpdate {
     public:
         UpdateGraphAttribute() {};
-        UpdateGraphAttribute(string attr, int value): AttributeUpdate(attr, value){};
+        UpdateGraphAttribute(string attr, double value): AttributeUpdate(attr, value){};
 };
 
 /*
@@ -213,8 +213,8 @@ class DeleteEdge: public EdgeUpdate {
 class UpdateEdgeAttribute: public EdgeUpdate, public AttributeUpdate {
     public: 
         UpdateEdgeAttribute() {};
-        UpdateEdgeAttribute(int eid, string attr, int value): EdgeUpdate(eid), AttributeUpdate(attr, value){};
-        UpdateEdgeAttribute(int v1, int v2, string attr, int value): EdgeUpdate(v1, v2), AttributeUpdate(attr, value){};
+        UpdateEdgeAttribute(int eid, string attr, double value): EdgeUpdate(eid), AttributeUpdate(attr, value){};
+        UpdateEdgeAttribute(int v1, int v2, string attr, double value): EdgeUpdate(v1, v2), AttributeUpdate(attr, value){};
 };
 
 
@@ -226,7 +226,7 @@ class UpdateEdgeAttribute: public EdgeUpdate, public AttributeUpdate {
 class UpdateVertexAttribute: public VertexUpdate, public AttributeUpdate {
     public: 
         UpdateVertexAttribute() {};
-        UpdateVertexAttribute(int vid, string attr, int value): VertexUpdate(vid), AttributeUpdate(attr, value){};
+        UpdateVertexAttribute(int vid, string attr, double value): VertexUpdate(vid), AttributeUpdate(attr, value){};
 };
 
 /*
