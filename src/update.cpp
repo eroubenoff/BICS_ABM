@@ -51,6 +51,7 @@ bool EdgeUpdate::break_on_failure() {
 void EdgeUpdate::retrieve_eid(igraph_t* g) {
 
     if ((_v1 == -1 ) || (_v2 == -1)) return;
+    if (_eid > -1) return;
 
     igraph_integer_t eid;
     igraph_get_eid(g, &eid, _v1, _v2, false, false);
@@ -63,6 +64,7 @@ void EdgeUpdate::retrieve_eid(igraph_t* g) {
 }
 void EdgeUpdate::retrieve_endpoints(igraph_t* g) {
     if (_eid == -1) return; 
+    if (_v1 > -1  && _v2 > -1) return;
     if (_eid > igraph_ecount(g)) {
         if (_break_on_failure) {
             // print_attributes(g);
@@ -274,8 +276,6 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
 
 
 
-    // cout << "Adding graph updates" << endl;
-
     // Begin with graph attributes
     // Don't bother with pulling the vectors of attributes
     // here. There usually aren't that many graph updates
@@ -289,15 +289,12 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
     // cout << "Getting endpoints for delete edge vector" << endl;
     for (int i = 0; i < _delete_edge_v.size(); i++) {
         _delete_edge_v[i].retrieve_endpoints(g);
-        // _delete_edge_v[i].retrieve_eid(g);
     }
     // cout << "Getting endpoints for update edge attribute vector" << endl;
     for (int i = 0; i < _update_edge_attribute_v.size(); i++) {
         _update_edge_attribute_v[i].retrieve_endpoints(g);
-        // _update_edge_attribute_v[i].retrieve_eid(g);
     }
 
-    //  << "Deleting edges" << endl;
     igraph_vector_int_t edges_to_delete_v;
     igraph_vector_int_init(&edges_to_delete_v, 0);
     igraph_vector_int_reserve(&edges_to_delete_v, 2*_delete_edge_v.size() + 100);
@@ -336,7 +333,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
     }
     igraph_vector_int_destroy(&edges_to_delete_v);
 
-    // cout << "Creating edges" << endl;
+
     igraph_vector_int_t new_edges;
     igraph_vector_int_init(&new_edges, 0);
     igraph_vector_int_reserve(&new_edges, 2*_create_edge_v.size()+100);
@@ -350,13 +347,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
             igraph_vector_int_push_back(&new_edges, u.get_v2());
         }
         
-        // for (int i = 0; i < igraph_vector_int_size(&new_edges); i++) cout << VECTOR(new_edges)[i] << "  ";
-        // cout << endl;
-        
-        // cout << "Adding edges" << endl;
         igraph_add_edges(g, &new_edges, NULL);
-        // cout << "Done" << endl;
-
     }
     igraph_vector_int_destroy(&new_edges);
 
@@ -364,12 +355,18 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
     // First make sure we have all edge ids. This step
     // has to be done by edge id, where the delete step can 
     // be done by end points.
-    // cout << "Updating edge attributes: Getting eids" << endl;
-    for (int i = 0; i < _update_edge_attribute_v.size(); i++) {
-        // _update_edge_attribute_v[i].retrieve_endpoints(g);
+    bool connected;
+    for (int i = _update_edge_attribute_v.size(); i--;) {
+        // Need to check that each edge we're updating is still
+        // in the graph and wasn't deleted above
+
+        igraph_are_connected(g, _update_edge_attribute_v[i].get_v1(), _update_edge_attribute_v[i].get_v2(), &connected); 
+        if (!connected) {
+            _update_edge_attribute_v.erase(_update_edge_attribute_v.begin() + i);
+        }
         _update_edge_attribute_v[i].retrieve_eid(g);
     }
-    // cout << "Update edge attributes" << endl;
+
 
     igraph_vector_t eattr_v;
     igraph_vector_init(&eattr_v, 0);
@@ -383,8 +380,6 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         unordered_set<string> eattrs;
         for (auto &i: _update_edge_attribute_v) {
             eattrs.insert(i.get_attr());
-
-            // cout << "eid: " <<  i.get_eid() << " attr: " << i.get_attr() << " val:  " << i.get_value() << endl;
         }
 
         for (auto &a: eattrs) {
@@ -401,11 +396,11 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
             // Make the changes
             for (auto &i: _update_edge_attribute_v) {
                 if (i.get_attr() == a) {
-                    VECTOR(eattr_v)[i.get_eid()] = (int) i.get_value();
+                    // igraph_vector_set(&eattr_v, i.get_eid(), (igraph_real_t) i.get_value());
+                    VECTOR(eattr_v)[i.get_eid()] = (igraph_real_t) i.get_value();
                 }
             }
 
-            // for (int i = 0; i < igraph_vector_size(&eattr_v); i++) cout << VECTOR(eattr_v)[i]; cout << endl;
             // Push back to graph
             SETEANV(g, a.c_str(), &eattr_v);
         }
@@ -488,7 +483,6 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
     igraph_vector_int_destroy(&vtypes);
     igraph_vector_int_destroy(&gtypes);
 
-    // cout << "Update completed" << endl;
 
 }
 

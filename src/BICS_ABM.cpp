@@ -82,6 +82,11 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     igraph_vector_int_t edges_to_delete;
     igraph_vector_int_init(&edges_to_delete, 0);
 
+    // For connecting/disconnecting hhs
+    igraph_integer_t degree; 
+    vector<int> reconnect_hhs; 
+    reconnect_hhs.reserve(igraph_vcount(graph));
+
     print_params(params);
     // print_attributes(graph);
     cout << "N vertices: " << igraph_vcount(graph) << endl;
@@ -117,10 +122,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
     gen_hh_edges(graph, hh_ul, hh_lookup);
 
-    cout << hh_ul.print_updates() << endl;
-
     hh_ul.add_updates_to_graph(graph);
-
 
     decrement(graph, history);
 
@@ -322,7 +324,6 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
                         break;
                 }
 
-
                 // Disconnect node1 and 2 from hh edges /
                 disconnect_hh(graph, ul, hh_lookup, c.node1);
                 disconnect_hh(graph, ul, hh_lookup, c.node2);
@@ -353,9 +354,6 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
              * then reconnect to household. 
              */
             /* Reconnect everybody */
-            igraph_integer_t degree; 
-            vector<int> reconnect_hhs; 
-            reconnect_hhs.reserve(igraph_vcount(graph));
             for (int i = igraph_vcount(graph); i--; ) {
                 if (VAN(graph, "home_status", i) == _Out) {
                     igraph_degree_1(graph, &degree, i, IGRAPH_ALL, false);

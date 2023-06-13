@@ -138,15 +138,25 @@ inline void decrement_VBoost(UpdateList &ul, int i, double tvw){
 
 
 inline void decrement_random(UpdateList &ul, int i, double dur) {
+    double newdur = dur-1;
+    ul.add_update(DeleteEdge(i));
+    return;
 
-    if (dur <= _dur_lt1hr) {
+    if (dur <= 1.0) {
+        cout << "Decrement Random: Deleting Edge" << endl;
         ul.add_update(DeleteEdge(i));
+        return;
     }
-    else if (dur > _dur_lt1hr) {
-        ul.add_update(UpdateEdgeAttribute(i, "duration", dur - 1));
-
+    else if (dur > 1.0) {
+        cout << "Decrement Random: Reducing duration by 1" << endl;
+        cout << "Duration: " << dur << " new duration " << newdur << endl;
+        // ul.add_update(UpdateEdgeAttribute(i, "duration", dur - 1));
+        ul.add_update(UpdateEdgeAttribute(i, "duration", newdur));
+        return;
     } else {
+        cout << "Decrement Random: Pass " << endl;
         ul.add_update(UpdateEdgeAttribute(i, "duration", -1));
+        return;
     }
 
 }
@@ -307,6 +317,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
             school_count++;
         }
     }
+
     // cout<< endl;
 
     // Add graph attributes
