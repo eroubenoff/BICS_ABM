@@ -534,7 +534,7 @@ class BICS_ABM:
         else:
             self._pop = pop
 
-        pdb.set_trace()
+        # pdb.set_trace()
 
 
         self._trajectory = Trajectory()

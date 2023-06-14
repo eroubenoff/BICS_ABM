@@ -419,30 +419,33 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         // To do this we first need to collect 
         // all of the attribute updates into a map
         //
-
-        // New method: create a vector of the edge attribute names
-
-        // cout << "Here 10.11" << endl;
-        vector<string> vupdate_types;
+        // First create a vector containing the attribute name of each update,
+        // such that the i-th entry in this vector represents the 
+        // attribute name of i-th entry in the update vector.
+        vector<string> vupdate_types; 
         vupdate_types.reserve(_update_vertex_attribute_v.size());
         for (auto &i: _update_vertex_attribute_v) {
             vupdate_types.push_back(i.get_attr());
         }
-        // cout << "Here 10.12" << endl;
 
-        // Create hash of vnames
-        map<string,int> vnames_map;
+        // Create hash of vnames and their locations in the update vector,
+        // so that we can easily access the locations of each attribute to update.
+        // In this map, the key is the name of the attribute and the value
+        // is the index in the vnames vector.
+        unordered_map<string,int> vnames_map;
         for (int i = 0; i < igraph_strvector_size(&vnames); i++) {
-            vnames_map[STR(vnames, i)] = i;
+            vnames_map.insert({STR(vnames, i), i});
+            // vnames_map[STR(vnames, i)] = i;
         }
 
-        // cout << "Here 10.13" << endl;
-        // Then hash the location of each type. This is done in parallel
-        // with the vnames vector pulled from the graph
+        // Then hash the location of each update of each type. 
+        // TYhis vector is equal in length to all of the possible graph attributes.
+        // If the 6-th attribute in the graph is disease_status, the 6-th entry in this vector
+        // is a vector of ints corresponding to all of the indices of updates about disease_status.
         vector<vector<int>> vattr_lookup(igraph_strvector_size(&vnames), vector<int>(0));
-
-
-        // cout << "Here 10.1" << endl;
+        for (int i = 0; i < vattr_lookup.size(); i++) {
+            vattr_lookup[i].reserve(1000);
+        }
         for (int j = 0; j < vupdate_types.size(); j++) {
             vattr_lookup[vnames_map[vupdate_types[j]]].push_back(j);
         }
@@ -451,11 +454,11 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         // cout << "Here 10.2" << endl;
         // for (auto &a: vattr_map) {
         string vname;
+        vector<int> tmpvec; 
         for (int i=0; i < igraph_strvector_size(&vnames); i++) {
             vname = STR(vnames,i);
 
             // Check if there are any updates for that attribute name
-
             if (vattr_lookup[i].size() == 0) {
                 continue;
             }
@@ -464,7 +467,8 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
             VANV(g, vname.c_str(), &vattr_v);
 
             // Make the changes
-            for (auto &j: vattr_lookup[i]) {
+            tmpvec = vattr_lookup[i];
+            for (auto &j: tmpvec) {
                 VECTOR(vattr_v)[_update_vertex_attribute_v[j].get_vid()] = _update_vertex_attribute_v[j].get_value();
             }
             // Push back to graph

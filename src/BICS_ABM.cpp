@@ -354,6 +354,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
              * then reconnect to household. 
              */
             /* Reconnect everybody */
+            reconnect_hhs.clear();
             for (int i = igraph_vcount(graph); i--; ) {
                 if (VAN(graph, "home_status", i) == _Out) {
                     igraph_degree_1(graph, &degree, i, IGRAPH_ALL, false);
