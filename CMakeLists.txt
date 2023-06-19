@@ -25,6 +25,19 @@ add_library(BICS_ABM_lib SHARED
 add_executable(BICS_ABM 
     src/main.cpp 
     src/sample_pop.h
+
+    src/BICS_ABM.h 
+    src/print_attributes.cpp
+    src/decrement.cpp
+    src/set_sick.cpp
+    src/transmit.cpp
+    src/distribute_vax.cpp
+    src/history.cpp
+    src/BICS_ABM.cpp 
+    src/py_defs.cpp
+    src/params.cpp
+    src/mixing.cpp
+    src/update.cpp
     )
 
 add_executable(BICS_ABM_tests
@@ -40,7 +53,8 @@ add_executable(BICS_ABM_tests
 file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(BICS_ABM_lib PUBLIC igraph::igraph)
-target_link_libraries(BICS_ABM PUBLIC BICS_ABM_lib igraph::igraph)
+# target_link_libraries(BICS_ABM PUBLIC BICS_ABM_lib igraph::igraph)
+target_link_libraries(BICS_ABM PUBLIC igraph::igraph)
 target_link_libraries(BICS_ABM_tests PUBLIC BICS_ABM_lib igraph::igraph PRIVATE gtest gtest_main )
 
 # include(GoogleTest)

@@ -11,7 +11,7 @@ import gc
 
 
 nsims = 1000
-sampler = LatinHypercube(22)
+sampler = LatinHypercube(23)
 sample = sampler.random(nsims)
 
 gamma_min_v = [int(randint.ppf(x, 0*24, 2*24)) for x in sample[:,0]] 
@@ -39,6 +39,8 @@ ve2_v = [uniform.ppf(x, 0.85, 0.95) for x in sample[:,19]]
 vew_v = [uniform.ppf(x, 0.25, 0.55) for x in sample[:,20]]
 veb_v = [uniform.ppf(x, 0.65, 0.75) for x in sample[:,21]]
 
+school_contacts_v = [x > 0.5 for x in sample[:,22]]
+seasonal_contacts_b0 = x[]
 
 t = time.time()
 

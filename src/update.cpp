@@ -377,11 +377,60 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         // all of the attribute updates into a map
         // Can do this step by eid
 
-        unordered_set<string> eattrs;
+        vector<string> eupdate_types;
+        eupdate_types.reserve(_update_vertex_attribute_v.size());
+
         for (auto &i: _update_edge_attribute_v) {
-            eattrs.insert(i.get_attr());
+            // eattrs.insert(i.get_attr());
+            eupdate_types.push_back(i.get_attr());
         }
 
+        vector<string> enames_v(eupdate_types);
+        sort(enames_v.begin(), enames_v.end());
+        vector<string>::iterator it;
+        it = unique(enames_v.begin(), enames_v.end());
+        enames_v.resize(distance(enames_v.begin(),it));
+
+        unordered_map<string,int> enames_map;
+        for (int i = 0; i < enames_v.size(); i++) {
+            enames_map.insert({enames_v[i], i}); // {STR(enames, i), i});
+        }
+        vector<vector<int>> eattr_lookup(enames_v.size(), vector<int>(0));
+        for (int i = 0; i < eattr_lookup.size(); i++) {
+            eattr_lookup[i].reserve(1000);
+        }
+        for (int j = 0; j < eupdate_types.size(); j++) {
+            eattr_lookup[enames_map[eupdate_types[j]]].push_back(j);
+        }
+
+        string ename;
+        vector<int> tmpvec; 
+        for (int i=0; i < enames_v.size(); i++) {
+            ename = enames_v[i]; // STR(enames,i);
+
+            // Check if there are any updates for that attribute name
+            if (eattr_lookup[i].size() == 0) {
+                continue;
+            }
+
+            // Pull the vector
+            if (igraph_cattribute_has_attr(g, IGRAPH_ATTRIBUTE_EDGE, ename.c_str())) {
+                EANV(g, ename.c_str(), &eattr_v);
+            } else {
+                igraph_vector_resize(&eattr_v, igraph_ecount(g));
+                igraph_vector_fill(&eattr_v, 0);
+            }
+
+            // Make the changes
+            tmpvec = eattr_lookup[i];
+            for (auto &j: tmpvec) {
+                VECTOR(eattr_v)[_update_edge_attribute_v[j].get_eid()] = _update_edge_attribute_v[j].get_value();
+            }
+            // Push back to graph
+            SETEANV(g, ename.c_str(), &eattr_v);
+        }
+
+        /*
         for (auto &a: eattrs) {
             // Check to see if attribute exists; if it does,
             // pull it, else create an empty vector
@@ -404,6 +453,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
             // Push back to graph
             SETEANV(g, a.c_str(), &eattr_v);
         }
+        */
 
     }
     igraph_vector_destroy(&eattr_v);
