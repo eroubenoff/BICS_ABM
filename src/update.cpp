@@ -400,7 +400,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
             eattr_lookup[i].reserve(1000);
         }
         for (int j = 0; j < eupdate_types.size(); j++) {
-            eattr_lookup[enames_map[eupdate_types[j]]].push_back(j);
+            eattr_lookup[enames_map.at(eupdate_types[j])].push_back(j);
         }
 
         string ename;
@@ -497,7 +497,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
             vattr_lookup[i].reserve(1000);
         }
         for (int j = 0; j < vupdate_types.size(); j++) {
-            vattr_lookup[vnames_map[vupdate_types[j]]].push_back(j);
+            vattr_lookup[vnames_map.at(vupdate_types[j])].push_back(j);
         }
 
 

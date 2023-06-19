@@ -74,13 +74,13 @@ params_v = [{
 t = time.time()
 
 # Generate all 'treatments'
-b1_range = [x for x in [0,.5]]
-cm_range = [x for x in [0,.5]]
+b1_range = [0,.5]
+cm_range = [0,.5]
 sc_range = [True, False]
 
 
 tm = [{"BETA1": b1, 
-        "CONTACT_MULT_VEC": [max(0, 1+cm*np.cos(t*np.pi/162.5)) for t in range(365)], 
+        "CONTACT_MULT_VEC": [max(0, 1+cm*np.cos(t*2*np.pi/365)) for t in range(365)], 
         "cm": cm,
         "SCHOOL_CONTACTS": False if cm == 0 else True} 
         for b1 in b1_range for cm in cm_range]
