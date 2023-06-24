@@ -14,20 +14,33 @@ import random
 import os
 
 
-nsims = 10
-sampler = LatinHypercube(16)
+nsims = 1000
+sampler = LatinHypercube(17)
 sample = sampler.random(nsims)
 
-gamma_min_v = [int(randint.ppf(x, 0*24, 2*24)) for x in sample[:,0]] 
-gamma_max_v = [int(randint.ppf(x, 2*24, 4*24)) for x in sample[:,1]] 
-sigma_min_v = [int(randint.ppf(x, 3*24, 5*24)) for x in sample[:,2]] 
-sigma_max_v = [int(randint.ppf(x, 5*24, 7*24)) for x in sample[:,3]] 
+gamma_min_v = [2 for x in range(nsims)]
+gamma_max_v = [4 for x in range(nsims)]
+sigma_min_v = [2 for x in range(nsims)]
+sigma_max_v = [4 for x in range(nsims)]
+
+# gamma_min_v = [int(randint.ppf(x, 0*24, 2*24)) for x in sample[:,0]] 
+# gamma_max_v = [int(randint.ppf(x, 2*24, 4*24)) for x in sample[:,1]] 
+# sigma_min_v = [int(randint.ppf(x, 3*24, 5*24)) for x in sample[:,2]] 
+# sigma_max_v = [int(randint.ppf(x, 5*24, 7*24)) for x in sample[:,3]] 
+
 beta0_v = [uniform.ppf(x, 0, .10) for x in sample[:,4]] 
 alpha_v = [uniform.ppf(x, 0, .25) for x in sample[:,5]] 
-rho_v = [uniform.ppf(x, .7, 1) for x in sample[:,6]] 
-isomult_v = [uniform.ppf(x, 0, 1) for x in sample[:,7]] 
-npi_v = [uniform.ppf(x, 0.25, 0.75) for x in sample[:,8]]
-t_reinf_v = [int(uniform.ppf(x, 180, 720) ) for x in sample[:, 9]]
+# rho_v = [uniform.ppf(x, .4, .2) for x in sample[:,6]] 
+rho_v = [.5 for x in range(nsims)]
+
+isomult_v = [.25 for x in range(nsims)]
+#isomult_v = [uniform.ppf(x, 0, 1) for x in sample[:,7]] 
+
+npi_v = [.5 for x in range(nsims)]
+# npi_v = [uniform.ppf(x, 0.25, 0.75) for x in sample[:,8]]
+
+t_reinf_v = [365 for x in range(nsims)]
+# t_reinf_v = [int(uniform.ppf(x, 180, 720) ) for x in sample[:, 9]]
 
 """
 mu0_v = [uniform.ppf(x, 0.003, 0.005)/100 for x in sample[:,9]] 
@@ -41,17 +54,28 @@ mu7_v = [uniform.ppf(x, 6.9, 10.4)/100 for x in sample[:,16]]
 mu8_v = [uniform.ppf(x, 21.8, 36.6)/100 for x in sample[:,17]] 
 """
 
-ve1_v = [uniform.ppf(x, 0.65, 0.75) for x in sample[:,10]]
-ve2_v = [uniform.ppf(x, 0.85, 0.95) for x in sample[:,11]]
-vew_v = [uniform.ppf(x, 0.25, 0.55) for x in sample[:,12]]
-veb_v = [uniform.ppf(x, 0.65, 0.75) for x in sample[:,13]]
+ve1_v = [.65 for x in range(nsims)]
+ve2_v = [.85 for x in range(nsims)]
+vew_v = [.25 for x in range(nsims)]
+veb_v = [.65 for x in range(nsims)]
+
+
+# ve1_v = [uniform.ppf(x, 0.65, 0.75) for x in sample[:,10]]
+# ve2_v = [uniform.ppf(x, 0.85, 0.95) for x in sample[:,11]]
+# vew_v = [uniform.ppf(x, 0.25, 0.55) for x in sample[:,12]]
+# veb_v = [uniform.ppf(x, 0.65, 0.75) for x in sample[:,13]]
 
 vu_v = [uniform.ppf(x, 0, 1) for x in sample[:, 14]]
 
-t0_v = [int(uniform.ppf(x, 0, 364) ) for x in sample[:,15]]
+t0 = [0 for x in range(nsims)]
+
+# t0_v = [int(uniform.ppf(x, 0, 364) ) for x in sample[:,15]]
+
+seed_v = [int(uniform.ppf(x, 0, 100000) ) for x in sample[:,16]]
 
 
 params_v = [{
+    "N_HH": 1000,
     "GAMMA_MIN": gamma_min_v[i],
     "GAMMA_MAX": gamma_max_v[i],
     "SIGMA_MIN": sigma_min_v[i],
@@ -68,7 +92,8 @@ params_v = [{
     "T0": t0_v[i],
     "T_REINFECTION": t_reinf_v[i],
     "vu": vu_v[i],
-    "MAX_DAYS": 5*365
+    "MAX_DAYS": 2*365,
+    "SEED" : seed_v[i]
     } for i in range(nsims) ]
 
 t = time.time()
@@ -112,15 +137,19 @@ def sim_fn(i: int):
 
         result = BICS_ABM(**p, vax_rules = [VaccineRule(general=True, hesitancy = vu)], silent = True)
 
+        ## Standardize the Cc vector
+        Cc = [x / (result.S[0] + result.E[0]) for x in result.Cc]
+        Cc = np.add.reduceat(Cc, np.arange(0, len(Cc), 24)).tolist()
+
         ## Save the outbreak curve
-        with open(path + sim_id + "_Ic.json", 'w') as f:
-            json.dump(result.Ic, f)
+        with open(path + sim_id + "_Cc.json", 'w') as f:
+            json.dump(Cc, f)
 
     return
 
 
 if __name__ == '__main__':
     print("Starting sims at", time.time())
-    result_vec = Parallel(n_jobs=4, verbose = 10, prefer="threads"
+    result_vec = Parallel(n_jobs=-1, verbose = 10, prefer="threads"
             )(delayed(sim_fn)(v) for v in range(nsims))
 

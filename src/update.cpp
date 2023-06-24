@@ -215,7 +215,6 @@ UpdateVertexAttribute::UpdateVertexAttribute(int vid, string attr, double value)
 }
 */
 
-
 /*
  * List of updates
  *
@@ -225,10 +224,10 @@ UpdateVertexAttribute::UpdateVertexAttribute(int vid, string attr, double value)
  */
 UpdateList::UpdateList() {
         _update_graph_attribute_v.reserve(100);
-        _create_edge_v.reserve(100);
-        _delete_edge_v.reserve(100);
-        _update_edge_attribute_v.reserve(100);
-        _update_vertex_attribute_v.reserve(100);
+        _create_edge_v.reserve(10000);
+        _delete_edge_v.reserve(10000);
+        _update_edge_attribute_v.reserve(10000);
+        _update_vertex_attribute_v.reserve(10000);
 }
 void UpdateList::add_update(UpdateGraphAttribute update) {
     _update_graph_attribute_v.push_back(update);
@@ -253,10 +252,64 @@ void UpdateList::clear_updates() {
     _update_vertex_attribute_v.clear();
 
     _update_graph_attribute_v.reserve(100);
-    _create_edge_v.reserve(500);
-    _delete_edge_v.reserve(100);
-    _update_edge_attribute_v.reserve(100);
-    _update_vertex_attribute_v.reserve(500);
+    _create_edge_v.reserve(10000);
+    _delete_edge_v.reserve(10000);
+    _update_edge_attribute_v.reserve(10000);
+    _update_vertex_attribute_v.reserve(10000);
+}
+// Helper functions to add_update_to_graph: lookup fns
+// These are sort of cheating because instead of hashing
+// the index of each attribute name they are just hard
+// coded. But, it is faster, and we need speed now.
+//
+inline int vattr_lookup_fn(string name){
+    if ((name[0] == 'd' ) && (name == "disease_status") ) return 8;
+    else if ((name[0] == 'r') && (name== "remaining_days_exposed") ) return 9;
+    else if ((name[0] == 'r') && (name== "remaining_days_sick") ) return 10;
+    else if ((name[0] == 't') && (name== "time_until_v2") )  return 11;
+    else if ((name[0] == 't') && (name== "time_until_vw") ) return 12;
+    else if ((name[0] == 't') && (name== "time_until_vboost") )  return 13;
+    else if ((name[0] == 't') && (name== "time_until_susceptible") )  return 14;
+    else if ((name[0] == 's') && (name== "symptomatic") ) return 15;
+    else if ((name[0] == 'v') && (name== "vaccine_status") ) return 16;
+    else if ((name[0] == 'm') && (name== "mu") ) return 17;
+    else if ((name[0] == 'h') && (name== "home_status") ) return 18;
+
+    else if (name == "hhid") {
+        return 0;
+    }
+    else if (name == "age") {
+        return 1;
+    }
+    else if (name == "gender") {
+        return 2;
+    }
+    else if (name == "num_cc_nonhh") {
+        return 3;
+    }
+    else if (name == "num_cc_school") {
+        return 4;
+    }
+    else if (name == "lefthome_num") {
+        return 5;
+    }
+    else if (name == "vaccine_priority") {
+        return 6;
+    } 
+    else if (name == "NPI"){
+        return 7;
+    }
+    else {
+        throw runtime_error("In Update: invalid vertex attribute lookup name: " + name);
+    }
+
+}
+inline int eattr_lookup_fn(string name) {
+    if ((name[0] == 't' ) && (name== "type") ) return 0;
+    else if ((name[0] == 'd' ) && (name== "duration"))  return 1;
+    else {
+        throw runtime_error("In Update: invalid edge attribute lookup name: " + name);
+    }
 }
 void UpdateList::add_updates_to_graph(igraph_t *g) {
     // cout << _updates() << endl;
@@ -377,6 +430,7 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         // all of the attribute updates into a map
         // Can do this step by eid
 
+        /*
         vector<string> eupdate_types;
         eupdate_types.reserve(_update_vertex_attribute_v.size());
 
@@ -395,12 +449,23 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         for (int i = 0; i < enames_v.size(); i++) {
             enames_map.insert({enames_v[i], i}); // {STR(enames, i), i});
         }
+        */
+
+        vector<string> enames_v = {"type", "duration"};
         vector<vector<int>> eattr_lookup(enames_v.size(), vector<int>(0));
         for (int i = 0; i < eattr_lookup.size(); i++) {
             eattr_lookup[i].reserve(1000);
         }
-        for (int j = 0; j < eupdate_types.size(); j++) {
-            eattr_lookup[enames_map.at(eupdate_types[j])].push_back(j);
+        string attrname;
+        int eid;
+        int attridx;
+        for (int j = 0; j < _update_edge_attribute_v.size(); j++) {
+            attrname = _update_edge_attribute_v[j].get_attr();
+            eid = _update_edge_attribute_v[j].get_eid();
+            attridx = eattr_lookup_fn(attrname);
+
+
+            eattr_lookup[attridx].push_back(j);
         }
 
         string ename;
@@ -472,21 +537,25 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         // First create a vector containing the attribute name of each update,
         // such that the i-th entry in this vector represents the 
         // attribute name of i-th entry in the update vector.
+        /*
         vector<string> vupdate_types; 
         vupdate_types.reserve(_update_vertex_attribute_v.size());
         for (auto &i: _update_vertex_attribute_v) {
             vupdate_types.push_back(i.get_attr());
         }
+        */
 
         // Create hash of vnames and their locations in the update vector,
         // so that we can easily access the locations of each attribute to update.
         // In this map, the key is the name of the attribute and the value
         // is the index in the vnames vector.
+        /*
         unordered_map<string,int> vnames_map;
         for (int i = 0; i < igraph_strvector_size(&vnames); i++) {
             vnames_map.insert({STR(vnames, i), i});
             // vnames_map[STR(vnames, i)] = i;
         }
+        */ 
 
         // Then hash the location of each update of each type. 
         // TYhis vector is equal in length to all of the possible graph attributes.
@@ -496,12 +565,21 @@ void UpdateList::add_updates_to_graph(igraph_t *g) {
         for (int i = 0; i < vattr_lookup.size(); i++) {
             vattr_lookup[i].reserve(1000);
         }
-        for (int j = 0; j < vupdate_types.size(); j++) {
-            vattr_lookup[vnames_map.at(vupdate_types[j])].push_back(j);
+        string attrname;
+        int vid;
+        int attridx;
+        for (int j = 0; j < _update_vertex_attribute_v.size(); j++) {
+            attrname = _update_vertex_attribute_v[j].get_attr();
+            vid = _update_vertex_attribute_v[j].get_vid();
+            attridx = vattr_lookup_fn(attrname);
+
+
+            vattr_lookup[attridx].push_back(j);
+
+            // vattr_lookup[vnames_map.at(vupdate_types[j])].push_back(j);
         }
 
 
-        // cout << "Here 10.2" << endl;
         // for (auto &a: vattr_map) {
         string vname;
         vector<int> tmpvec; 
