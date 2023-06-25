@@ -281,8 +281,10 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     igraph_vector_destroy(&tvw_vec);
     igraph_vector_destroy(&tsus_vec); 
 
+    /*
     ul.add_updates_to_graph(g);
     ul.clear_updates();
+    */ 
 
 
     /* Tally edge counts

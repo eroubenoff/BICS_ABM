@@ -4,12 +4,24 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 project(BICS_ABM)
 add_subdirectory(googletest)
 find_package(igraph REQUIRED)
-# Add testing 
-enable_testing()
 
-#set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-#set(CMAKE_CXX_FLAGS_DEBUG "-g")
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
+# Add testing 
+# enable_testing()
+
+set(CMAKE_CXX_FLAGS "-funroll-loops")
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
+if(COMPILER_SUPPORTS_MARCH_NATIVE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+endif()
 
 add_library(BICS_ABM_lib SHARED 
     src/BICS_ABM.h 

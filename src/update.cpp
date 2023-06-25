@@ -230,19 +230,19 @@ UpdateList::UpdateList() {
         _update_vertex_attribute_v.reserve(10000);
 }
 void UpdateList::add_update(UpdateGraphAttribute update) {
-    _update_graph_attribute_v.push_back(update);
+    _update_graph_attribute_v.emplace_back(update);
 }
 void UpdateList::add_update(CreateEdge update) {
-    _create_edge_v.push_back(update);
+    _create_edge_v.emplace_back(update);
 }
 void UpdateList::add_update(DeleteEdge update) {
-    _delete_edge_v.push_back(update);
+    _delete_edge_v.emplace_back(update);
 }
 void UpdateList::add_update(UpdateEdgeAttribute update) {
-    _update_edge_attribute_v.push_back(update);
+    _update_edge_attribute_v.emplace_back(update);
 }
 void UpdateList::add_update(UpdateVertexAttribute update) {
-    _update_vertex_attribute_v.push_back(update);
+    _update_vertex_attribute_v.emplace_back(update);
 }
 void UpdateList::clear_updates() {
     _update_graph_attribute_v.clear();
@@ -263,17 +263,18 @@ void UpdateList::clear_updates() {
 // coded. But, it is faster, and we need speed now.
 //
 inline int vattr_lookup_fn(string name){
-    if ((name[0] == 'd' ) && (name == "disease_status") ) return 8;
-    else if ((name[0] == 'r') && (name== "remaining_days_exposed") ) return 9;
-    else if ((name[0] == 'r') && (name== "remaining_days_sick") ) return 10;
-    else if ((name[0] == 't') && (name== "time_until_v2") )  return 11;
-    else if ((name[0] == 't') && (name== "time_until_vw") ) return 12;
-    else if ((name[0] == 't') && (name== "time_until_vboost") )  return 13;
-    else if ((name[0] == 't') && (name== "time_until_susceptible") )  return 14;
-    else if ((name[0] == 's') && (name== "symptomatic") ) return 15;
-    else if ((name[0] == 'v') && (name== "vaccine_status") ) return 16;
-    else if ((name[0] == 'm') && (name== "mu") ) return 17;
-    else if ((name[0] == 'h') && (name== "home_status") ) return 18;
+    char first_char = name[0];
+    if ((first_char == 'd' ) && (name == "disease_status") ) return 8;
+    else if ((first_char == 'r') && (name== "remaining_days_exposed") ) return 9;
+    else if ((first_char == 'r') && (name== "remaining_days_sick") ) return 10;
+    else if ((first_char == 't') && (name== "time_until_v2") )  return 11;
+    else if ((first_char == 't') && (name== "time_until_vw") ) return 12;
+    else if ((first_char == 't') && (name== "time_until_vboost") )  return 13;
+    else if ((first_char == 't') && (name== "time_until_susceptible") )  return 14;
+    else if ((first_char == 's') && (name== "symptomatic") ) return 15;
+    else if ((first_char == 'v') && (name== "vaccine_status") ) return 16;
+    else if ((first_char == 'm') && (name== "mu") ) return 17;
+    else if ((first_char == 'h') && (name== "home_status") ) return 18;
 
     else if (name == "hhid") {
         return 0;
@@ -305,8 +306,9 @@ inline int vattr_lookup_fn(string name){
 
 }
 inline int eattr_lookup_fn(string name) {
-    if ((name[0] == 't' ) && (name== "type") ) return 0;
-    else if ((name[0] == 'd' ) && (name== "duration"))  return 1;
+    char first_char = name[0];
+    if ((first_char == 't' ) && (name== "type") ) return 0;
+    else if ((first_char == 'd' ) && (name== "duration"))  return 1;
     else {
         throw runtime_error("In Update: invalid edge attribute lookup name: " + name);
     }

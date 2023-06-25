@@ -14,7 +14,7 @@ import random
 import os
 
 
-nsims = 1000
+nsims = 100
 sampler = LatinHypercube(17)
 sample = sampler.random(nsims)
 
@@ -67,7 +67,7 @@ veb_v = [.65 for x in range(nsims)]
 
 vu_v = [uniform.ppf(x, 0, 1) for x in sample[:, 14]]
 
-t0 = [0 for x in range(nsims)]
+t0_v = [30 for x in range(nsims)]
 
 # t0_v = [int(uniform.ppf(x, 0, 364) ) for x in sample[:,15]]
 
@@ -92,8 +92,9 @@ params_v = [{
     "T0": t0_v[i],
     "T_REINFECTION": t_reinf_v[i],
     "vu": vu_v[i],
-    "MAX_DAYS": 2*365,
-    "SEED" : seed_v[i]
+    "MAX_DAYS": 5*365,
+    "SEED" : seed_v[i],
+    "IMPORT_CASES_VEC":[1 if i%7 == 0 else 0 for i in range(365)],
     } for i in range(nsims) ]
 
 t = time.time()
