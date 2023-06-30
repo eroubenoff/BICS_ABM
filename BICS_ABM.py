@@ -7,6 +7,7 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 from threading import Thread
 import pdb
+from scipy.stats import bernoulli, poisson
 
 
 path = os.getcwd()
@@ -192,7 +193,7 @@ BICS_global =  load_data()
 
 
 # @profile
-def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6, seed = 49, polymod: np.ndarray = None) -> np.ndarray:
+def create_pop(colnames: list, pop: np.ndarray, n_hh: int, wave: int, seed, n_years: int, polymod: np.ndarray = None) -> np.ndarray:
 
     np.random.seed(seed)
 
@@ -250,6 +251,35 @@ def create_pop(colnames: list, pop: np.ndarray, n_hh: int = 1000, wave: int = 6,
     ret = np.stack(pop_list, axis = 0)
 
     ret = ret[:, [colnames[x] for x in ["hhid", "agecat", "gender", "num_cc_nonhh", "num_cc_school", "lefthome_num", "vaccine_priority", "NPI"]]]
+
+
+    """
+    Incorporate demography. This is done by drawing, from a corresponding rate/probability
+    vector, the number of children and a boolean represeting if the person will die of
+    non-COVID causes.
+
+    Sources: 
+    https://www.cdc.gov/nchs/products/databriefs/db442.htm
+    https://www.cdc.gov/nchs/products/databriefs/db456.htm
+    """
+
+
+    """ 
+    fertility = {0: 13.9/(1000 / (3/18)), 1: 61.5/1000, 2: (93.0 + 97.6)/(2*1000), 3: (53.7 + 12.0)/(2*1000), 4: 0, 5: 0, 6:0, 7:0, 8:0}
+    mortality = {0: 14.3/100000, 1: 88.9/100000, 2: 180.8/100000, 3: 287.9/100000, 4: 531.0/100000, 5: 1117.1/100000, 6: 2151.3/100000, 7: 5119.4/100000, 8: 15743.3/100000}
+
+    if n_years == -1:
+        n_years = 1
+
+    mortality_v  = np.array([mortality[x] for x in ret[:, colnames["agecat"]]]).reshape(-1, 1)
+    ret = np.append(ret, mortality_v, axis = 1)
+    colnames["mortality"] = max(colnames.values()) + 1
+
+    fertility_v = np.array([fertility[x] * y for x, y in zip(ret[:, colnames["agecat"]], ret[:, colnames["gender"]])]).reshape(-1, 1)
+    ret = np.append(ret, fertility_v, axis = 1)
+    colnames["fertility"] = max(colnames.values()) + 1
+    """
+
     ret = np.asfortranarray(ret)
 
     return ret
@@ -537,12 +567,19 @@ class BICS_ABM:
             self._pop = BICS_global.loc[BICS_global.wave == self._params.WAVE,:].copy(deep=True)
             self._pop = create_vax_priority(self._pop, vax_rules, seed=self.seed)
             self._colnames, self._pop = pop_to_np(self._pop)
-            self._pop = create_pop(self._colnames, self._pop, n_hh = self._params.N_HH, seed=self.seed, polymod = self._POLYMOD)
+            self._pop = create_pop(
+                    colnames = self._colnames, 
+                    pop = self._pop, 
+                    n_hh = self._params.N_HH, 
+                    wave = self._params.WAVE,
+                    seed=self.seed, 
+                    n_years = self._params.MAX_DAYS/365,
+                    polymod = self._POLYMOD)
 
         else:
             self._pop = pop
 
-        # pdb.set_trace()
+        pdb.set_trace()
 
 
         self._trajectory = Trajectory()

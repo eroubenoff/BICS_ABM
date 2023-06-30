@@ -252,6 +252,12 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
                 }
             }
         }
+        
+
+        /* Handle Demography monthly*/
+        if (day % 30 == 0) {
+            // demography(graph, hh_lookup, hh_ul, generator);
+        }
 
         // Hours 0-8
         for (hr = 0; hr < 1; hr++ ) {

@@ -31,7 +31,7 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
     igraph_add_vertices(g, pop_size, 0);
 
     igraph_vector_t col;
-    vector<string> colnames = {"hhid", "age", "gender", "num_cc_nonhh", "num_cc_school", "lefthome_num", "vaccine_priority", "NPI"};
+    vector<string> colnames = {"hhid", "age", "gender", "num_cc_nonhh", "num_cc_school", "lefthome_num", "vaccine_priority", "NPI" /*, "mortality", "fertility" */ };
 
     for (int c = 0; c < colnames.size(); c++){
         // cout << colnames[c] << endl;

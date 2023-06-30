@@ -36,6 +36,7 @@ add_library(BICS_ABM_lib SHARED
     src/params.cpp
     src/mixing.cpp
     src/update.cpp
+    src/demography.cpp
     )
 
 add_executable(BICS_ABM 
@@ -54,6 +55,7 @@ add_executable(BICS_ABM
     src/params.cpp
     src/mixing.cpp
     src/update.cpp
+    src/demography.cpp
     )
 
 add_executable(BICS_ABM_tests
