@@ -254,11 +254,11 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         
 
         /* Handle Demography monthly*/
-        if ((day % 30 ) == 0) {
+        if ((day % 30) == 0) {
+            // hh_ul.clear_updates();
             demography(graph, params, hh_lookup, hh_ul, generator);
             // Add to hh update list
-            hh_ul.clear_updates();
-            gen_hh_edges(graph, hh_ul, hh_lookup);
+            // gen_hh_edges(graph, hh_ul, hh_lookup);
         }
 
         // Hours 0-8

@@ -77,7 +77,12 @@ void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh
                 SETVAN(g, "mu", new_v, 0);
 
                 // Add to household lookup
-                // hh_lookup[VAN(g, "hhid", i)].push_back(new_v);
+                for (auto i: hh_lookup[VAN(g, "hhid", i)]) {
+                    hh_ul.add_update(CreateEdge(i, new_v));
+                }
+                hh_lookup[VAN(g, "hhid", i)].push_back(new_v);
+
+
 
 
                 cout << "There was a birth! The number of nodes is now:" << igraph_vcount(g)<< endl;
