@@ -210,9 +210,11 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
      * Run main sim 
      * */
 
+    int n_imported_cases;
     while (run) {
         Cc = 0;
         Csc = 0;
+        n_imported_cases = 0;
 
         /* Reset all edges */
         // igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
@@ -230,6 +232,8 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
          */
         if (imported_cases_daily_bool) {
 
+            n_imported_cases = params -> IMPORT_CASES_VEC[day%365];
+
             // Tally up all Susceptibles 
             vector<int> susceptibles; 
             for (int i = 0; i < igraph_vcount(graph); i++) {
@@ -239,7 +243,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
             }
 
             if (susceptibles.size() > 0) {
-                for (int i = 0; i < params->IMPORT_CASES_VEC[day % 365]; i++) {
+                for (int i = 0; i < n_imported_cases; i++) {
                     uniform_int_distribution<int> sus_distr(0, susceptibles.size() - 1);
                     int import_case = susceptibles[sus_distr(generator)];
                     set_sick(ul, import_case, 3*24, 5*24, false, params->T_REINFECTION, _Ic);
@@ -250,7 +254,13 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         }
 
         // Hours 0-8
-        for (hr = 0; hr < 8; hr++ ) {
+        for (hr = 0; hr < 1; hr++ ) {
+            cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
+            tie(Cc, Csc) = transmit(graph, BETA, params, generator);
+            decrement(graph, history, Cc + n_imported_cases, Csc);
+
+        }
+        for (hr = 1; hr < 8; hr++ ) {
             cout << "\r" << "Day " << std::setw(4) << day <<  " Hour " << std::setw(2) << hr << " | ";
             tie(Cc, Csc) = transmit(graph, BETA, params, generator);
             decrement(graph, history, Cc, Csc);

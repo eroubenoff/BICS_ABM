@@ -14,14 +14,14 @@ import random
 import os
 
 
-nsims = 100
+nsims = 1000
 sampler = LatinHypercube(17)
 sample = sampler.random(nsims)
 
-gamma_min_v = [2 for x in range(nsims)]
-gamma_max_v = [4 for x in range(nsims)]
-sigma_min_v = [2 for x in range(nsims)]
-sigma_max_v = [4 for x in range(nsims)]
+gamma_min_v = [2*24 for x in range(nsims)]
+gamma_max_v = [4*24 for x in range(nsims)]
+sigma_min_v = [2*24 for x in range(nsims)]
+sigma_max_v = [4*24 for x in range(nsims)]
 
 # gamma_min_v = [int(randint.ppf(x, 0*24, 2*24)) for x in sample[:,0]] 
 # gamma_max_v = [int(randint.ppf(x, 2*24, 4*24)) for x in sample[:,1]] 
@@ -39,7 +39,7 @@ isomult_v = [.25 for x in range(nsims)]
 npi_v = [.5 for x in range(nsims)]
 # npi_v = [uniform.ppf(x, 0.25, 0.75) for x in sample[:,8]]
 
-t_reinf_v = [365 for x in range(nsims)]
+t_reinf_v = [180*24 for x in range(nsims)]
 # t_reinf_v = [int(uniform.ppf(x, 180, 720) ) for x in sample[:, 9]]
 
 """
@@ -65,7 +65,8 @@ veb_v = [.65 for x in range(nsims)]
 # vew_v = [uniform.ppf(x, 0.25, 0.55) for x in sample[:,12]]
 # veb_v = [uniform.ppf(x, 0.65, 0.75) for x in sample[:,13]]
 
-vu_v = [uniform.ppf(x, 0, 1) for x in sample[:, 14]]
+# vu_v = [uniform.ppf(x, 0, 1) for x in sample[:, 14]]
+vu_v = [.75 for x in range(nsims)]
 
 t0_v = [30 for x in range(nsims)]
 
@@ -95,6 +96,7 @@ params_v = [{
     "MAX_DAYS": 5*365,
     "SEED" : seed_v[i],
     "IMPORT_CASES_VEC":[1 if i%7 == 0 else 0 for i in range(365)],
+    "BOOSTER_DAY": 244
     } for i in range(nsims) ]
 
 t = time.time()
@@ -136,7 +138,13 @@ def sim_fn(i: int):
         del p["vu"]
         del p["cm"]
 
-        result = BICS_ABM(**p, vax_rules = [VaccineRule(general=True, hesitancy = vu)], silent = True)
+        result = BICS_ABM(**p, vax_rules = [
+            VaccineRule('age>80'),
+            VaccineRule('age>65'),
+            VaccineRule('age>45', hesitancy=vu),
+            VaccineRule('age>25', hesitancy=vu),
+            VaccineRule(general=True, hesitancy = vu)
+            ], silent = True)
 
         ## Standardize the Cc vector
         Cc = [x / (result.S[0] + result.E[0]) for x in result.Cc]

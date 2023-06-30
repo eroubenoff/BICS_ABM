@@ -88,6 +88,8 @@ def load_POLYMOD(path="data/POLYMOD/"):
             dtype={'part_id': 'Int64', 'hh_id': str, 'part_age': 'Int64', 'part_gender': str},
             na_values=['none', -1, 'NA'])
      
+    # Rename age variable
+    POLYMOD_participant['age'] = POLYMOD_participant['part_age']
     # Recode age into same bins as BICS
     POLYMOD_participant['agecat'] = POLYMOD_participant['part_age'].apply(recode_age)
     POLYMOD_participant['gender'] = POLYMOD_participant['part_gender'].apply(recode_gender)
@@ -306,13 +308,19 @@ def create_vax_priority(pop, vax_rules = None, seed = 49):
 
         elif v.general is True and v.hesitancy is not None:
             idx = idx.sample(frac = v.hesitancy, random_state = seed).tolist()
+            if not isinstance(idx, list):
+                idx = idx.tolist()
             pop.iloc[idx, vaccine_priority] = i
 
         elif v.hesitancy is not None:
             idx = idx.sample(frac = v.hesitancy, random_state = seed).tolist()
+            if not isinstance(idx, list):
+                idx = idx.tolist()
             pop.iloc[idx, vaccine_priority] = i
 
         else:
+            if not isinstance(idx, list):
+                idx = idx.tolist()
             pop.iloc[idx, vaccine_priority] = i
 
     # Tally total counts in each
@@ -601,7 +609,8 @@ if __name__ == "__main__" :
         IMPORT_CASES_VEC = [1 if i%7 == 0 else 0 for i in range(365)],
         CONTACT_MULT_VEC = [1+np.cos(2*i/365*np.pi) for i in range(365)],
         MAX_DAYS = 365,
-        silent = False
+        silent = False,
+        vax_rules=[VaccineRule("age>80")]
     )   
     """
     result = BICS_ABM(
