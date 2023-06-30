@@ -15,41 +15,46 @@ bool random_draw(double p, mt19937 &seed) {
  * Function to handle births and deaths
  *
  */
-void demography(igraph_t *g, unordered_map<int, vector<int>> &hh_lookup, 
+void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh_lookup, 
         UpdateList &hh_ul, mt19937 &seed) {
-    igraph_vector_t mortality;
-    igraph_vector_init(&mortality, 0);
-    VANV(g, "mortality", &mortality);
 
-    igraph_vector_t fertility;
-    igraph_vector_init(&fertility, 0);
-    VANV(g, "fertility", &fertility);
+    igraph_vector_t age;
+    igraph_vector_init(&age, 0);
+    VANV(g, "age", &age);
+
+    igraph_vector_t gender;
+    igraph_vector_init(&gender, 0);
+    VANV(g, "gender", &gender);
 
     igraph_vector_t ds;
     igraph_vector_init(&ds, 0);
-    VANV(g, "ds", &ds);
+    VANV(g, "disease_status", &ds);
 
     // First handle deaths
     int v = igraph_vcount(g);
+    int a;
     for (int i = 0; i < v; i++) {
+        a = VECTOR(age)[i];
         if (VECTOR(ds)[i] != _D) {
-            if (random_draw(VECTOR(mortality)[i] / 12, seed) ) {
+            if (random_draw(params->FERTILITY_V[a]/12, seed) ) {
                 // Set to be dead
-                VECTOR(mortality)[i] = _D;
+                VECTOR(ds)[i] = _D;
             }
         }
     }
 
+    SETVANV(g, "disease_status", &ds);
     // Then handle births
     for (int i = 0; i < v; i++) {
-        if (VECTOR(ds)[i] != _D) {
-            if (random_draw(VECTOR(fertility)[i] / 12, seed) ) {
+        a = VECTOR(age)[i];
+        if (VECTOR(ds)[i] != _D & VECTOR(gender)[i] != 0) {
+            if (random_draw(params->MORTALITY_V[a]/12, seed) ) {
 
                 // Create a new node in parent's household
                 igraph_add_vertices(g, 1, NULL);
 
                 // Get idx of last vertex
-                int new_v = igraph_vcount(g);
+                int new_v = igraph_vcount(g) -1;
                 SETVAN(g, "hhid", new_v, VAN(g, "hhid", i)); 
                 SETVAN(g, "age", new_v, 0);
                 SETVAN(g, "gender", new_v, random_draw(0.6, seed));
@@ -72,11 +77,8 @@ void demography(igraph_t *g, unordered_map<int, vector<int>> &hh_lookup,
                 SETVAN(g, "mu", new_v, 0);
 
                 // Add to household lookup
-                hh_lookup[VAN(g, "hhid", i)].push_back(new_v);
+                // hh_lookup[VAN(g, "hhid", i)].push_back(new_v);
 
-                // Add to hh update list
-                hh_ul.clear_updates();
-                gen_hh_edges(g, hh_ul, hh_lookup);
 
                 cout << "There was a birth! The number of nodes is now:" << igraph_vcount(g)<< endl;
                 
@@ -85,11 +87,10 @@ void demography(igraph_t *g, unordered_map<int, vector<int>> &hh_lookup,
         }
     }
 
-    SETVANV(g, "disease_status", &ds);
 
 
-    igraph_vector_destroy(&mortality);
-    igraph_vector_destroy(&fertility);
+    igraph_vector_destroy(&age);
+    igraph_vector_destroy(&gender);
     igraph_vector_destroy(&ds);
 
 

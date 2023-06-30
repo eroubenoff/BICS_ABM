@@ -183,12 +183,10 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     ul.clear_updates();
 
     cout << endl;
-    print_attributes(graph);
 
     decrement(graph, history);
 
     
-    cout << "Here 2" << endl;
     /* 
      * Set flags indicating if there is a time series of 
      * index cases or not 
@@ -256,8 +254,11 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         
 
         /* Handle Demography monthly*/
-        if (day % 30 == 0) {
-            // demography(graph, hh_lookup, hh_ul, generator);
+        if ((day % 30 ) == 0) {
+            demography(graph, params, hh_lookup, hh_ul, generator);
+            // Add to hh update list
+            hh_ul.clear_updates();
+            gen_hh_edges(graph, hh_ul, hh_lookup);
         }
 
         // Hours 0-8

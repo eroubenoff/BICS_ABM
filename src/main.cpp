@@ -50,6 +50,14 @@ int main(int argc, char **argv) {
     sample_params.MAX_DAYS = 1000;
     sample_params.BOOSTER_DAY =  400;
 
+    float fertility[9] = {0.00231, 0.0615, 0.095, 0.0328, 0, 0, 0, 0, 0};
+    std::copy(begin(fertility), end(fertility), begin(sample_params.FERTILITY_V));
+    float mortality[9] = {0.000143, 0.000889, 0.001808, 0.002879, 0.00531, 0.011171, 0.0121513, 0.0151194, 0.157433};
+    std::copy(begin(mortality), end(mortality), begin(sample_params.MORTALITY_V));
+     
+     
+
+
     if (argc > 1) {
         throw runtime_error("Command line API is DEPRECATED! Use Python API."); 
     }

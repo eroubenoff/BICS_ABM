@@ -71,6 +71,14 @@ void print_params(const Params *params) {
     cout << "RHO:             " << params->RHO << endl;
     cout << "NPI:             " << params->NPI<< endl;
     cout << "MAX_DAYS:        " << params->MAX_DAYS<< endl;
+    cout << "FERTILITY_V:            ";
+    for (auto i: params->FERTILITY_V) {
+        cout << i << "  ";
+    };
+    cout << "MORTALITY_V:            ";
+    for (auto i: params->MORTALITY_V) {
+        cout << i << "  ";
+    };
     cout << "----------------------------------------"<< endl;
 
 }

@@ -341,6 +341,14 @@ void random_contacts_duration(const igraph_t *g,
      * */
     make_stubcount_sum_even(stubs_count);
 
+    // cout << "Stub count: " << igraph_vector_int_sum(&stubs_count) << endl;
+    /*
+    for (int i = 0; i < igraph_vector_int_size(&stubs_count); i++) {
+        cout << VECTOR(stubs_count)[i] << "  ";
+    }
+    */
+    cout << endl;
+
     if (igraph_vector_int_sum(&stubs_count) == 0) {return;}
 
     /* Draw random graph */

@@ -75,6 +75,8 @@ extern "C" typedef struct Params {
     float NPI;
     int MAX_DAYS;
     int BOOSTER_DAY;
+    float FERTILITY_V[9];
+    float MORTALITY_V[9];
 
 } Params;
 
@@ -390,5 +392,5 @@ void gen_school_contacts(
 
 void make_stubcount_sum_even(igraph_vector_int_t& stubs_count); 
 
-void demography(igraph_t *g, unordered_map<int, vector<int>> &hh_lookup, 
+void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh_lookup, 
         UpdateList &hh_ul, mt19937 &seed); 
