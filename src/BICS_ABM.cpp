@@ -183,6 +183,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     ul.clear_updates();
 
     cout << endl;
+    print_attributes(graph);
 
     decrement(graph, history);
 

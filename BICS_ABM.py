@@ -264,13 +264,16 @@ def create_pop(colnames: list, pop: np.ndarray, n_hh: int, wave: int, seed, n_ye
     """
 
 
-    """ 
-    fertility = {0: 13.9/(1000 / (3/18)), 1: 61.5/1000, 2: (93.0 + 97.6)/(2*1000), 3: (53.7 + 12.0)/(2*1000), 4: 0, 5: 0, 6:0, 7:0, 8:0}
-    mortality = {0: 14.3/100000, 1: 88.9/100000, 2: 180.8/100000, 3: 287.9/100000, 4: 531.0/100000, 5: 1117.1/100000, 6: 2151.3/100000, 7: 5119.4/100000, 8: 15743.3/100000}
+    # fertility = {0: 13.9/(1000 / (3/18)), 1: 61.5/1000, 2: (93.0 + 97.6)/(2*1000), 3: (53.7 + 12.0)/(2*1000), 4: 0, 5: 0, 6:0, 7:0, 8:0}
+    # mortality = {0: 14.3/100000, 1: 88.9/100000, 2: 180.8/100000, 3: 287.9/100000, 4: 531.0/100000, 5: 1117.1/100000, 6: 2151.3/100000, 7: 5119.4/100000, 8: 15743.3/100000}
+
+    fertility = {0: 0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
+    mortality = {0: 0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
 
     if n_years == -1:
         n_years = 1
 
+    pdb.set_trace()
     mortality_v  = np.array([mortality[x] for x in ret[:, colnames["agecat"]]]).reshape(-1, 1)
     ret = np.append(ret, mortality_v, axis = 1)
     colnames["mortality"] = max(colnames.values()) + 1
@@ -278,7 +281,6 @@ def create_pop(colnames: list, pop: np.ndarray, n_hh: int, wave: int, seed, n_ye
     fertility_v = np.array([fertility[x] * y for x, y in zip(ret[:, colnames["agecat"]], ret[:, colnames["gender"]])]).reshape(-1, 1)
     ret = np.append(ret, fertility_v, axis = 1)
     colnames["fertility"] = max(colnames.values()) + 1
-    """
 
     ret = np.asfortranarray(ret)
 
@@ -461,7 +463,7 @@ IMPORTANT: note that this is COLUMN-MAJOR order, Fortran style,
 which saves us a loop on the c++ side when adding to igraph
 
 """
-ND_POINTER_2 = np.ctypeslib.ndpointer(dtype=np.float64,
+ND_POINTER_2 = np.ctypeslib.ndpointer(dtype=ctypes.c_double,
                                       ndim=2,
                                       flags="F")
 
@@ -579,6 +581,7 @@ class BICS_ABM:
         else:
             self._pop = pop
 
+        self._pop = self._pop.astype(ctypes.c_double)
         pdb.set_trace()
 
 
