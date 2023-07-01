@@ -282,7 +282,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         random_contacts_duration(graph, daily_contacts, params->ISOLATION_MULTIPLIER, params->CONTACT_MULT_VEC[day%365], generator);
 
         // Connect school contacts
-        if (params->SCHOOL_CONTACTS && ((day % 365 < 152 ) || (day % 365 > 244)) ) {
+        if (params->SCHOOL_CONTACTS && ((day % 365 < 152 ) || (day % 365 > 244)) && ((day % 7 < 2 ) || (day % 7 > 5) )) {
             gen_school_contacts(graph, &school_contacts, school_ul, hh_lookup);
             school_ul.add_updates_to_graph(graph);
         }

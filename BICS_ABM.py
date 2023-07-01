@@ -199,16 +199,40 @@ def create_pop(colnames: list, pop: np.ndarray, n_hh: int, wave: int, seed, poly
 
     colnames = {k:v for v, k in enumerate(colnames)}
 
-
     pop_list = list()
 
+    ## DF with probabilities
+    probs = pd.read_csv("age_and_sex.csv")
+    probs["agecat"] = probs["agecat"] - 1
+    probs = probs[probs["agecat"] > 0]
+
+    hhs = probs.sample(n = n_hh, replace = True, weights = probs.value )
+    hhs = hhs[["agecat", "gender"]]
+
+    hhs_list =  list()
+    for i,h in hhs.iterrows():
+        w = deepcopy(pop[:, colnames["weight_pooled"]])
+        w[
+                (pop[:, colnames["agecat"]] != h.agecat) &
+                (pop[:, colnames["gender"]] != h.gender)
+                ] = 0
+        if (sum(w) == 0):
+            w = pop[:, colnames["weight_pooled"]]
+
+        hhs_list.append(np.random.choice(pop.shape[0], 1, p = sum_to_1(w))[0])
+        
+    hhs = np.array(hhs_list)
+    print(hhs)
+
     # Pre-generate households
+    """ 
     hhs = np.random.choice(
             pop.shape[0],
             size = n_hh,
             replace = True,
             p = sum_to_1(pop[:,colnames["weight_pooled"]])
             )
+    """
 
     for hhid, hh in enumerate(hhs):
 

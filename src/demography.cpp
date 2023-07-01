@@ -30,13 +30,37 @@ void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh
     igraph_vector_init(&ds, 0);
     VANV(g, "disease_status", &ds);
 
+    igraph_vector_t num_cc;
+    igraph_vector_init(&num_cc, 0);
+    VANV(g, "num_cc_nonhh", &num_cc);
+
+    igraph_vector_t num_cc_school;
+    igraph_vector_init(&num_cc_school, 0);
+    VANV(g, "num_cc_school", &num_cc_school);
+
+    float mean_school=0;
+    float mean_cc=0;
+    int num_0=0;
+    for (int i = 0; i < igraph_vcount(g); i++) {
+        if (VECTOR(age)[i] == 0) {
+            mean_cc += VECTOR(num_cc)[i];
+            mean_school += VECTOR(num_cc_school)[i];
+            num_0++;
+        }
+    }
+
+    mean_cc = round(mean_cc / num_0);
+    mean_school = round(mean_school / num_0);
+
+
     // First handle deaths
     int v = igraph_vcount(g);
     int a;
     for (int i = 0; i < v; i++) {
         a = VECTOR(age)[i];
         if (VECTOR(ds)[i] != _D) {
-            if (random_draw(params->FERTILITY_V[a]/12, seed) ) {
+            if (random_draw(params->MORTALITY_V[a]/12, seed) ) {
+                cout << "There was a death!!" << endl;
                 // Set to be dead
                 VECTOR(ds)[i] = _D;
             }
@@ -48,7 +72,7 @@ void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh
     for (int i = 0; i < v; i++) {
         a = VECTOR(age)[i];
         if (VECTOR(ds)[i] != _D & VECTOR(gender)[i] != 0) {
-            if (random_draw(params->MORTALITY_V[a]/12, seed) ) {
+            if (random_draw(params->FERTILITY_V[a]/12, seed) ) {
 
                 // Create a new node in parent's household
                 igraph_add_vertices(g, 1, NULL);
@@ -58,8 +82,8 @@ void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh
                 SETVAN(g, "hhid", new_v, VAN(g, "hhid", i)); 
                 SETVAN(g, "age", new_v, 0);
                 SETVAN(g, "gender", new_v, random_draw(0.6, seed));
-                SETVAN(g, "num_cc_nonhh", new_v, 1);
-                SETVAN(g, "num_cc_school", new_v, 1);
+                SETVAN(g, "num_cc_nonhh", new_v, mean_cc);
+                SETVAN(g, "num_cc_school", new_v, mean_school);
                 SETVAN(g, "lefthome_num", new_v, 1);
                 SETVAN(g, "vaccine_priority", new_v, 0);
                 SETVAN(g, "NPI", new_v, 0);
@@ -97,6 +121,8 @@ void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh
     igraph_vector_destroy(&age);
     igraph_vector_destroy(&gender);
     igraph_vector_destroy(&ds);
+    igraph_vector_destroy(&num_cc);
+    igraph_vector_destroy(&num_cc_school);
 
 
 }
