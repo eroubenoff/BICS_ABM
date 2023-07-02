@@ -73,8 +73,6 @@ void create_graph_from_pop(igraph_t *g, double *pop, size_t pop_size, size_t n_c
 
     igraph_vector_destroy(&col);
 
-    print_attributes(g);
-
 }
 
 

@@ -329,9 +329,9 @@ void random_contacts_duration(const igraph_t *g,
     for (int i = igraph_vcount(g); i--; ) {
         if (VECTOR(ds_vec)[i] == _Ic){ 
             // Trick for rounding becuase float -> int cast truncates
-            VECTOR(stubs_count)[i] = (int) round(VECTOR(num_cc_nonhh)[i] * isolation_multiplier * contact_multiplier);
+            VECTOR(stubs_count)[i] = poisson_distribution(round(VECTOR(num_cc_nonhh)[i] * isolation_multiplier * contact_multiplier))(generator);
         }  else {
-            VECTOR(stubs_count)[i] = (int) round(VECTOR(num_cc_nonhh)[i] * contact_multiplier);
+            VECTOR(stubs_count)[i] = poisson_distribution(round(VECTOR(num_cc_nonhh)[i] * contact_multiplier))(generator);
         }
     }
 

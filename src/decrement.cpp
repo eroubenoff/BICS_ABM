@@ -57,6 +57,8 @@ inline void decrement_Ic(UpdateList &ul, int i, double rds, double mu) {
     } else if ((rds == 0.0 ) & (mu == 1.0) ) {
         ul.add_update(UpdateVertexAttribute(i, "disease_status", _D));
         ul.add_update(UpdateVertexAttribute(i, "remaining_days_sick", -1));
+        ul.add_update(UpdateVertexAttribute(i, "num_cc_nonhh", 0));
+        ul.add_update(UpdateVertexAttribute(i, "num_cc_school", 0));
 
     } else {
         ul.add_update(UpdateVertexAttribute(i, "remaining_days_sick", rds - 1));

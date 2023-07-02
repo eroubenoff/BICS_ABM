@@ -11,6 +11,55 @@ bool random_draw(double p, mt19937 &seed) {
     std::bernoulli_distribution d(p);
     return d(seed);
 }
+void remove_deceased_from_hhs(igraph_t *g, 
+        int vid, 
+        unordered_map<int, vector<int>> &hh_lookup,
+        UpdateList &hh_ul){
+
+    int hhid = VAN(g, "hhid", vid);
+
+    // Iterate over the vector to remove the node form hh_lookup
+    int i;
+    bool found = false;
+    for (i = 0; i < hh_lookup[hhid].size(); i++) {
+        if (hh_lookup[hhid][i] == vid) {
+            hh_lookup[hhid].erase(hh_lookup[hhid].begin() + i);
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        // cout << "In demography::remove_deceased_from_hhs: could not find node "+ to_string(vid) << endl;
+        throw runtime_error("In demography::remove_deceased_from_hhs: could not find node " +  to_string(vid));
+    } 
+
+    // Now need to remove from the updatelist 
+    // Need to do both the create and the attributes
+
+    vector<int> remove_edge_updates;
+    for (i = 0; i < hh_ul._create_edge_v.size(); i++) {
+        if ((hh_ul._create_edge_v[i].get_v1() == vid) || (hh_ul._create_edge_v[i].get_v2() == vid)) {
+            remove_edge_updates.push_back(i);
+        }
+    }
+
+    for (i = remove_edge_updates.size(); i--; ) {
+        hh_ul._create_edge_v.erase(hh_ul._create_edge_v.begin() + i);
+    }
+
+    remove_edge_updates.clear();
+    for (i = 0; i < hh_ul._update_edge_attribute_v.size(); i++) {
+        if ((hh_ul._update_edge_attribute_v[i].get_v1() == vid) || (hh_ul._update_edge_attribute_v[i].get_v2() == vid)) {
+            remove_edge_updates.push_back(i);
+        }
+    }
+
+    for (i = remove_edge_updates.size(); i--; ) {
+        hh_ul._update_edge_attribute_v.erase(hh_ul._update_edge_attribute_v.begin() + i);
+    }
+
+}
 /*
  * Function to handle births and deaths
  *
@@ -60,9 +109,11 @@ void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh
         a = VECTOR(age)[i];
         if (VECTOR(ds)[i] != _D) {
             if (random_draw(params->MORTALITY_V[a]/12, seed) ) {
-                cout << "There was a death!!" << endl;
+                //cout << "There was a death!!" << endl;
                 // Set to be dead
                 VECTOR(ds)[i] = _D;
+
+                remove_deceased_from_hhs(g, i, hh_lookup, hh_ul);
             }
         }
     }
@@ -109,7 +160,7 @@ void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh
 
 
 
-                cout << "There was a birth! The number of nodes is now:" << igraph_vcount(g)<< endl;
+                //cout << "There was a birth! The number of nodes is now:" << igraph_vcount(g)<< endl;
                 
 
             }

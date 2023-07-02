@@ -210,10 +210,20 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
      * */
 
     int n_imported_cases;
+
+    igraph_vector_t ds0_vec;
+    igraph_vector_init(&ds0_vec, 0);
+    igraph_vector_t ds1_vec;
+    igraph_vector_init(&ds1_vec, 0);
+
     while (run) {
         Cc = 0;
         Csc = 0;
         n_imported_cases = 0;
+
+
+        // Pull disease status vector
+        VANV(graph, "disease_status", &ds0_vec);
 
         /* Reset all edges */
         // igraph_delete_edges(graph, igraph_ess_all(IGRAPH_EDGEORDER_ID));
@@ -253,13 +263,6 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         }
         
 
-        /* Handle Demography monthly*/
-        if ((day % 30) == 0) {
-            // hh_ul.clear_updates();
-            demography(graph, params, hh_lookup, hh_ul, generator);
-            // Add to hh update list
-            // gen_hh_edges(graph, hh_ul, hh_lookup);
-        }
 
         // Hours 0-8
         for (hr = 0; hr < 1; hr++ ) {
@@ -413,6 +416,20 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
         day++;
 
+
+        /* Compare ds vectors to disconnect anyone that died */
+        VANV(graph, "disease_status", &ds1_vec);
+        for (int i =0; i < igraph_vector_size(&ds0_vec); i++) {
+            if ((VECTOR(ds1_vec)[i]  == _D )&& (VECTOR(ds0_vec)[i] != _D)) {
+                remove_deceased_from_hhs(graph, i, hh_lookup, hh_ul);
+            }
+        }
+
+        /* Handle Demography monthly*/
+        if ((day % 30) == 0) {
+            demography(graph, params, hh_lookup, hh_ul, generator);
+        }
+
         /* If max days is given, break on that day;
          * if no max days is given (-1), then break
          * when infection count drops to 0
@@ -444,6 +461,8 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
     /* Garbage collect */
     igraph_vector_int_destroy(&hourly_edges);
     igraph_vector_int_destroy(&edges_to_delete);
+    igraph_vector_destroy(&ds0_vec);
+    igraph_vector_destroy(&ds1_vec);
     igraph_destroy(&school_contacts);
 
 }

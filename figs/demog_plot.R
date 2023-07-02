@@ -2,6 +2,34 @@ library(tidyverse)
 setwd("~/BICS_ABM/figs")
 
 age = c("[0,18)", "[18,25)", "[25,35)", "[35,45)", "[45,55)", "[55,65)","[65,75)", "[75,85)", "85+")
+binwidths = c(18, 5, 10, 10, 10, 10, 10, 10, 15)
+
+age_and_sex = read_csv("../2021_age_and_sex.csv")
+age_and_sex$agecat <- c(NA, 1, 1, 1, 1, 2, 3,3,4,4,5,5,6,6,7,7,8,8,9)
+age_and_sex$binwidth <- binwidths[age_and_sex$agecat]
+#age_and_sex$agecat <- age[age_and_sex$agecat]
+age_and_sex
+age_and_sex <- age_and_sex %>% group_by(agecat) %>%
+  drop_na() %>%
+  summarize(Total = sum(Total),
+            Male = sum(Male),
+            Female = sum(Female),
+            Min = min(Min),
+            binwidth = min(binwidth))
+age_and_sex
+# Get probability vectors
+age_and_sex <- age_and_sex %>%
+  mutate(across(c(Total, Male, Female), ~./sum(Total)))
+
+age_and_sex <- age_and_sex %>% select(agecat, Male, Female) %>%
+  pivot_longer(-agecat, names_to = "gender") %>% 
+  mutate(idx = 1:nrow(.)) %>%
+  mutate(gender = case_match(gender, 
+                             "Male" ~ 0,
+                             "Female" ~ 1))
+
+write_csv(age_and_sex, "../age_and_sex.csv")
+
 
 fertility = c(13.9/(1000 / (3/18)), 61.5/1000, (93.0 + 97.6)/(2*1000), (53.7 + 12.0)/(2*1000), 0, 0, 0, 0, 0)
 mortality = c(14.3/100000, 88.9/100000, 180.8/100000, 287.9/100000, 531.0/100000, 1117.1/100000, 2151.3/100000, 5119.4/100000, 15743.3/100000)

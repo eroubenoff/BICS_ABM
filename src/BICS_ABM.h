@@ -255,6 +255,10 @@ class UpdateList {
         void add_update(UpdateVertexAttribute update) ;
         void clear_updates() ;
         void add_updates_to_graph(igraph_t *g) ;
+        friend void remove_deceased_from_hhs(igraph_t *g, 
+                int vid, 
+                unordered_map<int, vector<int>> &hh_lookup,
+                UpdateList &hh_ul);
         string print_updates();
 };
 
@@ -394,3 +398,5 @@ void make_stubcount_sum_even(igraph_vector_int_t& stubs_count);
 
 void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh_lookup, 
         UpdateList &hh_ul, mt19937 &seed); 
+
+
