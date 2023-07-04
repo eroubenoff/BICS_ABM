@@ -415,8 +415,8 @@ class Params(ctypes.Structure):
             ('NPI', ctypes.c_float),
             ('MAX_DAYS', ctypes.c_int),
             ('BOOSTER_DAY', ctypes.c_int),
-            ('FERTILITY_V', ctypes.c_float*9),
-            ('MORTALITY_V', ctypes.c_float*9)
+            ('FERTILITY_VEC', ctypes.c_float*9),
+            ('MORTALITY_VEC', ctypes.c_float*9)
 
     ]
 
@@ -425,8 +425,8 @@ class Params(ctypes.Structure):
         self.WAVE = 6
         self.GAMMA_MIN = 2*24
         self.GAMMA_MAX = 4*24
-        self.SIGMA_MIN = 3*24
-        self.SIGMA_MAX = 7*24
+        self.SIGMA_MIN = 4*24
+        self.SIGMA_MAX = 6*24
         beta_vec = [0] * 365
         self.BETA_VEC = (ctypes.c_float * 365)(*beta_vec)
         contact_mult_vec = [1] * 365
@@ -464,9 +464,9 @@ class Params(ctypes.Structure):
 
 
         fertility = [13.9/(1000 / (3/18)), 61.5/1000, (93.0 + 97.6)/(2*1000), (53.7 + 12.0)/(2*1000), 0, 0, 0, 0, 0]
-        self.FERTILITY_V = (ctypes.c_float*9)(*fertility)
+        self.FERTILITY_VEC = (ctypes.c_float*9)(*fertility)
         mortality = [14.3/100000, 88.9/100000, 180.8/100000, 287.9/100000, 531.0/100000, 1117.1/100000, 2151.3/100000, 5119.4/100000, 15743.3/100000]
-        self.MORTALITY_V = (ctypes.c_float*9)(*mortality)
+        self.MORTALITY_VEC = (ctypes.c_float*9)(*mortality)
 
 
 """
@@ -502,6 +502,7 @@ class Trajectory (ctypes.Structure):
         ('VW_array', ctypes.c_int*TRAJ_SIZE),
         ('VBoost_array', ctypes.c_int*TRAJ_SIZE),
         ('n_edges_array', ctypes.c_int*TRAJ_SIZE),
+        ('cr_array', ctypes.c_float*TRAJ_SIZE),
         ('counter', ctypes.c_int)
     ]
 
@@ -547,7 +548,7 @@ class BICS_ABM:
             del kwargs["BETA_VEC"]
 
         for k, v in kwargs.items():
-            if k not in self._params.__dir__():
+            if k not in self.__dir__():
 
                 raise ValueError("Invalid parameter " + k + " passed to BICS_ABM")
 
@@ -555,6 +556,18 @@ class BICS_ABM:
                 if k == "MU_VEC":
                     if len(v) != 9:
                         raise ValueError("Case fatality must be 9 element list")
+                    v = (ctypes.c_float * 9)(* v)
+                    setattr(self._params, k, v)
+
+                if k == "FERTILITY_VEC":
+                    if len(v) != 9:
+                        raise ValueError("Fertility vec must be 9 element list")
+                    v = (ctypes.c_float * 9)(* v)
+                    setattr(self._params, k, v)
+
+                if k == "MORTALITY_VEC":
+                    if len(v) != 9:
+                        raise ValueError("Mortality vec must be 9 element list")
                     v = (ctypes.c_float * 9)(* v)
                     setattr(self._params, k, v)
 
@@ -625,6 +638,7 @@ class BICS_ABM:
         self.VW = self._trajectory.VW_array[:self.counter]
         self.VBoost = self._trajectory.VBoost_array[:self.counter]
         self.n_edges= self._trajectory.n_edges_array[:self.counter]
+        self.cr = self._trajectory.cr_array[:self.counter]
 
         del self._trajectory
 
@@ -639,6 +653,7 @@ class BICS_ABM:
         ax[0].plot(xaxis, self.Ic, label = "Ic")
         ax[0].plot(xaxis, self.Isc, label = "Isc")
         ax[0].plot(xaxis, self.R, label = "R")
+        ax[0].plot(xaxis, self.RW, label = "RW")
         ax[0].plot(xaxis, self.D, label = "D")
         ax[0].legend()
         ax[0].set_title("Disease States")

@@ -11,12 +11,14 @@ struct Trajectory {
     int Isc_array[100000];
     int Csc_array[100000];
     int R_array[100000];
+    int RW_array[100000];
     int D_array[100000];
     int V1_array[100000];
     int V2_array[100000];
     int VW_array[100000];
     int VBoost_array[100000];
     int n_edges_array[100000];
+    float cr_array[100000];
     int counter;
 
 };
@@ -135,12 +137,14 @@ extern "C" /*struct Trajectory*/ void BICS_ABM(double *pop, size_t pop_size, siz
     copy(history.Isc.begin(), history.Isc.end(), trajectory->Isc_array);
     copy(history.Csc.begin(), history.Csc.end(), trajectory->Csc_array);
     copy(history.R.begin(), history.R.end(), trajectory->R_array);
+    copy(history.RW.begin(), history.R.end(), trajectory->R_array);
     copy(history.D.begin(), history.D.end(), trajectory->D_array);
     copy(history.V1.begin(), history.V1.end(), trajectory->V1_array);
     copy(history.V2.begin(), history.V2.end(), trajectory->V2_array);
     copy(history.VW.begin(), history.VW.end(), trajectory->VW_array);
     copy(history.VBoost.begin(), history.VBoost.end(), trajectory->VBoost_array);
     copy(history.n_edges.begin(), history.n_edges.end(), trajectory->n_edges_array);
+    copy(history.cr.begin(), history.cr.end(), trajectory->cr_array);
  
     if (silent) {
         // restore buffer

@@ -30,9 +30,11 @@ tuple<int, int> transmit(igraph_t *g,
     int sigma;
     int mu; 
     int rho; 
-    bool symptomatic;
+    float symptomatic;
     double prob;
-    bool NPI;
+    float NPI;
+    float vaccine;
+    float reinf;
 
     /* Pull attributes from g */
 
@@ -48,6 +50,15 @@ tuple<int, int> transmit(igraph_t *g,
     igraph_vector_init(&NPI_vec, vcount);
     VANV(g, "NPI", &NPI_vec);
 
+    igraph_vector_t etypes_vec;
+    igraph_vector_init(&etypes_vec, 0);
+    EANV(g, "type", &etypes_vec);
+
+    igraph_vector_t eduration_vec;
+    igraph_vector_init(&eduration_vec, 0);
+    EANV(g, "duration", &eduration_vec);
+
+
     // Counts of new infections (to be returned)
     int Cc = 0;
     int Csc = 0;
@@ -58,48 +69,94 @@ tuple<int, int> transmit(igraph_t *g,
 
     UpdateList ul;
 
+
     for (int i = vcount; i--; ) {
         ds = VECTOR(ds_vec)[i]; 
 
         if ((ds == _Ic) || (ds == _Isc) /*|| (ds == _E)*/) {
             igraph_neighbors(g, &neighbors, i, IGRAPH_ALL); 
-            if (ds == _Ic) symptomatic=true;
 
             for (int n_neighbors = igraph_vector_int_size(&neighbors) ; n_neighbors--; ) {
                 n2 = VECTOR(neighbors)[n_neighbors];
                 igraph_get_eid(g, &eid, i, n2, false, true);
-                duration = EAN(g, "duration", eid);
+                duration = VECTOR(eduration_vec)[eid];
+                // duration = EAN(g, "duration", eid);
                 duration = max(duration, 1.0);
 
                 ds2 = VECTOR(ds_vec)[n2];  
                 vs2 = VECTOR(vs_vec)[n2]; 
-                if (ds2 != _S) continue; 
+                if (!((ds2 == _S) || (ds2 == _RW))) continue; 
 
-                if (VECTOR(NPI_vec)[i] && VECTOR(NPI_vec)[n2]) NPI = true;
+
+                /* Assemble the components of the transmission probability */
+
+                NPI = 1;
+                if (VECTOR(NPI_vec)[i] && VECTOR(NPI_vec)[n2]) {
+                    NPI = 1-params->NPI;
+                } 
+                if (VECTOR(etypes_vec)[i] == _Household) {
+                    NPI = 1;
+                }
+
+                symptomatic = 0;
+                if (ds == _Ic) {
+                    symptomatic = 1;
+                } else if (ds == _Ic) {
+                    symptomatic = params->ALPHA;
+                } 
+                
+                reinf = 1;
+                if (ds2 == _RW) {
+                    reinf = params -> VEW;
+                } 
+
+                vaccine = 1;
+                if (vs2 == _V0) {
+                    vaccine = 1;
+                } else if (vs2 == _V1) {
+                    vaccine = 1-params->VE1;
+                } else if (vs2 == _V2) {
+                    vaccine = 1-params->VE2;
+                } else if (vs2 == _VW) {
+                    vaccine = 1-params->VEW;
+                } else if (vs2 == _VBoost) {
+                    vaccine = 1-params->VEBOOST;
+                }
+
+                prob = duration * BETA * NPI * symptomatic * reinf * vaccine;
+                dist = bernoulli_distribution(prob);
+                vs_next = dist(generator);
+
+
+
+
+
+                /*
 
                 if (vs2 == _V0){
-                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (symptomatic ? 1 : params->ALPHA);
+                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (symptomatic ? 1 : params->ALPHA) * ((ds2 == _RW) ? params -> VEW : 1);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == _V1){
-                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VE1) * (symptomatic ? 1 : params->ALPHA);
+                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VE1) * (symptomatic ? 1 : params->ALPHA) * ((ds2 == _RW) ? params -> VEW : 1);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == _V2) {
-                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VE2) * (symptomatic ? 1 : params->ALPHA);
+                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VE2) * (symptomatic ? 1 : params->ALPHA) * ((ds2 == _RW) ? params -> VEW : 1);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == _VW) {
-                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VEW) * (symptomatic ? 1 : params->ALPHA);
+                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VEW) * (symptomatic ? 1 : params->ALPHA) * ((ds2 == _RW) ? params -> VEW : 1);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else if (vs2 == _VBoost) {
-                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VEBOOST) * (symptomatic ? 1 : params->ALPHA);
+                    prob = duration * BETA * (NPI ? (1-params->NPI) : 1) * (1-params->VEBOOST) * (symptomatic ? 1 : params->ALPHA) * ((ds2 == _RW) ? params -> VEW : 1);
                     dist = bernoulli_distribution(prob);
                     vs_next = dist(generator);
                 } else {
                     throw runtime_error("Error in Transmit switch");
                 }
+                */ 
                 if (vs_next) {
                     uint_dist = uniform_int_distribution(params->GAMMA_MIN, params->GAMMA_MAX);
                     gamma = uint_dist(generator);
@@ -124,6 +181,8 @@ tuple<int, int> transmit(igraph_t *g,
     igraph_vector_destroy(&ds_vec);
     igraph_vector_destroy(&vs_vec);
     igraph_vector_destroy(&NPI_vec);
+    igraph_vector_destroy(&etypes_vec);
+    igraph_vector_destroy(&eduration_vec);
     igraph_vector_int_destroy(&neighbors);
 
     return make_tuple(Cc, Csc);

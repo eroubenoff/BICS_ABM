@@ -108,7 +108,7 @@ void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh
     for (int i = 0; i < v; i++) {
         a = VECTOR(age)[i];
         if (VECTOR(ds)[i] != _D) {
-            if (random_draw(params->MORTALITY_V[a]/12, seed) ) {
+            if (random_draw(params->MORTALITY_VEC[a]/12, seed) ) {
                 //cout << "There was a death!!" << endl;
                 // Set to be dead
                 VECTOR(ds)[i] = _D;
@@ -123,7 +123,7 @@ void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh
     for (int i = 0; i < v; i++) {
         a = VECTOR(age)[i];
         if (VECTOR(ds)[i] != _D & VECTOR(gender)[i] != 0) {
-            if (random_draw(params->FERTILITY_V[a]/12, seed) ) {
+            if (random_draw(params->FERTILITY_VEC[a]/12, seed) ) {
 
                 // Create a new node in parent's household
                 igraph_add_vertices(g, 1, NULL);
@@ -138,8 +138,6 @@ void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh
                 SETVAN(g, "lefthome_num", new_v, 1);
                 SETVAN(g, "vaccine_priority", new_v, 0);
                 SETVAN(g, "NPI", new_v, 0);
-                SETVAN(g, "mortality", new_v, 0);
-                SETVAN(g, "fertility", new_v, 0);
                 SETVAN(g, "disease_status", new_v, _S);
                 SETVAN(g, "remaining_days_exposed", new_v, -1);
                 SETVAN(g, "remaining_days_sick", new_v, -1);

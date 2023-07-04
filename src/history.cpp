@@ -19,17 +19,19 @@ History::History(int initial_length) {
     Isc.resize(length, -1);
     Csc.resize(length, -1);
     R.resize(length, -1);
+    RW.resize(length, -1);
     D.resize(length, -1);
     V1.resize(length, -1);
     V2.resize(length, -1);
     VW.resize(length, -1);
     VBoost.resize(length, -1);
     n_edges.resize(length, -1);
+    cr.resize(length, -1);
 
 }
 
 
-void History::add_history(int S_count, int E_count, int Ic_count, int Cc_count, int Isc_count, int Csc_count, int R_count, int D_count, int V1_count, int V2_count, int VW_count, int VBoost_count, int n_edges_count) {
+void History::add_history(int S_count, int E_count, int Ic_count, int Cc_count, int Isc_count, int Csc_count, int R_count, int RW_count, int D_count, int V1_count, int V2_count, int VW_count, int VBoost_count, int n_edges_count, float cr_count) {
     if (counter == length-1) {
         length += 500;
         S.resize(length, -1);
@@ -39,11 +41,13 @@ void History::add_history(int S_count, int E_count, int Ic_count, int Cc_count, 
         Isc.resize(length, -1);
         Csc.resize(length, -1);
         R.resize(length, -1);
+        RW.resize(length, -1);
         D.resize(length, -1);
         V1.resize(length, -1);
         V2.resize(length, -1);
         VW.resize(length, -1);
         VBoost.resize(length, -1);
+        cr.resize(length, -1);
         n_edges.resize(length, -1);
     }
 
@@ -55,11 +59,13 @@ void History::add_history(int S_count, int E_count, int Ic_count, int Cc_count, 
     Isc[counter] = Isc_count;
     Csc[counter] = Csc_count;
     R[counter] = R_count;
+    RW[counter] = RW_count;
     D[counter] = D_count;
     V1[counter] = V1_count;
     V2[counter] = V2_count;
     VW[counter] = VW_count;
     VBoost[counter] = VBoost_count;
+    cr[counter] = cr_count;
     n_edges[counter] = n_edges_count;
 
     counter++; 

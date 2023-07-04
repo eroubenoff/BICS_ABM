@@ -70,6 +70,10 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
 
 
 
+    // Attach a pointer to the params object to the graph
+    double params_ptr = (long long) params;
+    SETGAN(graph, "PARAMS_ptr", params_ptr);
+
     int day; 
     int hr;
     igraph_bool_t connected;

@@ -22,7 +22,8 @@ using namespace std;
 #define _Ic 3
 #define _Isc 4
 #define _R 5
-#define _D 6
+#define _RW 6
+#define _D 7
 #define _V0 0
 #define _V1 1
 #define _V2 2
@@ -75,8 +76,8 @@ extern "C" typedef struct Params {
     float NPI;
     int MAX_DAYS;
     int BOOSTER_DAY;
-    float FERTILITY_V[9];
-    float MORTALITY_V[9];
+    float FERTILITY_VEC[9];
+    float MORTALITY_VEC[9];
 
 } Params;
 
@@ -103,17 +104,19 @@ class History {
         vector<int> Isc;
         vector<int> Csc;
         vector<int> R;
+        vector<int> RW;
         vector<int> D;
         vector<int> V1;
         vector<int> V2;
         vector<int> VW;
         vector<int> VBoost;
         vector<int> n_edges;
+        vector<float> cr;
         int counter;
         int length;
         History(int initial_length = 2000);
         void add_history(int S_count, int E_count, int Ic_count, int Cc_count, int Isc_count, int Csc_count, 
-                int R_count, int D_count, int V1_count, int V2_count, int VW_count, int VBoost_count, int n_edges_count); 
+                int R_count, int RW_count, int D_count, int V1_count, int V2_count, int VW_count, int VBoost_count, int n_edges_count, float cr_count); 
         void save(string path = "history.csv");
         void plot_trajectory(string path = "plot.png") ;
 };

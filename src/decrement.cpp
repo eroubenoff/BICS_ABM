@@ -79,18 +79,13 @@ inline void decrement_Isc(UpdateList &ul, int i, double rds) {
  */
 inline void decrement_R(UpdateList &ul, int i, double tsus) {
     if (tsus == 0 ) {
-        ul.add_update(UpdateVertexAttribute(i, "disease_status", _S));
+        ul.add_update(UpdateVertexAttribute(i, "disease_status", _RW));
         ul.add_update(UpdateVertexAttribute(i, "time_until_susceptible", -1));
     }
     else {
         ul.add_update(UpdateVertexAttribute(i, "time_until_susceptible", tsus - 1));
     }
 
-}
-
-/* If dead, do nothing */
-inline void decrement_D(int i) {
-    return;
 }
 
 /*
@@ -175,6 +170,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     int Ic_count = 0;
     int Isc_count = 0;
     int R_count = 0;
+    int RW_count = 0;
     int D_count = 0;
     int V1_count = 0;
     int V2_count = 0;
@@ -241,9 +237,11 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
             R_count++;
             decrement_R(ul, i, VECTOR(tsus_vec)[i]);
         }
+        else if (ds == _RW) {
+            RW_count++;
+        } 
         else if (ds == _D) {
             D_count++;
-            decrement_D(i);
         }
         
 
@@ -306,23 +304,35 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     igraph_vector_init(&durations, 0);
     EANV(g, "duration", &durations);
 
+    igraph_vector_t NPI;
+    igraph_vector_init(&NPI, 0);
+    VANV(g, "NPI", &NPI);
+
+    float cr = 0;
+
+    long params_ptr = GAN(g, "PARAMS_ptr");
+    Params *PARAMS = reinterpret_cast<Params*>(params_ptr);
 
     for (int i = igraph_ecount(g); i--; ) {
 
         //cout << VECTOR(etypes)[i];
         if (VECTOR(etypes)[i] == _Household) {
             hh_count++;
+            cr++;
         }
         if (VECTOR(etypes)[i] == _Random) {
             random_count++;
             decrement_random(ul, i, VECTOR(durations)[i]);
+            cr += VECTOR(durations)[i]*(
+                    ((VECTOR(NPI)[IGRAPH_FROM(g, i)] == 1) && (VECTOR(NPI)[IGRAPH_TO(g, i)] == 1)) ? (1-PARAMS->NPI) : 1
+            );
         }
         if (VECTOR(etypes)[i] == _School) {
             school_count++;
+            cr += ((VECTOR(NPI)[IGRAPH_FROM(g, i)] == 1) && (VECTOR(NPI)[IGRAPH_TO(g, i)] == 1)) ? (1-PARAMS->NPI) : 1;
         }
     }
 
-    // cout<< endl;
 
     // Add graph attributes
     ul.add_update(UpdateGraphAttribute("S_count", S_count));
@@ -330,6 +340,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     ul.add_update(UpdateGraphAttribute("Ic_count", Ic_count));
     ul.add_update(UpdateGraphAttribute("Isc_count", Isc_count));
     ul.add_update(UpdateGraphAttribute("R_count", R_count));
+    ul.add_update(UpdateGraphAttribute("RW_count", RW_count));
     ul.add_update(UpdateGraphAttribute("D_count", D_count));
     ul.add_update(UpdateGraphAttribute("V1_count", V1_count));
     ul.add_update(UpdateGraphAttribute("V2_count", V2_count));
@@ -338,6 +349,7 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
     ul.add_update(UpdateGraphAttribute("hh_ecount", hh_count));
     ul.add_update(UpdateGraphAttribute("school_ecount", school_count));
     ul.add_update(UpdateGraphAttribute("random_ecount", random_count));
+    ul.add_update(UpdateGraphAttribute("cr", cr));
 
     // cout << ul.print_updates() << endl;
     ul.add_updates_to_graph(g);
@@ -345,9 +357,10 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
 
     igraph_vector_destroy(&etypes);
     igraph_vector_destroy(&durations);
+    igraph_vector_destroy(&NPI);
 
 
-    h->add_history(S_count, E_count, Ic_count, Cc, Isc_count, Csc, R_count, D_count, V1_count, V2_count, VW_count, VBoost_count, hh_count + random_count + school_count);
+    h->add_history(S_count, E_count, Ic_count, Cc, Isc_count, Csc, R_count, RW_count, D_count, V1_count, V2_count, VW_count, VBoost_count, hh_count + random_count + school_count, cr);
 
 
     if (print) {
@@ -356,12 +369,14 @@ void decrement(igraph_t *g, History *h, int Cc, int Csc, bool print) {
         cout << "Ic: " << std::setw(5) << Ic_count << " | ";
         cout << "Isc: " << std::setw(5) << Isc_count << " | ";
         cout << "R: " << std::setw(5) << R_count << " | ";
+        cout << "RW: " << std::setw(5) << RW_count << " | ";
         cout << "D: " << std::setw(5) << D_count << " | ";
         cout << "V1: " << std::setw(5) << V1_count << " | ";
         cout << "V2: " << std::setw(5) << V2_count << " | ";
         cout << "VW: " << std::setw(5) << VW_count << " | ";
         cout << "VBoost: " << std::setw(5) << VBoost_count << " | ";
-        cout << "Edge counts: " << "Household: " <<  setw(5) << hh_count << " School" << setw(5) << school_count << " Random  " << setw(5) <<  random_count;
+        cout << "Edge counts: " << "Household: " <<  setw(5) << hh_count << " School" << setw(5) << school_count << " Random  " << setw(5) <<  random_count << " |  ";
+        cout << "Contact rate: " << setw(10) << cr;
         cout << flush;
     }
 
