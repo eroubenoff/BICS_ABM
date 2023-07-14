@@ -73,6 +73,10 @@ tuple<int, int> transmit(igraph_t *g,
     for (int i = vcount; i--; ) {
         ds = VECTOR(ds_vec)[i]; 
 
+        if (ds == _D | ds == _D_demog) {
+            continue;
+        }
+
         if ((ds == _Ic) || (ds == _Isc) /*|| (ds == _E)*/) {
             igraph_neighbors(g, &neighbors, i, IGRAPH_ALL); 
 

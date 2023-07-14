@@ -31,7 +31,7 @@ void remove_deceased_from_hhs(igraph_t *g,
 
     if (!found) {
         // cout << "In demography::remove_deceased_from_hhs: could not find node "+ to_string(vid) << endl;
-        throw runtime_error("In demography::remove_deceased_from_hhs: could not find node " +  to_string(vid));
+        throw runtime_error("In demography::remove_deceased_from_hhs: could not find node " +  to_string(vid) + " in hhid " + to_string(hhid));
     } 
 
     // Now need to remove from the updatelist 
@@ -107,13 +107,18 @@ void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh
     int a;
     for (int i = 0; i < v; i++) {
         a = VECTOR(age)[i];
-        if (VECTOR(ds)[i] != _D) {
+        if ((VECTOR(ds)[i] != _D) & (VECTOR(ds)[i] != _D_demog)){
             if (random_draw(params->MORTALITY_VEC[a]/12, seed) ) {
                 //cout << "There was a death!!" << endl;
                 // Set to be dead
-                VECTOR(ds)[i] = _D;
+                VECTOR(ds)[i] = _D_demog;
 
                 remove_deceased_from_hhs(g, i, hh_lookup, hh_ul);
+
+                // Set all contacts to be 0
+                SETVAN(g, "num_cc_nonhh", i, 0);
+                SETVAN(g, "num_cc_school", i, 0);
+
             }
         }
     }
@@ -122,7 +127,7 @@ void demography(igraph_t *g, Params *params, unordered_map<int, vector<int>> &hh
     // Then handle births
     for (int i = 0; i < v; i++) {
         a = VECTOR(age)[i];
-        if (VECTOR(ds)[i] != _D & VECTOR(gender)[i] != 0) {
+        if ((VECTOR(ds)[i] != _D  | VECTOR(ds)[i] != _D_demog) & VECTOR(gender)[i] != 0) {
             if (random_draw(params->FERTILITY_VEC[a]/12, seed) ) {
 
                 // Create a new node in parent's household

@@ -24,6 +24,7 @@ using namespace std;
 #define _R 5
 #define _RW 6
 #define _D 7
+#define _D_demog 8 // Deaths not due to COVID
 #define _V0 0
 #define _V1 1
 #define _V2 2
