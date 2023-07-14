@@ -107,7 +107,7 @@ tuple<int, int> transmit(igraph_t *g,
                 
                 reinf = 1;
                 if (ds2 == _RW) {
-                    reinf = params -> VEW;
+                    reinf = 1-params -> VEW;
                 } 
 
                 vaccine = 1;

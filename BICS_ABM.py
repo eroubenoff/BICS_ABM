@@ -222,7 +222,6 @@ def create_pop(colnames: list, pop: np.ndarray, n_hh: int, wave: int, seed, poly
         hhs_list.append(np.random.choice(pop.shape[0], 1, p = sum_to_1(w))[0])
         
     hhs = np.array(hhs_list)
-    print(hhs)
 
     # Pre-generate households
     """ 
@@ -352,7 +351,6 @@ def create_vax_priority(pop, vax_rules = None, seed = 49):
             pop.iloc[idx, vaccine_priority] = i
 
     # Tally total counts in each
-    # print(pop["vaccine_priority"].value_counts())
 
     return pop
 
@@ -496,6 +494,7 @@ class Trajectory (ctypes.Structure):
         ('Isc_array', ctypes.c_int*TRAJ_SIZE),
         ('Csc_array', ctypes.c_int*TRAJ_SIZE),
         ('R_array', ctypes.c_int*TRAJ_SIZE),
+        ('RW_array', ctypes.c_int*TRAJ_SIZE),
         ('D_array', ctypes.c_int*TRAJ_SIZE),
         ('V1_array', ctypes.c_int*TRAJ_SIZE),
         ('V2_array', ctypes.c_int*TRAJ_SIZE),
@@ -547,6 +546,12 @@ class BICS_ABM:
 
             del kwargs["BETA_VEC"]
 
+        if "C1" in kwargs: 
+            v = [max(0, (1+kwargs["C1"]*np.cos(np.pi/182.5*t))) for t in range(365)]
+            v = (ctypes.c_float * 365)(*v)
+            setattr(self._params, "CONTACT_MULT_VEC", v)
+            del kwargs["C1"]
+
         for k, v in kwargs.items():
             if k not in self._params.__dir__():
 
@@ -576,6 +581,7 @@ class BICS_ABM:
                         raise ValueError("Daily import cases must be 365 element list of int")
                     v = (ctypes.c_int * 365)(* v)
                     setattr(self._params, k, v)
+
 
                 elif k == "CONTACT_MULT_VEC":
                     if len(v) != 365:
@@ -632,6 +638,7 @@ class BICS_ABM:
         self.Isc = self._trajectory.Isc_array[:self.counter]
         self.Csc = self._trajectory.Csc_array[:self.counter]
         self.R = self._trajectory.R_array[:self.counter]
+        self.RW = self._trajectory.RW_array[:self.counter]
         self.D = self._trajectory.D_array[:self.counter]
         self.V1 = self._trajectory.V1_array[:self.counter]
         self.V2 = self._trajectory.V2_array[:self.counter]

@@ -284,7 +284,7 @@ void BICS_ABM(igraph_t *graph, Params *params, History *history) {
         
 
 
-        bool vboost = (day % 365) >= params->BOOSTER_DAY;
+        bool vboost = (params->BOOSTER_DAY > 0) && ((day % 365) >= params->BOOSTER_DAY);
         distribute_vax(graph, params->N_VAX_DAILY, 25*24, params->T_REINFECTION, vboost);
         random_contacts_duration(graph, daily_contacts, params->ISOLATION_MULTIPLIER, params->CONTACT_MULT_VEC[day%365], generator);
 

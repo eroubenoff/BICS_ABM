@@ -137,7 +137,7 @@ extern "C" /*struct Trajectory*/ void BICS_ABM(double *pop, size_t pop_size, siz
     copy(history.Isc.begin(), history.Isc.end(), trajectory->Isc_array);
     copy(history.Csc.begin(), history.Csc.end(), trajectory->Csc_array);
     copy(history.R.begin(), history.R.end(), trajectory->R_array);
-    copy(history.RW.begin(), history.R.end(), trajectory->R_array);
+    copy(history.RW.begin(), history.RW.end(), trajectory->RW_array);
     copy(history.D.begin(), history.D.end(), trajectory->D_array);
     copy(history.V1.begin(), history.V1.end(), trajectory->V1_array);
     copy(history.V2.begin(), history.V2.end(), trajectory->V2_array);
